@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vinyl Vault — Collection Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ═══ RESET & VARIABLES ═══ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+    --bg-deep: #0a0a0f;
+    --bg-surface: #12121a;
+    --bg-card: #1a1a26;
+    --bg-card-hover: #22222f;
+    --border: #2a2a3a;
+    --border-accent: #3d3d55;
+    --text-primary: #e8e6f0;
+    --text-secondary: #9896a8;
+    --text-muted: #5e5c6e;
+    --accent-gold: #d4a853;
+    --accent-gold-dim: #9a7a3d;
+    --accent-blue: #5b8cf7;
+    --accent-green: #4ade80;
+    --accent-red: #f87171;
+    --accent-purple: #a78bfa;
+    --accent-cyan: #22d3ee;
+    --gradient-gold: linear-gradient(135deg, #d4a853, #f0d68a);
+    --gradient-vinyl: linear-gradient(135deg, #1a1a26 0%, #0a0a0f 100%);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow-card: 0 4px 24px rgba(0,0,0,0.4);
+    --shadow-glow: 0 0 30px rgba(212, 168, 83, 0.08);
+    --font-display: 'DM Serif Display', serif;
+    --font-body: 'Outfit', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+    font-family: var(--font-body);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* ═══ LAYOUT ═══ */
+.app-container { max-width: 1440px; margin: 0 auto; padding: 24px; }
+
+.header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 32px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+}
+.header-left { display: flex; align-items: center; gap: 20px; }
+.vinyl-icon {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: conic-gradient(from 0deg, #1a1a26, #2a2a3a, #1a1a26, #2a2a3a, #1a1a26);
+    border: 3px solid var(--accent-gold-dim);
+    display: flex; align-items: center; justify-content: center;
+    animation: spin 8s linear infinite;
+    position: relative;
+}
+.vinyl-icon::after {
+    content: ''; width: 12px; height: 12px; border-radius: 50%;
+    background: var(--accent-gold); position: absolute;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+h1 {
+    font-family: var(--font-display); font-size: 2rem;
+    background: var(--gradient-gold); -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; letter-spacing: -0.02em;
+}
+.subtitle { color: var(--text-muted); font-size: 0.85rem; font-weight: 300; }
+
+.api-status {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.8rem; color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+.status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent-red); transition: var(--transition);
+}
+.status-dot.connected { background: var(--accent-green); box-shadow: 0 0 8px rgba(74,222,128,0.5); }
+
+/* ═══ CONFIG BAR ═══ */
+.config-bar {
+    display: flex; align-items: center; gap: 16px;
+    padding: 16px 20px; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    margin-bottom: 28px;
+}
+.config-bar label { font-size: 0.8rem; color: var(--text-secondary); font-weight: 500; }
+.config-bar input, .config-bar button {
+    font-family: var(--font-mono); font-size: 0.8rem;
+    background: var(--bg-surface); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 8px 14px; outline: none; transition: var(--transition);
+}
+.config-bar input:focus { border-color: var(--accent-gold); }
+.config-bar input { width: 320px; }
+.config-bar button {
+    background: var(--accent-gold-dim); color: #fff; border: none;
+    cursor: pointer; font-weight: 600; padding: 8px 20px;
+}
+.config-bar button:hover { background: var(--accent-gold); }
+
+/* ═══ TABS ═══ */
+.tab-bar {
+    display: flex; gap: 4px; margin-bottom: 28px;
+    border-bottom: 1px solid var(--border); padding-bottom: 0;
+}
+.tab {
+    padding: 12px 24px; font-size: 0.85rem; font-weight: 500;
+    color: var(--text-muted); cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: var(--transition); user-select: none;
+}
+.tab:hover { color: var(--text-secondary); }
+.tab.active {
+    color: var(--accent-gold); border-bottom-color: var(--accent-gold);
+}
+
+/* ═══ PANELS ═══ */
+.panel { display: none; animation: fadeIn 0.4s ease; }
+.panel.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ═══ STATS GRID ═══ */
+.stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px; margin-bottom: 32px;
+}
+.stat-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 24px;
+    transition: var(--transition);
+}
+.stat-card:hover { border-color: var(--border-accent); box-shadow: var(--shadow-glow); }
+.stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.stat-value {
+    font-family: var(--font-display); font-size: 2rem;
+    background: var(--gradient-gold); -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.stat-sub { font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; }
+
+/* ═══ CHARTS ═══ */
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+.chart-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px;
+}
+.chart-card h3 {
+    font-family: var(--font-display); font-size: 1.1rem;
+    margin-bottom: 16px; color: var(--text-primary);
+}
+.chart-wrapper { position: relative; height: 300px; }
+
+/* ═══ TABLE ═══ */
+.table-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+}
+.table-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px; border-bottom: 1px solid var(--border);
+}
+.table-header h3 { font-family: var(--font-display); font-size: 1.1rem; }
+.table-search {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 6px 14px;
+    font-family: var(--font-mono); font-size: 0.8rem;
+    color: var(--text-primary); outline: none; width: 240px;
+}
+.table-search:focus { border-color: var(--accent-gold); }
+
+table { width: 100%; border-collapse: collapse; }
+thead th {
+    padding: 12px 16px; text-align: left;
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-muted); border-bottom: 1px solid var(--border);
+    background: var(--bg-surface); position: sticky; top: 0;
+    cursor: pointer; user-select: none;
+}
+thead th:hover { color: var(--text-secondary); }
+tbody td {
+    padding: 12px 16px; font-size: 0.85rem;
+    border-bottom: 1px solid rgba(42,42,58,0.4);
+}
+tbody tr { transition: var(--transition); }
+tbody tr:hover { background: var(--bg-card-hover); }
+
+.table-scroll { max-height: 600px; overflow-y: auto; }
+.table-scroll::-webkit-scrollbar { width: 6px; }
+.table-scroll::-webkit-scrollbar-track { background: var(--bg-surface); }
+.table-scroll::-webkit-scrollbar-thumb { background: var(--border-accent); border-radius: 3px; }
+
+/* ═══ BADGES ═══ */
+.badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 0.7rem; font-weight: 600; letter-spacing: 0.03em;
+}
+.badge-owned { background: rgba(74,222,128,0.15); color: var(--accent-green); }
+.badge-gap { background: rgba(248,113,113,0.15); color: var(--accent-red); }
+.badge-format { background: rgba(91,140,247,0.15); color: var(--accent-blue); }
+.badge-pillar { background: rgba(167,139,250,0.15); color: var(--accent-purple); }
+
+/* ═══ COVERAGE BAR ═══ */
+.coverage-row {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 20px; border-bottom: 1px solid rgba(42,42,58,0.3);
+    transition: var(--transition);
+}
+.coverage-row:hover { background: var(--bg-card-hover); }
+.coverage-label { width: 180px; font-size: 0.85rem; font-weight: 500; flex-shrink: 0; }
+.coverage-bar-bg {
+    flex: 1; height: 24px; background: var(--bg-surface);
+    border-radius: 12px; overflow: hidden; position: relative;
+}
+.coverage-bar-fill {
+    height: 100%; border-radius: 12px;
+    background: var(--gradient-gold);
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 2px;
+}
+.coverage-stats {
+    width: 140px; text-align: right; font-family: var(--font-mono);
+    font-size: 0.8rem; color: var(--text-secondary); flex-shrink: 0;
+}
+.coverage-pct {
+    font-weight: 600; color: var(--accent-gold);
+}
+
+/* ═══ FILTERS ═══ */
+.filter-bar {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+.filter-chip {
+    padding: 6px 16px; border-radius: 20px;
+    font-size: 0.8rem; font-weight: 500;
+    background: var(--bg-surface); color: var(--text-secondary);
+    border: 1px solid var(--border); cursor: pointer;
+    transition: var(--transition); user-select: none;
+}
+.filter-chip:hover { border-color: var(--border-accent); color: var(--text-primary); }
+.filter-chip.active { background: var(--accent-gold-dim); color: #fff; border-color: var(--accent-gold-dim); }
+
+/* ═══ LOADING / EMPTY ═══ */
+.loading {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 60px; color: var(--text-muted);
+}
+.spinner {
+    width: 40px; height: 40px; border: 3px solid var(--border);
+    border-top-color: var(--accent-gold); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin-bottom: 16px;
+}
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+.empty-state h4 { font-family: var(--font-display); font-size: 1.2rem; margin-bottom: 8px; color: var(--text-secondary); }
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 900px) {
+    .charts-row { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .config-bar { flex-wrap: wrap; }
+    .config-bar input { width: 100%; }
+}
+@media (max-width: 600px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .tab { padding: 10px 14px; font-size: 0.8rem; }
+}
+</style>
+</head>
+<body>
+<div class="app-container">
+
+    <!-- ═══ HEADER ═══ -->
+    <header class="header">
+        <div class="header-left">
+            <div class="vinyl-icon"></div>
+            <div>
+                <h1>Vinyl Vault</h1>
+                <div class="subtitle">Collection Dashboard & Benchmark Analysis</div>
+            </div>
+        </div>
+        <div class="api-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Disconnected</span>
+        </div>
+    </header>
+
+    <!-- ═══ CONFIG ═══ -->
+    <div class="config-bar">
+        <label>API Base URL</label>
+        <input type="text" id="apiUrl" value="https://api.jceneviva.com.br" placeholder="https://api.jceneviva.com.br">
+        <button onclick="connectAPI()">Connect</button>
+    </div>
+
+    <!-- ═══ TABS ═══ -->
+    <div class="tab-bar" id="tabBar">
+        <div class="tab active" data-tab="overview">Overview</div>
+        <div class="tab" data-tab="collection">Collection</div>
+        <div class="tab" data-tab="benchmark">Benchmark</div>
+        <div class="tab" data-tab="gaps">Gap Analysis</div>
+        <div class="tab" data-tab="ratings">Insights</div>
+        <div class="tab" data-tab="linking">Linking</div>
+    </div>
+
+    <!-- ═══ OVERVIEW PANEL ═══ -->
+    <div class="panel active" id="panel-overview">
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card"><div class="stat-label">Total Items</div><div class="stat-value" id="statTotal">—</div></div>
+            <div class="stat-card"><div class="stat-label">Benchmark Albums</div><div class="stat-value" id="statBenchmark">—</div></div>
+            <div class="stat-card"><div class="stat-label">Owned from Benchmark</div><div class="stat-value" id="statOwned">—</div></div>
+            <div class="stat-card"><div class="stat-label">Coverage</div><div class="stat-value" id="statCoverage">—</div><div class="stat-sub" id="statCoverageSub"></div></div>
+        </div>
+        <div class="charts-row">
+            <div class="chart-card">
+                <h3>By Decade</h3>
+                <div class="chart-wrapper"><canvas id="chartDecade"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <h3>By Country (Top 15)</h3>
+                <div class="chart-wrapper"><canvas id="chartCountry"></canvas></div>
+            </div>
+        </div>
+        <div class="charts-row">
+            <div class="chart-card">
+                <h3>By Format</h3>
+                <div class="chart-wrapper"><canvas id="chartFormat"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <h3>Benchmark Coverage by Subgenre</h3>
+                <div class="chart-wrapper"><canvas id="chartCoverage"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ COLLECTION PANEL ═══ -->
+    <div class="panel" id="panel-collection">
+        <div class="table-card">
+            <div class="table-header">
+                <h3>Full Collection</h3>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <select id="cfFilterFolder" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:0.8rem;outline:none">
+                        <option value="">All Folders</option>
+                    </select>
+                    <select id="cfFilterCuration" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:0.8rem;outline:none">
+                        <option value="">All Types</option>
+                    </select>
+                    <select id="cfFilterPressing" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:0.8rem;outline:none">
+                        <option value="">All Pressings</option>
+                    </select>
+                    <select id="cfFilterCondition" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:0.8rem;outline:none">
+                        <option value="">All Conditions</option>
+                    </select>
+                    <select id="cfFilterFormat" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:0.8rem;outline:none">
+                        <option value="">All Formats</option>
+                    </select>
+                    <input type="text" class="table-search" id="cfSearch" placeholder="Search...">
+                </div>
+            </div>
+            <div class="table-scroll" style="max-height:700px">
+                <table>
+                    <thead>
+                        <tr id="cfHeaders">
+                            <th data-sort="artist_name" style="cursor:pointer">Artist ⇅</th>
+                            <th data-sort="basic_title" style="cursor:pointer">Title ⇅</th>
+                            <th data-sort="original_year" style="cursor:pointer">Orig ⇅</th>
+                            <th data-sort="basic_year" style="cursor:pointer">Release ⇅</th>
+                            <th data-sort="country" style="cursor:pointer">Country ⇅</th>
+                            <th data-sort="folder_name" style="cursor:pointer">Folder ⇅</th>
+                            <th data-sort="format_primary" style="cursor:pointer">Format ⇅</th>
+                            <th data-sort="media_condition" style="cursor:pointer">Media ⇅</th>
+                            <th data-sort="sleeve_condition" style="cursor:pointer">Sleeve ⇅</th>
+                            <th data-sort="curation_type" style="cursor:pointer">Type ⇅</th>
+                            <th data-sort="edition" style="cursor:pointer">Edition ⇅</th>
+                            <th data-sort="pressing" style="cursor:pointer">Pressing ⇅</th>
+                            <th data-sort="rating" style="cursor:pointer">Rating ⇅</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cfBody"></tbody>
+                </table>
+            </div>
+            <div style="text-align:center;padding:12px;font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted)" id="cfCount"></div>
+        </div>
+    </div>
+
+    <!-- ═══ BENCHMARK PANEL ═══ -->
+    <div class="panel" id="panel-benchmark">
+        <div class="stats-grid" style="margin-bottom:24px;grid-template-columns:repeat(7,1fr);gap:10px">
+            <div class="stat-card" style="padding:14px 12px"><div class="stat-label">Total</div><div class="stat-value" style="font-size:1.6rem" id="bStatTotal">—</div></div>
+            <div class="stat-card" style="padding:14px 12px"><div class="stat-label">You Own</div><div class="stat-value" style="font-size:1.6rem" id="bStatOwned">—</div></div>
+            <div class="stat-card" style="padding:14px 12px">
+                <div class="stat-label">Top 10</div>
+                <div class="stat-value" style="font-size:1.6rem" id="bStatTop10">—</div>
+                <div class="stat-sub" id="bStatTop10Sub"></div>
+            </div>
+            <div class="stat-card" style="padding:14px 12px">
+                <div class="stat-label">Top 25</div>
+                <div class="stat-value" style="font-size:1.6rem" id="bStatTop25">—</div>
+                <div class="stat-sub" id="bStatTop25Sub"></div>
+            </div>
+            <div class="stat-card" style="padding:14px 12px">
+                <div class="stat-label">Top 50</div>
+                <div class="stat-value" style="font-size:1.6rem" id="bStatTop50">—</div>
+                <div class="stat-sub" id="bStatTop50Sub"></div>
+            </div>
+            <div class="stat-card" style="padding:14px 12px">
+                <div class="stat-label">Top 100</div>
+                <div class="stat-value" style="font-size:1.6rem" id="bStatTop100">—</div>
+                <div class="stat-sub" id="bStatTop100Sub"></div>
+            </div>
+            <div class="stat-card" style="padding:14px 12px">
+                <div class="stat-label">Overall</div>
+                <div class="stat-value" style="font-size:1.6rem" id="bStatPct">—</div>
+                <div class="stat-sub" id="bStatPctSub"></div>
+            </div>
+        </div>
+        <div class="chart-card" style="margin-bottom:24px">
+            <h3>Coverage by Subgenre</h3>
+            <div id="coverageRows"></div>
+        </div>
+        <div class="table-card">
+            <div class="table-header">
+                <h3>ProgArchives Albums</h3>
+                <div style="display:flex;gap:12px;align-items:center">
+                    <select id="sourceSelect" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;font-size:0.8rem;outline:none">
+                        <option value="">All Rankings</option>
+                    </select>
+                    <select id="subgenreSelect" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;font-size:0.8rem;outline:none">
+                        <option value="">All Subgenres</option>
+                    </select>
+                    <input type="text" class="table-search" id="benchmarkSearch" placeholder="Search...">
+                </div>
+            </div>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr><th>#</th><th>Artist</th><th>Album</th><th>Year</th><th>Subgenre</th><th>Rating</th><th>Reviews</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="benchmarkBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ GAP ANALYSIS PANEL ═══ -->
+    <div class="panel" id="panel-gaps">
+        <div class="filter-bar">
+            <select id="gapSource" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 14px;font-size:0.8rem;outline:none">
+                <option value="">All Rankings</option>
+            </select>
+            <select id="gapSubgenre" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 14px;font-size:0.8rem;outline:none">
+                <option value="">All Subgenres</option>
+            </select>
+            <div style="display:flex;align-items:center;gap:8px">
+                <label style="font-size:0.8rem;color:var(--text-secondary)">Min Rating:</label>
+                <input type="range" id="gapRating" min="2" max="5" step="0.1" value="3.5"
+                    style="width:120px;accent-color:var(--accent-gold)">
+                <span id="gapRatingVal" style="font-family:var(--font-mono);font-size:0.8rem;color:var(--accent-gold)">3.5</span>
+            </div>
+            <button class="filter-chip active" onclick="loadGaps()">Find Gaps</button>
+        </div>
+        <div class="table-card">
+            <div class="table-header">
+                <h3>Missing Albums — Recommended Purchases</h3>
+                <span id="gapCount" style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted)"></span>
+            </div>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr><th>#</th><th>Artist</th><th>Album</th><th>Year</th><th>Subgenre</th><th>Rating</th><th>Reviews</th></tr>
+                    </thead>
+                    <tbody id="gapsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ INSIGHTS PANEL ═══ -->
+    <div class="panel" id="panel-ratings">
+        <div class="empty-state" id="ratingsEmpty">
+            <h4>Collection Insights</h4>
+            <p>Connect to the API to load condition, curation, edition and pressing data.</p>
+        </div>
+        <div id="ratingsContent" style="display:none">
+            <!-- Stats row -->
+            <div class="stats-grid" id="cfStatsGrid"></div>
+            <!-- Collection Rating -->
+            <div class="chart-card" style="margin-bottom:24px">
+                <h3>Collection Rating (from Benchmarks)</h3>
+                <div id="ratingContent" style="padding:12px">
+                    <div style="display:flex;gap:24px;align-items:center;margin-bottom:16px">
+                        <div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Average Rating</div>
+                            <div id="collRatingAvg" style="font-family:var(--font-display);font-size:2.5rem;background:var(--gradient-gold);-webkit-background-clip:text;-webkit-text-fill-color:transparent">—</div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Rated Albums</div>
+                            <div id="collRatingCount" style="font-family:var(--font-display);font-size:2.5rem;color:var(--accent-blue)">—</div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Unrated</div>
+                            <div id="collRatingUnrated" style="font-family:var(--font-display);font-size:2.5rem;color:var(--text-muted)">—</div>
+                        </div>
+                    </div>
+                    <div id="ratingTopAlbums"></div>
+                </div>
+            </div>
+            <!-- Charts -->
+            <div class="charts-row">
+                <div class="chart-card">
+                    <h3>Media Condition</h3>
+                    <div class="chart-wrapper"><canvas id="chartMediaCond"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <h3>Curation Type</h3>
+                    <div class="chart-wrapper"><canvas id="chartCuration"></canvas></div>
+                </div>
+            </div>
+            <div class="charts-row">
+                <div class="chart-card">
+                    <h3>Pressing</h3>
+                    <div class="chart-wrapper"><canvas id="chartPressing"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <h3>Edition</h3>
+                    <div class="chart-wrapper"><canvas id="chartEdition"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ LINKING PANEL ═══ -->
+    <div class="panel" id="panel-linking">
+        <div class="stats-grid" id="linkingStats">
+            <div class="stat-card"><div class="stat-label">Total Benchmarks</div><div class="stat-value" id="linkTotal">—</div></div>
+            <div class="stat-card"><div class="stat-label">Linked (master_id)</div><div class="stat-value" id="linkLinked" style="color:var(--accent-green)">—</div></div>
+            <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value" id="linkPending" style="color:var(--accent-gold)">—</div></div>
+            <div class="stat-card"><div class="stat-label">Coverage</div><div class="stat-value" id="linkPct">—</div></div>
+        </div>
+        <div style="margin-bottom:16px;display:flex;gap:12px;align-items:center">
+            <button class="filter-chip" onclick="runPurge()" id="purgeBtn" style="background:rgba(248,113,113,0.15);color:var(--accent-red);border-color:rgba(248,113,113,0.3)">Purge Deleted from Discogs</button>
+            <span id="purgeResult" style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted)"></span>
+        </div>
+        <div class="table-card">
+            <div class="table-header">
+                <h3>Benchmark → Discogs Linking</h3>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <select id="linkSourceFilter" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:0.8rem;outline:none">
+                        <option value="">All Rankings</option>
+                    </select>
+                    <select id="linkMethodFilter" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:0.8rem;outline:none">
+                        <option value="">All Methods</option>
+                        <option value="pending">Pending</option>
+                        <option value="auto">Auto</option>
+                        <option value="manual">Manual</option>
+                        <option value="skipped">Skipped</option>
+                    </select>
+                    <input type="text" class="table-search" id="linkSearch" placeholder="Search...">
+                    <button class="filter-chip active" onclick="loadLinkingData()">Refresh</button>
+                </div>
+            </div>
+            <div class="table-scroll" style="max-height:600px">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th><th>Artist</th><th>Album</th><th>Year</th><th>Source</th>
+                            <th>Method</th><th>Master ID</th><th>Release ID</th><th>Discogs Title</th><th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="linkBody"></tbody>
+                </table>
+            </div>
+            <div style="text-align:center;padding:12px">
+                <button class="filter-chip" id="linkLoadMore" onclick="loadLinkingMore()" style="display:none">Load More</button>
+                <span id="linkCount" style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted);margin-left:12px"></span>
+            </div>
+        </div>
+        <!-- Manual link dialog -->
+        <div id="linkDialog" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;display:none;align-items:center;justify-content:center">
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;max-width:600px;width:90%">
+                <h3 style="margin-bottom:16px">Link: <span id="linkDialogTitle"></span></h3>
+                <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px">Select from your collection or enter IDs manually:</p>
+                <div id="linkDialogResults" style="max-height:250px;overflow-y:auto;margin-bottom:16px"></div>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+                    <input type="number" id="linkManualMasterId" placeholder="master_id" style="flex:1;background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:0.85rem;outline:none">
+                    <span style="color:var(--text-muted);font-size:0.8rem">or</span>
+                    <input type="number" id="linkManualReleaseId" placeholder="release_id (for box sets)" style="flex:1;background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:0.85rem;outline:none">
+                    <button class="filter-chip active" onclick="submitManualLink()">Link</button>
+                </div>
+                <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:16px">Duplicates across rankings are linked automatically.</p>
+                <div style="display:flex;gap:8px;justify-content:flex-end">
+                    <button class="filter-chip" onclick="skipLink()">Skip</button>
+                    <button class="filter-chip" onclick="closeLinkDialog()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════════
+let API = 'https://api.jceneviva.com.br';
+let state = {
+    connected: false,
+    summary: null,
+    formats: [],
+    items: [],
+    itemsTotal: 0,
+    itemsOffset: 0,
+    paSummary: null,
+    paAlbums: [],
+    paSources: [],
+    gaps: [],
+    notes: [],
+    charts: {},
+    activeFolder: null,
+    searchDebounce: null,
+    collectionRatings: {},
+    cfSort: { col: 'artist_name', dir: 'asc' },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// API CALLS
+// ═══════════════════════════════════════════════════════════════════════════════
+async function api(path) {
+    const resp = await fetch(`${API}${path}`);
+    if (!resp.ok) throw new Error(`API ${resp.status}`);
+    return resp.json();
+}
+
+async function connectAPI() {
+    API = document.getElementById('apiUrl').value.replace(/\/+$/, '');
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    try {
+        const h = await api('/api/health');
+        if (h.status === 'ok') {
+            dot.classList.add('connected');
+            txt.textContent = 'Connected';
+            state.connected = true;
+            loadAll();
+        } else throw new Error(h.db);
+    } catch (e) {
+        dot.classList.remove('connected');
+        txt.textContent = 'Error: ' + e.message;
+        state.connected = false;
+    }
+}
+
+async function loadAll() {
+    await Promise.all([
+        loadSummary(), loadFormats(),
+        loadPASources(), loadPASummary(), loadPAAlbums(), loadNotes(),
+        loadLinkingStats()
+    ]);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 1. OVERVIEW
+// ═══════════════════════════════════════════════════════════════════════════════
+async function loadSummary() {
+    try {
+        const d = await api('/api/collection/summary');
+        state.summary = d;
+        document.getElementById('statTotal').textContent = d.total_items.toLocaleString('pt-BR');
+        renderDecadeChart(d.by_decade);
+        renderCountryChart(d.by_country);
+    } catch(e) { console.error('Summary:', e); }
+}
+
+async function loadFormats() {
+    try {
+        state.formats = await api('/api/collection/formats');
+        renderFormatChart(state.formats);
+    } catch(e) { console.error('Formats:', e); }
+}
+
+async function loadPASources() {
+    try {
+        state.paSources = await api('/api/benchmark/progarchives/sources');
+        const labels = {
+            top250: 'Top 250 All-Time',
+            progmetal: 'Top 250 Progressive Metal',
+            jazzfusion: 'Top 250 Jazz Rock/Fusion',
+            symphprog: 'Top 250 Symphonic Prog',
+            heavyprog: 'Top Heavy Prog',
+            rpi: 'Top Rock Progressivo Italiano',
+            eclecticprog: 'Top 250 Eclectic Prog',
+            psychspace: 'Top 250 Psychedelic/Space Rock',
+            protoprog: 'Top Proto-Prog',
+            techextreme: 'Top Tech/Extreme Prog Metal',
+            classicrock: 'Classic Rock Curated 250',
+            heavymetal: 'Heavy Metal Curated 250',
+            bluesrock: 'Blues Rock Top 100',
+            liverock: 'Live Rock Top 100',
+            jazz: 'Jazz Top 100',
+            poprock: 'Pop Rock / Art Rock 100',
+            soul: 'Soul / R&B / Vocal 100',
+        };
+        const html = '<option value="">All Rankings</option>' +
+            state.paSources.map(s => `<option value="${esc(s.source_list)}">${esc(labels[s.source_list] || s.source_list)} (${s.total})</option>`).join('');
+        document.getElementById('sourceSelect').innerHTML = html;
+        document.getElementById('gapSource').innerHTML = html;
+        document.getElementById('linkSourceFilter').innerHTML = html;
+    } catch(e) { console.error('Sources:', e); }
+}
+
+async function loadPASummary() {
+    try {
+        const source = document.getElementById('sourceSelect').value;
+        const params = new URLSearchParams();
+        if (source) params.set('source', source);
+        const d = await api('/api/benchmark/progarchives/summary?' + params);
+        state.paSummary = d;
+        document.getElementById('statBenchmark').textContent = d.total_benchmark.toLocaleString('pt-BR');
+        document.getElementById('statOwned').textContent = d.total_owned.toLocaleString('pt-BR');
+        const pct = d.coverage_pct || 0;
+        document.getElementById('statCoverage').textContent = pct + '%';
+        document.getElementById('statCoverageSub').textContent = `${d.total_owned} of ${d.total_benchmark}`;
+
+        document.getElementById('bStatTotal').textContent = d.total_benchmark.toLocaleString('pt-BR');
+        document.getElementById('bStatOwned').textContent = d.total_owned.toLocaleString('pt-BR');
+        document.getElementById('bStatPct').textContent = pct + '%';
+
+        renderCoverageChart(d.by_subgenre);
+        renderCoverageRows(d.by_subgenre);
+        populateSubgenreSelects(d.by_subgenre);
+    } catch(e) { console.error('PA Summary:', e); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 2. COLLECTION TABLE (now powered by custom-fields endpoint)
+// ═══════════════════════════════════════════════════════════════════════════════
+// Collection table is rendered by renderCFTable() in the custom fields section
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 3. BENCHMARK
+// ═══════════════════════════════════════════════════════════════════════════════
+async function loadPAAlbums() {
+    try {
+        const source = document.getElementById('sourceSelect').value;
+        const sub = document.getElementById('subgenreSelect').value;
+        const params = new URLSearchParams({ limit: 500 });
+        if (source) params.set('source', source);
+        if (sub) params.set('subgenre', sub);
+        state.paAlbums = await api('/api/benchmark/progarchives/albums?' + params);
+        renderBenchmarkTable();
+        updateCoverageCards();
+    } catch(e) { console.error('PA Albums:', e); }
+}
+
+function updateCoverageCards() {
+    const albums = state.paAlbums || [];
+    const ranked = albums.filter(a => a.rank_position).sort((a,b) => a.rank_position - b.rank_position);
+
+    function coverage(list) {
+        if (!list.length) return { pct: 0, owned: 0, total: 0 };
+        const owned = list.filter(a => a.status === 'owned').length;
+        return { pct: (owned / list.length * 100).toFixed(1), owned, total: list.length };
+    }
+
+    const top10 = coverage(ranked.slice(0, 10));
+    const top25 = coverage(ranked.slice(0, 25));
+    const top50 = coverage(ranked.slice(0, 50));
+    const top100 = coverage(ranked.slice(0, 100));
+    const overall = coverage(albums);
+
+    document.getElementById('bStatTotal').textContent = albums.length;
+    document.getElementById('bStatOwned').textContent = overall.owned;
+    document.getElementById('bStatTop10').textContent = top10.pct + '%';
+    document.getElementById('bStatTop10Sub').textContent = `${top10.owned} of ${top10.total}`;
+    document.getElementById('bStatTop25').textContent = top25.pct + '%';
+    document.getElementById('bStatTop25Sub').textContent = `${top25.owned} of ${top25.total}`;
+    document.getElementById('bStatTop50').textContent = top50.pct + '%';
+    document.getElementById('bStatTop50Sub').textContent = `${top50.owned} of ${top50.total}`;
+    document.getElementById('bStatTop100').textContent = top100.pct + '%';
+    document.getElementById('bStatTop100Sub').textContent = `${top100.owned} of ${top100.total}`;
+    document.getElementById('bStatPct').textContent = overall.pct + '%';
+    document.getElementById('bStatPctSub').textContent = `${overall.owned} of ${overall.total}`;
+}
+
+function renderBenchmarkTable() {
+    const q = document.getElementById('benchmarkSearch').value.toLowerCase();
+    const filtered = q
+        ? state.paAlbums.filter(a => a.artist_name.toLowerCase().includes(q) || a.album_title.toLowerCase().includes(q))
+        : state.paAlbums;
+
+    document.getElementById('benchmarkBody').innerHTML = filtered.map(a => `
+        <tr>
+            <td style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted)">${a.rank_position || '—'}</td>
+            <td style="font-weight:500">${esc(a.artist_name)}</td>
+            <td>${esc(a.album_title)}</td>
+            <td style="font-family:var(--font-mono);font-size:0.8rem">${a.year || '—'}</td>
+            <td><span class="badge badge-pillar">${esc(a.subgenre || '—')}</span></td>
+            <td style="font-family:var(--font-mono);color:var(--accent-gold)">${a.rating_avg ? Number(a.rating_avg).toFixed(2) : '—'}</td>
+            <td style="font-family:var(--font-mono);font-size:0.8rem">${a.rating_count || '—'}</td>
+            <td>${a.status === 'owned' ? '<span class="badge badge-owned">OWNED</span>' : '<span class="badge badge-gap">GAP</span>'}</td>
+        </tr>
+    `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 4. GAP ANALYSIS
+// ═══════════════════════════════════════════════════════════════════════════════
+async function loadGaps() {
+    try {
+        const source = document.getElementById('gapSource').value;
+        const sub = document.getElementById('gapSubgenre').value;
+        const rating = document.getElementById('gapRating').value;
+        const params = new URLSearchParams({ min_rating: rating, limit: 200 });
+        if (source) params.set('source', source);
+        if (sub) params.set('subgenre', sub);
+
+        state.gaps = await api(`/api/benchmark/progarchives/gaps?${params}`);
+        document.getElementById('gapCount').textContent = `${state.gaps.length} albums found`;
+        renderGapsTable();
+    } catch(e) { console.error('Gaps:', e); }
+}
+
+function renderGapsTable() {
+    document.getElementById('gapsBody').innerHTML = state.gaps.map(a => `
+        <tr>
+            <td style="font-family:var(--font-mono);font-weight:600;color:var(--accent-gold)">#${a.rank_position || '—'}</td>
+            <td style="font-weight:500">${esc(a.artist_name)}</td>
+            <td>${esc(a.album_title)}</td>
+            <td style="font-family:var(--font-mono);font-size:0.8rem">${a.year || '—'}</td>
+            <td><span class="badge badge-pillar">${esc(a.subgenre || '—')}</span></td>
+            <td style="font-family:var(--font-mono);color:var(--accent-gold)">${a.rating_avg ? Number(a.rating_avg).toFixed(2) : '—'}</td>
+            <td style="font-family:var(--font-mono);font-size:0.8rem">${a.rating_count || '—'}</td>
+        </tr>
+    `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 5. CUSTOM FIELDS / COLLECTION INSIGHTS
+// ═══════════════════════════════════════════════════════════════════════════════
+async function loadNotes() {
+    try {
+        const data = await api('/api/collection/custom-fields');
+        if (data.total > 0) {
+            state.customFields = data;
+            document.getElementById('ratingsEmpty').style.display = 'none';
+            document.getElementById('ratingsContent').style.display = '';
+            renderCFStats(data.stats);
+            renderCFCharts(data.stats);
+            populateCFFilters(data.stats, data.items);
+
+            // Load collection ratings from benchmark via master_id
+            try {
+                const ratings = await api('/api/benchmark/ratings-by-master');
+                const ratingByMaster = {};  // master_id -> { rating, artist, album }
+                ratings.forEach(r => {
+                    if (r.master_id && (!ratingByMaster[r.master_id] || r.rating_avg > ratingByMaster[r.master_id].rating)) {
+                        ratingByMaster[r.master_id] = { rating: r.rating_avg, artist: r.artist_name, album: r.album_title };
+                    }
+                });
+                state.ratingByMaster = ratingByMaster;
+
+                // Calculate collection rating stats: match items by master_id
+                let ratedCount = 0, ratingSum = 0;
+                const topRated = [];
+                data.items.forEach(i => {
+                    if (i.master_id && ratingByMaster[i.master_id]) {
+                        const r = ratingByMaster[i.master_id].rating;
+                        ratedCount++; ratingSum += r;
+                        topRated.push({ artist: i.artist_name, title: i.basic_title, rating: r });
+                    }
+                });
+                // Deduplicate by master_id (multiple copies)
+                const seenMasters = new Set();
+                const uniqueRated = [];
+                data.items.forEach(i => {
+                    if (i.master_id && ratingByMaster[i.master_id] && !seenMasters.has(i.master_id)) {
+                        seenMasters.add(i.master_id);
+                        uniqueRated.push({ artist: i.artist_name, title: i.basic_title, rating: ratingByMaster[i.master_id].rating });
+                    }
+                });
+                const avgRating = uniqueRated.length > 0 ? uniqueRated.reduce((s,x) => s + x.rating, 0) / uniqueRated.length : 0;
+                const unrated = new Set(data.items.map(i => i.master_id || i.release_id)).size - uniqueRated.length;
+
+                document.getElementById('collRatingAvg').textContent = avgRating > 0 ? avgRating.toFixed(2) : '—';
+                document.getElementById('collRatingCount').textContent = uniqueRated.length;
+                document.getElementById('collRatingUnrated').textContent = unrated;
+
+                // Top 10 rated
+                uniqueRated.sort((a,b) => b.rating - a.rating);
+                document.getElementById('ratingTopAlbums').innerHTML =
+                    '<div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Top Rated in Your Collection</div>' +
+                    uniqueRated.slice(0, 10).map((item, i) =>
+                        `<div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid rgba(42,42,58,0.3)">
+                            <span style="font-family:var(--font-mono);color:var(--accent-gold);width:30px">#${i+1}</span>
+                            <span style="font-weight:500;flex:1">${esc(item.artist)} — ${esc(item.title)}</span>
+                            <span style="font-family:var(--font-mono);color:var(--accent-gold)">${Number(item.rating).toFixed(2)}</span>
+                        </div>`
+                    ).join('');
+            } catch(e) { console.error('Ratings:', e); state.ratingByMaster = {}; }
+
+            renderCFTable(data.items);
+        }
+    } catch(e) { console.error('Custom fields:', e); }
+}
+
+function renderCFStats(stats) {
+    const defCount = stats.curation_type['Def'] || 0;
+    const firstEd = stats.pressing['FirstEdition'] || 0;
+    const mint = (stats.media_condition['Mint (M)'] || 0) + (stats.media_condition['Near Mint (NM or M-)'] || 0);
+    const total = Object.values(stats.curation_type).reduce((a,b) => a+b, 0);
+    document.getElementById('cfStatsGrid').innerHTML = `
+        <div class="stat-card"><div class="stat-label">Definitive</div><div class="stat-value">${defCount}</div><div class="stat-sub">${(defCount/total*100).toFixed(0)}% of collection</div></div>
+        <div class="stat-card"><div class="stat-label">First Editions</div><div class="stat-value">${firstEd}</div><div class="stat-sub">${(firstEd/total*100).toFixed(0)}% of collection</div></div>
+        <div class="stat-card"><div class="stat-label">Mint / Near Mint</div><div class="stat-value">${mint}</div><div class="stat-sub">${(mint/total*100).toFixed(0)}% of collection</div></div>
+        <div class="stat-card"><div class="stat-label">Total Cataloged</div><div class="stat-value">${total}</div></div>
+    `;
+}
+
+function renderCFCharts(stats) {
+    const condColors = {'Mint (M)':'#4ade80','Near Mint (NM or M-)':'#22d3ee','Very Good Plus (VG+)':'#d4a853','Very Good (VG)':'#fb923c','Good Plus (G+)':'#f87171','Good (G)':'#e879f9','Fair (F)':'#9896a8','Poor (P)':'#5e5c6e'};
+    const curationColors = {'Def':'#d4a853','Editorial':'#5b8cf7','Temp':'#fb923c','Unofficial':'#f87171','PicDisc':'#a78bfa','Historical':'#22d3ee','Sentimental':'#e879f9'};
+    const pressingColors = {'FirstEdition':'#4ade80','Reissue':'#5b8cf7','Unknown':'#9896a8','FirstPress':'#d4a853'};
+    const editionColors = {'Original':'#d4a853','Expanded':'#5b8cf7','Bundle':'#4ade80','Standard':'#fb923c','Bonus':'#a78bfa'};
+
+    function makeDoughnut(canvasId, data, colorMap) {
+        destroyChart(canvasId);
+        const labels = Object.keys(data);
+        const values = Object.values(data);
+        const colors = labels.map(l => colorMap[l] || '#5e5c6e');
+        state.charts[canvasId] = new Chart(document.getElementById(canvasId), {
+            type: 'doughnut',
+            data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'right', labels: { color: '#9896a8', font: { family: 'Outfit', size: 11 }, padding: 10 } } }
+            }
+        });
+    }
+
+    makeDoughnut('chartMediaCond', stats.media_condition, condColors);
+    makeDoughnut('chartCuration', stats.curation_type, curationColors);
+    makeDoughnut('chartPressing', stats.pressing, pressingColors);
+    makeDoughnut('chartEdition', stats.edition, editionColors);
+}
+
+function populateCFFilters(stats, items) {
+    function fill(selectId, data) {
+        const el = document.getElementById(selectId);
+        const first = el.options[0].outerHTML;
+        el.innerHTML = first + Object.keys(data).map(k => `<option value="${esc(k)}">${esc(k)} (${data[k]})</option>`).join('');
+    }
+    fill('cfFilterCuration', stats.curation_type);
+    fill('cfFilterPressing', stats.pressing);
+    fill('cfFilterCondition', stats.media_condition);
+
+    // Populate folder dropdown from items
+    const folders = {};
+    items.forEach(i => { const f = i.folder_name || 'Unknown'; folders[f] = (folders[f]||0)+1; });
+    const folderEl = document.getElementById('cfFilterFolder');
+    folderEl.innerHTML = '<option value="">All Folders</option>' +
+        Object.entries(folders).sort((a,b) => b[1]-a[1]).map(([k,v]) => `<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
+
+    // Populate format dropdown
+    const formats = {};
+    items.forEach(i => { const f = i.format_primary || 'Unknown'; formats[f] = (formats[f]||0)+1; });
+    const fmtEl = document.getElementById('cfFilterFormat');
+    fmtEl.innerHTML = '<option value="">All Formats</option>' +
+        Object.entries(formats).sort((a,b) => b[1]-a[1]).map(([k,v]) => `<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
+}
+
+function renderCFTable(items) {
+    if (!items) items = state.customFields.items;
+    const curation = document.getElementById('cfFilterCuration').value;
+    const pressing = document.getElementById('cfFilterPressing').value;
+    const condition = document.getElementById('cfFilterCondition').value;
+    const folder = document.getElementById('cfFilterFolder').value;
+    const format = document.getElementById('cfFilterFormat').value;
+    const search = document.getElementById('cfSearch').value.toLowerCase();
+
+    let filtered = items;
+    if (curation) filtered = filtered.filter(i => i.curation_type === curation);
+    if (pressing) filtered = filtered.filter(i => i.pressing === pressing);
+    if (condition) filtered = filtered.filter(i => i.media_condition === condition);
+    if (folder) filtered = filtered.filter(i => i.folder_name === folder);
+    if (format) filtered = filtered.filter(i => i.format_primary === format);
+    if (search) filtered = filtered.filter(i =>
+        (i.artist_name || '').toLowerCase().includes(search) ||
+        (i.basic_title || '').toLowerCase().includes(search) ||
+        (i.notes || '').toLowerCase().includes(search)
+    );
+
+    // Sort
+    const ratingByMaster = state.ratingByMaster || {};
+    const { col, dir } = state.cfSort;
+    const mult = dir === 'asc' ? 1 : -1;
+    filtered.sort((a, b) => {
+        let va, vb;
+        if (col === 'rating') {
+            const ra = a.master_id ? ratingByMaster[a.master_id] : null;
+            const rb = b.master_id ? ratingByMaster[b.master_id] : null;
+            va = ra ? ra.rating : -1;
+            vb = rb ? rb.rating : -1;
+        } else if (col === 'original_year' || col === 'basic_year') {
+            va = (a[col] && a[col] > 0) ? a[col] : 99999;
+            vb = (b[col] && b[col] > 0) ? b[col] : 99999;
+        } else {
+            va = (a[col] || '').toLowerCase();
+            vb = (b[col] || '').toLowerCase();
+        }
+        if (va < vb) return -1 * mult;
+        if (va > vb) return 1 * mult;
+        return 0;
+    });
+
+    function condBadge(c) {
+        if (!c) return '—';
+        const short = c.replace(/ \(.*\)/, '');
+        const cls = c.includes('Mint') ? 'badge-owned' : c.includes('Good') ? 'badge-format' : 'badge-gap';
+        return `<span class="badge ${cls}">${esc(short)}</span>`;
+    }
+    function typeBadge(t) {
+        if (!t) return '—';
+        const colors = {'Def':'badge-owned','Editorial':'badge-format','Temp':'badge-gap','Unofficial':'badge-gap','PicDisc':'badge-pillar','Historical':'badge-format','Sentimental':'badge-pillar'};
+        return `<span class="badge ${colors[t] || 'badge-format'}">${esc(t)}</span>`;
+    }
+
+    document.getElementById('cfBody').innerHTML = filtered.map(i => {
+        const origYr = i.original_year && i.original_year > 0 ? i.original_year : '—';
+        const relYr = i.basic_year && i.basic_year > 0 ? i.basic_year : '—';
+        const yrStyle = origYr !== '—' && relYr !== '—' && origYr !== relYr
+            ? 'color:var(--accent-cyan)' : '';
+        const rEntry = i.master_id ? ratingByMaster[i.master_id] : null;
+        const ratingHtml = rEntry
+            ? `<span style="font-family:var(--font-mono);color:var(--accent-gold)">${Number(rEntry.rating).toFixed(2)}</span>`
+            : '<span style="color:var(--text-muted)">—</span>';
+        return `<tr>
+            <td style="font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.artist_name || '—')}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.basic_title || '—')}</td>
+            <td style="font-family:var(--font-mono);font-size:0.8rem">${origYr}</td>
+            <td style="font-family:var(--font-mono);font-size:0.8rem;${yrStyle}">${relYr}</td>
+            <td style="font-size:0.8rem">${esc(i.country || '—')}</td>
+            <td style="font-size:0.75rem;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(i.folder_name || '')}">${esc(i.folder_name || '—')}</td>
+            <td><span class="badge badge-format">${esc(i.format_primary || '—')}</span></td>
+            <td>${condBadge(i.media_condition)}</td>
+            <td>${condBadge(i.sleeve_condition)}</td>
+            <td>${typeBadge(i.curation_type)}</td>
+            <td style="font-size:0.8rem">${esc(i.edition || '—')}</td>
+            <td style="font-size:0.8rem">${esc(i.pressing || '—')}</td>
+            <td style="font-size:0.8rem">${ratingHtml}</td>
+            <td style="font-size:0.75rem;color:var(--text-muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(i.notes || '')}">${esc(i.notes || '')}</td>
+        </tr>`;
+    }).join('');
+    document.getElementById('cfCount').textContent = `${filtered.length} of ${items.length} items`;
+}
+
+// CF filter listeners
+['cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFolder','cfFilterFormat'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => renderCFTable());
+});
+document.getElementById('cfSearch').addEventListener('input', () => {
+    clearTimeout(state.searchDebounce);
+    state.searchDebounce = setTimeout(() => renderCFTable(), 300);
+});
+
+// CF sort click handler
+document.getElementById('cfHeaders').addEventListener('click', e => {
+    const th = e.target.closest('th[data-sort]');
+    if (!th) return;
+    const col = th.dataset.sort;
+    if (state.cfSort.col === col) {
+        state.cfSort.dir = state.cfSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+        state.cfSort.col = col;
+        state.cfSort.dir = 'asc';
+    }
+    // Update header indicators
+    document.querySelectorAll('#cfHeaders th[data-sort]').forEach(h => {
+        const arrow = h.dataset.sort === state.cfSort.col
+            ? (state.cfSort.dir === 'asc' ? ' ▲' : ' ▼')
+            : ' ⇅';
+        h.textContent = h.textContent.replace(/ [⇅▲▼]$/, '') + arrow;
+    });
+    renderCFTable();
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CHARTS (Chart.js)
+// ═══════════════════════════════════════════════════════════════════════════════
+const chartColors = ['#d4a853','#5b8cf7','#4ade80','#f87171','#a78bfa','#22d3ee','#fb923c','#e879f9','#fbbf24','#34d399','#f472b6','#818cf8','#a3e635','#f97316','#06b6d4'];
+const chartDefaults = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#9896a8', font: { family: 'Outfit', size: 11 } } } },
+    scales: {
+        x: { ticks: { color: '#5e5c6e', font: { size: 10 } }, grid: { color: 'rgba(42,42,58,0.3)' } },
+        y: { ticks: { color: '#5e5c6e', font: { size: 10 } }, grid: { color: 'rgba(42,42,58,0.3)' } },
+    }
+};
+
+function destroyChart(id) { if (state.charts[id]) { state.charts[id].destroy(); } }
+
+function renderDecadeChart(data) {
+    destroyChart('decade');
+    state.charts.decade = new Chart(document.getElementById('chartDecade'), {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.decade + 's'),
+            datasets: [{ label: 'Albums', data: data.map(d => d.count),
+                backgroundColor: '#d4a853', borderRadius: 6, borderSkipped: false }]
+        },
+        options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: false } } }
+    });
+}
+
+function renderCountryChart(data) {
+    destroyChart('country');
+    const top = data.slice(0, 15);
+    state.charts.country = new Chart(document.getElementById('chartCountry'), {
+        type: 'bar',
+        data: {
+            labels: top.map(d => d.country),
+            datasets: [{ label: 'Releases', data: top.map(d => d.count),
+                backgroundColor: chartColors, borderRadius: 6, borderSkipped: false }]
+        },
+        options: {
+            ...chartDefaults, indexAxis: 'y',
+            plugins: { ...chartDefaults.plugins, legend: { display: false } }
+        }
+    });
+}
+
+function renderFormatChart(data) {
+    destroyChart('format');
+    state.charts.format = new Chart(document.getElementById('chartFormat'), {
+        type: 'doughnut',
+        data: {
+            labels: data.map(d => d.format),
+            datasets: [{ data: data.map(d => d.count), backgroundColor: chartColors, borderWidth: 0 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'right', labels: { color: '#9896a8', font: { family: 'Outfit', size: 11 }, padding: 12 } } }
+        }
+    });
+}
+
+function renderCoverageChart(data) {
+    destroyChart('coverage');
+    const sorted = [...data].sort((a, b) => (b.owned / (b.benchmark_total || 1)) - (a.owned / (a.benchmark_total || 1)));
+    state.charts.coverage = new Chart(document.getElementById('chartCoverage'), {
+        type: 'bar',
+        data: {
+            labels: sorted.map(d => d.subgenre || 'Unknown'),
+            datasets: [
+                { label: 'Owned', data: sorted.map(d => d.owned), backgroundColor: '#4ade80', borderRadius: 4 },
+                { label: 'Missing', data: sorted.map(d => d.benchmark_total - d.owned), backgroundColor: 'rgba(248,113,113,0.3)', borderRadius: 4 },
+            ]
+        },
+        options: {
+            ...chartDefaults, indexAxis: 'y',
+            scales: { ...chartDefaults.scales, x: { ...chartDefaults.scales.x, stacked: true }, y: { ...chartDefaults.scales.y, stacked: true } },
+        }
+    });
+}
+
+function renderCoverageRows(data) {
+    const sorted = [...data].sort((a, b) => {
+        const pA = a.benchmark_total > 0 ? a.owned / a.benchmark_total : 0;
+        const pB = b.benchmark_total > 0 ? b.owned / b.benchmark_total : 0;
+        return pB - pA;
+    });
+    document.getElementById('coverageRows').innerHTML = sorted.map(d => {
+        const pct = d.benchmark_total > 0 ? ((d.owned / d.benchmark_total) * 100).toFixed(1) : 0;
+        return `
+            <div class="coverage-row">
+                <div class="coverage-label">${esc(d.subgenre || 'Unknown')}</div>
+                <div class="coverage-bar-bg">
+                    <div class="coverage-bar-fill" style="width:${pct}%"></div>
+                </div>
+                <div class="coverage-stats">
+                    <span class="coverage-pct">${pct}%</span>
+                    <span style="color:var(--text-muted);margin-left:8px">${d.owned}/${d.benchmark_total}</span>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+function populateSubgenreSelects(data) {
+    const subgenres = data.map(d => d.subgenre).filter(Boolean).sort();
+    const html = '<option value="">All Subgenres</option>' +
+        subgenres.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+    document.getElementById('subgenreSelect').innerHTML = html;
+    document.getElementById('gapSubgenre').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════════════════════════
+document.getElementById('tabBar').addEventListener('click', e => {
+    if (!e.target.classList.contains('tab')) return;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    e.target.classList.add('active');
+    document.getElementById('panel-' + e.target.dataset.tab).classList.add('active');
+    // Lazy-load linking data on first visit
+    if (e.target.dataset.tab === 'linking' && linkingState.items.length === 0) {
+        loadLinkingData();
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SEARCH / FILTER EVENT LISTENERS
+// ═══════════════════════════════════════════════════════════════════════════════
+document.getElementById('benchmarkSearch').addEventListener('input', () => renderBenchmarkTable());
+document.getElementById('sourceSelect').addEventListener('change', () => {
+    loadPASummary();
+    loadPAAlbums();
+});
+document.getElementById('subgenreSelect').addEventListener('change', () => loadPAAlbums());
+document.getElementById('gapRating').addEventListener('input', e => {
+    document.getElementById('gapRatingVal').textContent = e.target.value;
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 6. LINKING
+// ═══════════════════════════════════════════════════════════════════════════════
+let linkingState = { items: [], offset: 0, currentPaId: null };
+
+async function loadLinkingStats() {
+    try {
+        const d = await api('/api/linking/stats');
+        document.getElementById('linkTotal').textContent = d.total;
+        document.getElementById('linkLinked').textContent = d.linked;
+        document.getElementById('linkPending').textContent = d.total - d.linked;
+        document.getElementById('linkPct').textContent = d.pct + '%';
+    } catch(e) { console.error('Linking stats:', e); }
+}
+
+async function loadLinkingData(append) {
+    try {
+        if (!append) { linkingState.items = []; linkingState.offset = 0; }
+        const source = document.getElementById('linkSourceFilter').value;
+        const method = document.getElementById('linkMethodFilter').value;
+        const params = new URLSearchParams({ limit: 100, offset: linkingState.offset });
+        if (source) params.set('source', source);
+        if (method) params.set('method', method);
+        const items = await api('/api/linking/all?' + params);
+        linkingState.items = append ? linkingState.items.concat(items) : items;
+        linkingState.offset += items.length;
+        renderLinkingTable();
+        document.getElementById('linkLoadMore').style.display = items.length >= 100 ? '' : 'none';
+        loadLinkingStats();
+        // Reload benchmarks so status changes are reflected
+        if (!append) { loadPASummary(); loadPAAlbums(); }
+    } catch(e) { console.error('Linking data:', e); }
+}
+
+function loadLinkingMore() { loadLinkingData(true); }
+
+function renderLinkingTable() {
+    const search = document.getElementById('linkSearch').value.toLowerCase();
+    let items = linkingState.items;
+    if (search) items = items.filter(i =>
+        (i.artist_name||'').toLowerCase().includes(search) ||
+        (i.album_title||'').toLowerCase().includes(search));
+
+    const methodBadge = m => ({
+        'auto': '<span class="badge badge-owned">AUTO</span>',
+        'manual': '<span class="badge" style="background:rgba(96,165,250,0.15);color:#60a5fa">MANUAL</span>',
+        'pending': '<span class="badge" style="background:rgba(251,191,36,0.15);color:#fbbf24">PENDING</span>',
+        'skipped': '<span class="badge badge-gap">SKIPPED</span>',
+    })[m] || `<span class="badge badge-format">${esc(m)}</span>`;
+
+    document.getElementById('linkBody').innerHTML = items.map(i => `
+        <tr>
+            <td style="font-family:var(--font-mono);font-size:0.8rem">${i.rank_position || '—'}</td>
+            <td style="font-weight:500;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.artist_name)}</td>
+            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.album_title)}</td>
+            <td style="font-family:var(--font-mono);font-size:0.8rem">${i.year || '—'}</td>
+            <td style="font-size:0.75rem">${esc(i.source_list || '—')}</td>
+            <td>${methodBadge(i.match_method)}</td>
+            <td style="font-family:var(--font-mono);font-size:0.8rem">${i.master_id ? `<a href="https://www.discogs.com/master/${i.master_id}" target="_blank" style="color:var(--accent-cyan)">${i.master_id}</a>` : '—'}</td>
+            <td style="font-family:var(--font-mono);font-size:0.8rem">${i.link_release_id ? `<a href="https://www.discogs.com/release/${i.link_release_id}" target="_blank" style="color:var(--accent-cyan)">${i.link_release_id}</a>` : '—'}</td>
+            <td style="font-size:0.8rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.master_title || '—')}</td>
+            <td>
+                <button data-paid="${i.pa_album_id}" data-artist="${esc(i.artist_name)}" data-album="${esc(i.album_title)}"
+                    onclick="openLinkDialog(+this.dataset.paid, this.dataset.artist, this.dataset.album)"
+                    style="background:var(--bg-surface);color:var(--accent-gold);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 8px;font-size:0.75rem;cursor:pointer">
+                    ${i.master_id || i.link_release_id ? 'Edit' : 'Link'}
+                </button>
+            </td>
+        </tr>
+    `).join('');
+    document.getElementById('linkCount').textContent = `${items.length} items`;
+}
+
+async function openLinkDialog(paId, artist, album) {
+    linkingState.currentPaId = paId;
+    document.getElementById('linkDialogTitle').textContent = `${artist} — ${album}`;
+    document.getElementById('linkManualMasterId').value = '';
+    document.getElementById('linkManualReleaseId').value = '';
+
+    // Search collection for candidates
+    try {
+        const results = await api(`/api/linking/search-discogs?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}`);
+        document.getElementById('linkDialogResults').innerHTML = results.length > 0
+            ? results.map(r => `
+                <div style="display:flex;align-items:center;gap:12px;padding:8px;border-bottom:1px solid var(--border);cursor:pointer"
+                     onclick="selectMasterLink(${r.master_id || 'null'}, ${r.release_id})">
+                    <span style="font-family:var(--font-mono);color:var(--accent-cyan);min-width:90px">M:${r.master_id || '—'} R:${r.release_id}</span>
+                    <span style="font-weight:500">${esc(r.artist_name)}</span>
+                    <span style="color:var(--text-muted)">—</span>
+                    <span>${esc(r.release_title)}</span>
+                    <span style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted)">${r.master_year || ''}</span>
+                </div>
+            `).join('')
+            : '<p style="color:var(--text-muted);padding:12px">No matches found in your collection. Enter master_id or release_id manually.</p>';
+    } catch(e) {
+        document.getElementById('linkDialogResults').innerHTML = '<p style="color:var(--accent-red)">Error searching collection</p>';
+    }
+
+    const dialog = document.getElementById('linkDialog');
+    dialog.style.display = 'flex';
+}
+
+function selectMasterLink(masterId, releaseId) {
+    if (masterId) {
+        document.getElementById('linkManualMasterId').value = masterId;
+        document.getElementById('linkManualReleaseId').value = '';
+    } else {
+        document.getElementById('linkManualMasterId').value = '';
+        document.getElementById('linkManualReleaseId').value = releaseId;
+    }
+}
+
+async function submitManualLink() {
+    const paId = linkingState.currentPaId;
+    const masterId = document.getElementById('linkManualMasterId').value;
+    const releaseId = document.getElementById('linkManualReleaseId').value;
+    if (!masterId && !releaseId) { alert('Enter a master_id or release_id'); return; }
+    try {
+        const params = new URLSearchParams({ pa_album_id: paId });
+        if (masterId) params.set('master_id', masterId);
+        if (releaseId) params.set('release_id', releaseId);
+        const result = await api('/api/linking/link?' + params);
+        const msg = result.propagated_to > 1 ? ` (propagated to ${result.propagated_to} entries)` : '';
+        closeLinkDialog();
+        loadLinkingData();
+        if (msg) { document.getElementById('linkCount').textContent += msg; }
+    } catch(e) { alert('Error linking: ' + e.message); }
+}
+
+async function skipLink() {
+    const paId = linkingState.currentPaId;
+    try {
+        await api(`/api/linking/link?pa_album_id=${paId}&master_id=0&notes=manually_skipped`);
+        closeLinkDialog();
+        loadLinkingData();
+    } catch(e) { console.error(e); }
+}
+
+function closeLinkDialog() {
+    document.getElementById('linkDialog').style.display = 'none';
+    linkingState.currentPaId = null;
+}
+
+// Linking filter listeners
+document.getElementById('linkSourceFilter').addEventListener('change', () => loadLinkingData());
+document.getElementById('linkMethodFilter').addEventListener('change', () => loadLinkingData());
+document.getElementById('linkSearch').addEventListener('input', () => {
+    clearTimeout(state.searchDebounce);
+    state.searchDebounce = setTimeout(() => renderLinkingTable(), 300);
+});
+
+async function runPurge() {
+    const btn = document.getElementById('purgeBtn');
+    const result = document.getElementById('purgeResult');
+    btn.disabled = true; btn.textContent = 'Purging...';
+    result.textContent = '';
+    try {
+        const d = await api('/api/admin/purge-deleted');
+        if (d.status === 'ok') {
+            result.textContent = `Done! Discogs: ${d.discogs_count}, DB was: ${d.db_count}, Orphans removed: ${d.deleted}`;
+            if (d.deleted > 0) {
+                result.textContent += ' — ' + d.details.map(x => `${x.artist} - ${x.title}`).join(', ');
+            }
+            result.style.color = d.deleted > 0 ? 'var(--accent-green)' : 'var(--text-muted)';
+        } else {
+            result.textContent = 'Error: ' + d.message;
+            result.style.color = 'var(--accent-red)';
+        }
+    } catch(e) {
+        result.textContent = 'Error: ' + e.message;
+        result.style.color = 'var(--accent-red)';
+    }
+    btn.disabled = false; btn.textContent = 'Purge Deleted from Discogs';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════════════════════
+function esc(s) {
+    if (!s) return '';
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+// Auto-connect on page load
+window.addEventListener('DOMContentLoaded', () => { connectAPI(); });
+</script>
+</body>
+</html>
