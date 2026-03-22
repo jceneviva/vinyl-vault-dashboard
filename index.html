@@ -565,7 +565,8 @@ tbody tr:hover { background: var(--bg-card-hover); }
         </div>
         <div style="margin-bottom:16px;display:flex;gap:12px;align-items:center">
             <button class="filter-chip" onclick="runSync()" id="syncBtn" style="background:rgba(96,165,250,0.15);color:#60a5fa;border-color:rgba(96,165,250,0.3)">Sync Discogs Collection</button>
-            <button class="filter-chip" onclick="runPurge()" id="purgeBtn" style="background:rgba(248,113,113,0.15);color:var(--accent-red);border-color:rgba(248,113,113,0.3)">Purge Deleted from Discogs</button>
+            <button class="filter-chip" onclick="runPurge()" id="purgeBtn" style="background:rgba(248,113,113,0.15);color:var(--accent-red);border-color:rgba(248,113,113,0.3)">Purge Deleted</button>
+            <button class="filter-chip" onclick="downloadSnapshot()" id="snapBtn" style="background:rgba(251,191,36,0.15);color:var(--accent-gold);border-color:rgba(251,191,36,0.3)">Download Curator Snapshot</button>
             <span id="purgeResult" style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted)"></span>
         </div>
         <div class="table-card">
@@ -1437,6 +1438,33 @@ document.getElementById('linkSearch').addEventListener('input', () => {
     clearTimeout(state.searchDebounce);
     state.searchDebounce = setTimeout(() => renderLinkingTable(), 300);
 });
+
+async function downloadSnapshot() {
+    const btn = document.getElementById('snapBtn');
+    const result = document.getElementById('purgeResult');
+    btn.disabled = true; btn.textContent = 'Generating...';
+    result.textContent = 'Building curator snapshot...'; result.style.color = 'var(--text-muted)';
+    try {
+        const data = await api('/api/curator/snapshot');
+        // Create and download JSON file
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const date = new Date().toISOString().slice(0,10);
+        a.download = `vinyl-vault-snapshot-${date}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        result.textContent = `Snapshot downloaded! ${data.total_items} items, ${data.collection.length} with details, ${data.top_gaps.length} top gaps`;
+        result.style.color = 'var(--accent-green)';
+    } catch(e) {
+        result.textContent = 'Error: ' + e.message;
+        result.style.color = 'var(--accent-red)';
+    }
+    btn.disabled = false; btn.textContent = 'Download Curator Snapshot';
+}
 
 async function runSync() {
     const btn = document.getElementById('syncBtn');
