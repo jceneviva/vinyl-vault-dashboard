@@ -295,14 +295,27 @@ tbody tr:hover { background: var(--bg-card-hover); }
         <div class="api-status">
             <div class="status-dot" id="statusDot"></div>
             <span id="statusText">Disconnected</span>
+            <button onclick="logout()" style="margin-left:12px;background:none;color:var(--text-muted);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;font-size:0.7rem;cursor:pointer;letter-spacing:0.05em">LOGOUT</button>
         </div>
     </header>
 
+    <!-- ═══ LOGIN OVERLAY ═══ -->
+    <div id="loginOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg-base);z-index:2000;display:flex;align-items:center;justify-content:center">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:40px;max-width:360px;width:90%;text-align:center">
+            <h2 style="font-family:var(--font-display);color:var(--accent-gold);margin-bottom:8px">Vinyl Vault</h2>
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:24px">Sign in to your collection</p>
+            <input type="text" id="loginUser" placeholder="Username" style="width:100%;background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:0.9rem;margin-bottom:12px;outline:none;box-sizing:border-box">
+            <input type="password" id="loginPass" placeholder="Password" style="width:100%;background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:0.9rem;margin-bottom:16px;outline:none;box-sizing:border-box"
+                   onkeydown="if(event.key==='Enter')doLogin()">
+            <button onclick="doLogin()" style="width:100%;background:var(--accent-gold);color:var(--bg-base);border:none;border-radius:var(--radius-sm);padding:10px;font-size:0.9rem;font-weight:600;cursor:pointer">Sign In</button>
+            <p id="loginError" style="color:var(--accent-red);font-size:0.8rem;margin-top:12px;display:none"></p>
+        </div>
+    </div>
+
     <!-- ═══ CONFIG ═══ -->
-    <div class="config-bar">
+    <div class="config-bar" style="display:none">
         <label>API Base URL</label>
         <input type="text" id="apiUrl" value="https://api.jceneviva.com.br" placeholder="https://api.jceneviva.com.br">
-        <button onclick="connectAPI()">Connect</button>
     </div>
 
     <!-- ═══ TABS ═══ -->
@@ -551,6 +564,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
             <div class="stat-card"><div class="stat-label">Coverage</div><div class="stat-value" id="linkPct">—</div></div>
         </div>
         <div style="margin-bottom:16px;display:flex;gap:12px;align-items:center">
+            <button class="filter-chip" onclick="runSync()" id="syncBtn" style="background:rgba(96,165,250,0.15);color:#60a5fa;border-color:rgba(96,165,250,0.3)">Sync Discogs Collection</button>
             <button class="filter-chip" onclick="runPurge()" id="purgeBtn" style="background:rgba(248,113,113,0.15);color:var(--accent-red);border-color:rgba(248,113,113,0.3)">Purge Deleted from Discogs</button>
             <span id="purgeResult" style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted)"></span>
         </div>
@@ -616,6 +630,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
 // STATE
 // ═══════════════════════════════════════════════════════════════════════════════
 let API = 'https://api.jceneviva.com.br';
+let API_KEY = localStorage.getItem('vinyl_vault_api_key') || '';
 let state = {
     connected: false,
     summary: null,
@@ -636,10 +651,48 @@ let state = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════════════════════
+async function doLogin() {
+    const user = document.getElementById('loginUser').value;
+    const pass = document.getElementById('loginPass').value;
+    const errEl = document.getElementById('loginError');
+    errEl.style.display = 'none';
+    try {
+        const resp = await fetch(`${API}/api/auth/login`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username: user, password: pass})
+        });
+        if (!resp.ok) throw new Error('Invalid credentials');
+        const data = await resp.json();
+        API_KEY = data.api_key;
+        localStorage.setItem('vinyl_vault_api_key', API_KEY);
+        document.getElementById('loginOverlay').style.display = 'none';
+        connectAPI();
+    } catch(e) {
+        errEl.textContent = e.message;
+        errEl.style.display = '';
+    }
+}
+
+function logout() {
+    API_KEY = '';
+    localStorage.removeItem('vinyl_vault_api_key');
+    document.getElementById('loginOverlay').style.display = 'flex';
+    state.connected = false;
+    document.getElementById('statusDot').classList.remove('connected');
+    document.getElementById('statusText').textContent = 'Disconnected';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // API CALLS
 // ═══════════════════════════════════════════════════════════════════════════════
 async function api(path) {
-    const resp = await fetch(`${API}${path}`);
+    const resp = await fetch(`${API}${path}`, {
+        headers: API_KEY ? {'X-API-Key': API_KEY} : {}
+    });
+    if (resp.status === 401) { logout(); throw new Error('Session expired'); }
     if (!resp.ok) throw new Error(`API ${resp.status}`);
     return resp.json();
 }
@@ -649,13 +702,14 @@ async function connectAPI() {
     const dot = document.getElementById('statusDot');
     const txt = document.getElementById('statusText');
     try {
-        const h = await api('/api/health');
-        if (h.status === 'ok') {
+        const h = await fetch(`${API}/api/health`);
+        const data = await h.json();
+        if (data.status === 'ok') {
             dot.classList.add('connected');
             txt.textContent = 'Connected';
             state.connected = true;
             loadAll();
-        } else throw new Error(h.db);
+        } else throw new Error(data.db);
     } catch (e) {
         dot.classList.remove('connected');
         txt.textContent = 'Error: ' + e.message;
@@ -1384,6 +1438,28 @@ document.getElementById('linkSearch').addEventListener('input', () => {
     state.searchDebounce = setTimeout(() => renderLinkingTable(), 300);
 });
 
+async function runSync() {
+    const btn = document.getElementById('syncBtn');
+    const result = document.getElementById('purgeResult');
+    btn.disabled = true; btn.textContent = 'Syncing...';
+    result.textContent = 'This may take 30-60 seconds...'; result.style.color = 'var(--text-muted)';
+    try {
+        const d = await api('/api/admin/sync-discogs');
+        if (d.status === 'ok') {
+            result.textContent = `Synced! Discogs: ${d.discogs_count}, Updated: ${d.upserted}, Purged: ${d.purged}`;
+            result.style.color = 'var(--accent-green)';
+            loadAll(); // Reload everything
+        } else {
+            result.textContent = 'Error: ' + d.message;
+            result.style.color = 'var(--accent-red)';
+        }
+    } catch(e) {
+        result.textContent = 'Error: ' + e.message;
+        result.style.color = 'var(--accent-red)';
+    }
+    btn.disabled = false; btn.textContent = 'Sync Discogs Collection';
+}
+
 async function runPurge() {
     const btn = document.getElementById('purgeBtn');
     const result = document.getElementById('purgeResult');
@@ -1418,8 +1494,13 @@ function esc(s) {
     return d.innerHTML;
 }
 
-// Auto-connect on page load
-window.addEventListener('DOMContentLoaded', () => { connectAPI(); });
+// Auto-connect if API key is saved
+window.addEventListener('DOMContentLoaded', () => {
+    if (API_KEY) {
+        document.getElementById('loginOverlay').style.display = 'none';
+        connectAPI();
+    }
+});
 </script>
 </body>
 </html>
