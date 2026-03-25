@@ -767,6 +767,7 @@ async function loadPASources() {
             jazz: 'Jazz Top 100',
             poprock: 'Pop Rock / Art Rock 100',
             soul: 'Soul / R&B / Vocal 100',
+            jazzwise: 'Jazzwise Top 100',
         };
         const html = '<option value="">All Rankings</option>' +
             state.paSources.map(s => `<option value="${esc(s.source_list)}">${esc(labels[s.source_list] || s.source_list)} (${s.total})</option>`).join('');
