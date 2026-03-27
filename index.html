@@ -5,399 +5,411 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vinyl Vault — Collection Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-/* ═══ RESET & VARIABLES ═══ */
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
 :root {
-    --bg-deep: #0a0a0f;
-    --bg-surface: #12121a;
-    --bg-card: #1a1a26;
-    --bg-card-hover: #22222f;
-    --border: #2a2a3a;
-    --border-accent: #3d3d55;
-    --text-primary: #e8e6f0;
+    --bg-base: #08080c;
+    --bg-surface: #101018;
+    --bg-card: #16161f;
+    --bg-card-hover: #1e1e2a;
+    --bg-elevated: #1c1c28;
+    --border: #232333;
+    --border-hover: #33334a;
+    --text-primary: #e8e6ef;
     --text-secondary: #9896a8;
-    --text-muted: #5e5c6e;
-    --accent-gold: #d4a853;
-    --accent-gold-dim: #9a7a3d;
-    --accent-blue: #5b8cf7;
-    --accent-green: #4ade80;
-    --accent-red: #f87171;
-    --accent-purple: #a78bfa;
-    --accent-cyan: #22d3ee;
-    --gradient-gold: linear-gradient(135deg, #d4a853, #f0d68a);
-    --gradient-vinyl: linear-gradient(135deg, #1a1a26 0%, #0a0a0f 100%);
-    --radius: 12px;
-    --radius-sm: 8px;
-    --shadow-card: 0 4px 24px rgba(0,0,0,0.4);
-    --shadow-glow: 0 0 30px rgba(212, 168, 83, 0.08);
-    --font-display: 'DM Serif Display', serif;
-    --font-body: 'Outfit', sans-serif;
+    --text-muted: #56546a;
+    --gold: #c9a84c;
+    --gold-dim: #8a6e30;
+    --gold-glow: rgba(201,168,76,0.12);
+    --blue: #5b8cf7;
+    --green: #4ade80;
+    --red: #f87171;
+    --purple: #a78bfa;
+    --cyan: #22d3ee;
+    --orange: #fb923c;
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'DM Sans', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
-    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --radius: 14px;
+    --radius-sm: 8px;
+    --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
 }
 
 body {
     font-family: var(--font-body);
-    background: var(--bg-deep);
+    background: var(--bg-base);
     color: var(--text-primary);
     line-height: 1.6;
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
 /* ═══ LAYOUT ═══ */
-.app-container { max-width: 1440px; margin: 0 auto; padding: 24px; }
+.app { max-width: 1480px; margin: 0 auto; padding: 16px; }
 
+/* ═══ HEADER ═══ */
 .header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 32px 0 24px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 32px;
+    padding: 20px 0 16px; border-bottom: 1px solid var(--border); margin-bottom: 20px;
 }
-.header-left { display: flex; align-items: center; gap: 20px; }
+.brand { display: flex; align-items: center; gap: 14px; }
 .vinyl-icon {
-    width: 56px; height: 56px; border-radius: 50%;
-    background: conic-gradient(from 0deg, #1a1a26, #2a2a3a, #1a1a26, #2a2a3a, #1a1a26);
-    border: 3px solid var(--accent-gold-dim);
-    display: flex; align-items: center; justify-content: center;
-    animation: spin 8s linear infinite;
-    position: relative;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: conic-gradient(from 0deg, #16161f, #2a2a3a, #16161f, #2a2a3a, #16161f);
+    border: 2px solid var(--gold-dim); display: flex; align-items: center; justify-content: center;
+    animation: spin 10s linear infinite; position: relative; flex-shrink: 0;
 }
-.vinyl-icon::after {
-    content: ''; width: 12px; height: 12px; border-radius: 50%;
-    background: var(--accent-gold); position: absolute;
-}
+.vinyl-icon::after { content:''; width:10px; height:10px; border-radius:50%; background:var(--gold); position:absolute; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.brand h1 {
+    font-family: var(--font-display); font-size: 1.5rem; font-weight: 700;
+    background: linear-gradient(135deg, var(--gold), #f0d68a); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    line-height: 1.2;
+}
+.brand-sub { font-size: 0.72rem; color: var(--text-muted); font-weight: 300; letter-spacing: 0.06em; }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); transition: var(--transition); }
+.status-dot.connected { background: var(--green); box-shadow: 0 0 6px rgba(74,222,128,0.5); }
+.btn-ghost {
+    background: none; color: var(--text-muted); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 4px 10px; font-size: 0.68rem; cursor: pointer;
+    font-family: var(--font-mono); letter-spacing: 0.04em; transition: var(--transition);
+}
+.btn-ghost:hover { border-color: var(--border-hover); color: var(--text-secondary); }
 
-h1 {
-    font-family: var(--font-display); font-size: 2rem;
-    background: var(--gradient-gold); -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent; letter-spacing: -0.02em;
+/* ═══ NAV ═══ */
+.nav {
+    display: flex; gap: 2px; margin-bottom: 20px;
+    background: var(--bg-surface); border-radius: var(--radius); padding: 3px;
+    border: 1px solid var(--border); overflow-x: auto; -webkit-overflow-scrolling: touch;
 }
-.subtitle { color: var(--text-muted); font-size: 0.85rem; font-weight: 300; }
-
-.api-status {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 0.8rem; color: var(--text-muted);
-    font-family: var(--font-mono);
+.nav-item {
+    padding: 10px 18px; font-size: 0.78rem; font-weight: 500; color: var(--text-muted);
+    cursor: pointer; border-radius: calc(var(--radius) - 2px); transition: var(--transition);
+    white-space: nowrap; text-align: center; flex-shrink: 0;
 }
-.status-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--accent-red); transition: var(--transition);
-}
-.status-dot.connected { background: var(--accent-green); box-shadow: 0 0 8px rgba(74,222,128,0.5); }
-
-/* ═══ CONFIG BAR ═══ */
-.config-bar {
-    display: flex; align-items: center; gap: 16px;
-    padding: 16px 20px; background: var(--bg-card);
-    border: 1px solid var(--border); border-radius: var(--radius);
-    margin-bottom: 28px;
-}
-.config-bar label { font-size: 0.8rem; color: var(--text-secondary); font-weight: 500; }
-.config-bar input, .config-bar button {
-    font-family: var(--font-mono); font-size: 0.8rem;
-    background: var(--bg-surface); color: var(--text-primary);
-    border: 1px solid var(--border); border-radius: var(--radius-sm);
-    padding: 8px 14px; outline: none; transition: var(--transition);
-}
-.config-bar input:focus { border-color: var(--accent-gold); }
-.config-bar input { width: 320px; }
-.config-bar button {
-    background: var(--accent-gold-dim); color: #fff; border: none;
-    cursor: pointer; font-weight: 600; padding: 8px 20px;
-}
-.config-bar button:hover { background: var(--accent-gold); }
-
-/* ═══ TABS ═══ */
-.tab-bar {
-    display: flex; gap: 4px; margin-bottom: 28px;
-    border-bottom: 1px solid var(--border); padding-bottom: 0;
-}
-.tab {
-    padding: 12px 24px; font-size: 0.85rem; font-weight: 500;
-    color: var(--text-muted); cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: var(--transition); user-select: none;
-}
-.tab:hover { color: var(--text-secondary); }
-.tab.active {
-    color: var(--accent-gold); border-bottom-color: var(--accent-gold);
-}
+.nav-item:hover { color: var(--text-secondary); }
+.nav-item.active { background: var(--bg-card); color: var(--gold); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
 
 /* ═══ PANELS ═══ */
-.panel { display: none; animation: fadeIn 0.4s ease; }
+.panel { display: none; animation: fadeUp 0.3s ease; }
 .panel.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ═══ STATS GRID ═══ */
-.stats-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px; margin-bottom: 32px;
+/* ═══ METRIC CARDS ═══ */
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.metric {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px 14px; transition: var(--transition); position: relative; overflow: hidden;
 }
-.stat-card {
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 20px 24px;
+.metric::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent); opacity: 0;
     transition: var(--transition);
 }
-.stat-card:hover { border-color: var(--border-accent); box-shadow: var(--shadow-glow); }
-.stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
-.stat-value {
-    font-family: var(--font-display); font-size: 2rem;
-    background: var(--gradient-gold); -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-.stat-sub { font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; }
+.metric:hover::before { opacity: 1; }
+.metric-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+.metric-value { font-family: var(--font-display); font-size: 1.7rem; color: var(--text-primary); line-height: 1; }
+.metric-value.gold { color: var(--gold); }
+.metric-value.green { color: var(--green); }
+.metric-sub { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; }
 
-/* ═══ CHARTS ═══ */
-.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
-.chart-card {
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 24px;
+/* ═══ CARDS ═══ */
+.card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 16px;
 }
-.chart-card h3 {
-    font-family: var(--font-display); font-size: 1.1rem;
-    margin-bottom: 16px; color: var(--text-primary);
+.card h3 {
+    font-family: var(--font-display); font-size: 1rem; font-weight: 700;
+    color: var(--text-primary); margin-bottom: 14px; font-style: italic;
 }
-.chart-wrapper { position: relative; height: 300px; }
+.card-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.chart-wrap { height: 260px; position: relative; }
 
-/* ═══ TABLE ═══ */
-.table-card {
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: var(--radius); overflow: hidden;
+/* ═══ TABLES ═══ */
+.tbl-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.tbl-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap;
 }
-.table-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 20px 24px; border-bottom: 1px solid var(--border);
-}
-.table-header h3 { font-family: var(--font-display); font-size: 1.1rem; }
-.table-search {
-    background: var(--bg-surface); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); padding: 6px 14px;
-    font-family: var(--font-mono); font-size: 0.8rem;
-    color: var(--text-primary); outline: none; width: 240px;
-}
-.table-search:focus { border-color: var(--accent-gold); }
-
-table { width: 100%; border-collapse: collapse; }
+.tbl-header h3 { font-family: var(--font-display); font-size: 1rem; font-style: italic; margin: 0; white-space: nowrap; }
+.tbl-filters { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
 thead th {
-    padding: 12px 16px; text-align: left;
-    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
-    color: var(--text-muted); border-bottom: 1px solid var(--border);
-    background: var(--bg-surface); position: sticky; top: 0;
-    cursor: pointer; user-select: none;
+    position: sticky; top: 0; background: var(--bg-elevated); color: var(--text-muted);
+    font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 10px 10px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border);
 }
-thead th:hover { color: var(--text-secondary); }
-tbody td {
-    padding: 12px 16px; font-size: 0.85rem;
-    border-bottom: 1px solid rgba(42,42,58,0.4);
-}
-tbody tr { transition: var(--transition); }
+tbody td { padding: 8px 10px; border-bottom: 1px solid rgba(35,35,51,0.5); vertical-align: middle; }
 tbody tr:hover { background: var(--bg-card-hover); }
 
-.table-scroll { max-height: 600px; overflow-y: auto; }
-.table-scroll::-webkit-scrollbar { width: 6px; }
-.table-scroll::-webkit-scrollbar-track { background: var(--bg-surface); }
-.table-scroll::-webkit-scrollbar-thumb { background: var(--border-accent); border-radius: 3px; }
+/* ═══ FORM ELEMENTS ═══ */
+.sel, .inp {
+    background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 7px 10px; font-size: 0.75rem; outline: none;
+    font-family: var(--font-body); transition: var(--transition);
+}
+.sel:focus, .inp:focus { border-color: var(--gold-dim); }
+.inp { min-width: 100px; }
 
 /* ═══ BADGES ═══ */
 .badge {
-    display: inline-block; padding: 3px 10px; border-radius: 20px;
-    font-size: 0.7rem; font-weight: 600; letter-spacing: 0.03em;
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 0.68rem; font-weight: 600; letter-spacing: 0.03em; white-space: nowrap;
 }
-.badge-owned { background: rgba(74,222,128,0.15); color: var(--accent-green); }
-.badge-gap { background: rgba(248,113,113,0.15); color: var(--accent-red); }
-.badge-format { background: rgba(91,140,247,0.15); color: var(--accent-blue); }
-.badge-pillar { background: rgba(167,139,250,0.15); color: var(--accent-purple); }
+.b-owned { background: rgba(74,222,128,0.12); color: #4ade80; }
+.b-gap { background: rgba(248,113,113,0.12); color: #f87171; }
+.b-genre { background: rgba(167,139,250,0.12); color: #a78bfa; }
+.b-format { background: rgba(34,211,238,0.12); color: #22d3ee; }
+.b-auto { background: rgba(74,222,128,0.12); color: #4ade80; }
+.b-manual { background: rgba(91,140,247,0.12); color: #5b8cf7; }
+.b-pending { background: rgba(251,191,36,0.12); color: #fbbf24; }
+.b-skip { background: rgba(248,113,113,0.12); color: #f87171; }
 
-/* ═══ COVERAGE BAR ═══ */
-.coverage-row {
-    display: flex; align-items: center; gap: 16px;
-    padding: 14px 20px; border-bottom: 1px solid rgba(42,42,58,0.3);
-    transition: var(--transition);
-}
-.coverage-row:hover { background: var(--bg-card-hover); }
-.coverage-label { width: 180px; font-size: 0.85rem; font-weight: 500; flex-shrink: 0; }
-.coverage-bar-bg {
-    flex: 1; height: 24px; background: var(--bg-surface);
-    border-radius: 12px; overflow: hidden; position: relative;
-}
-.coverage-bar-fill {
-    height: 100%; border-radius: 12px;
-    background: var(--gradient-gold);
-    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    min-width: 2px;
-}
-.coverage-stats {
-    width: 140px; text-align: right; font-family: var(--font-mono);
-    font-size: 0.8rem; color: var(--text-secondary); flex-shrink: 0;
-}
-.coverage-pct {
-    font-weight: 600; color: var(--accent-gold);
-}
+/* ═══ COVERAGE BARS ═══ */
+.cov-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.cov-label { width: 160px; font-size: 0.78rem; color: var(--text-secondary); flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cov-bar { flex: 1; height: 8px; background: rgba(35,35,51,0.6); border-radius: 4px; overflow: hidden; }
+.cov-fill { height: 100%; background: var(--gold); border-radius: 4px; transition: width 0.6s ease; }
+.cov-stats { font-family: var(--font-mono); font-size: 0.72rem; color: var(--gold); min-width: 80px; text-align: right; flex-shrink: 0; }
 
-/* ═══ FILTERS ═══ */
-.filter-bar {
-    display: flex; gap: 12px; flex-wrap: wrap;
-    margin-bottom: 20px;
+/* ═══ ACTION BUTTONS ═══ */
+.btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: var(--radius-sm); font-size: 0.78rem; font-weight: 500;
+    cursor: pointer; transition: var(--transition); border: 1px solid;
 }
-.filter-chip {
-    padding: 6px 16px; border-radius: 20px;
-    font-size: 0.8rem; font-weight: 500;
-    background: var(--bg-surface); color: var(--text-secondary);
-    border: 1px solid var(--border); cursor: pointer;
-    transition: var(--transition); user-select: none;
-}
-.filter-chip:hover { border-color: var(--border-accent); color: var(--text-primary); }
-.filter-chip.active { background: var(--accent-gold-dim); color: #fff; border-color: var(--accent-gold-dim); }
+.btn-sync { background: rgba(91,140,247,0.1); color: var(--blue); border-color: rgba(91,140,247,0.25); }
+.btn-purge { background: rgba(248,113,113,0.1); color: var(--red); border-color: rgba(248,113,113,0.25); }
+.btn-snap { background: var(--gold-glow); color: var(--gold); border-color: rgba(201,168,76,0.25); }
+.btn-action { background: var(--gold-glow); color: var(--gold); border-color: rgba(201,168,76,0.25); }
+.btn:hover { filter: brightness(1.15); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ═══ LOADING / EMPTY ═══ */
-.loading {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; padding: 60px; color: var(--text-muted);
+/* ═══ TOP RATED LIST ═══ */
+.top-item {
+    display: flex; align-items: center; gap: 10px; padding: 7px 0;
+    border-bottom: 1px solid rgba(35,35,51,0.4);
 }
-.spinner {
-    width: 40px; height: 40px; border: 3px solid var(--border);
-    border-top-color: var(--accent-gold); border-radius: 50%;
-    animation: spin 0.8s linear infinite; margin-bottom: 16px;
+.top-rank { font-family: var(--font-mono); color: var(--gold); width: 28px; font-size: 0.78rem; flex-shrink: 0; }
+.top-name { flex: 1; font-size: 0.82rem; font-weight: 500; }
+.top-rating { font-family: var(--font-mono); color: var(--gold); font-size: 0.82rem; flex-shrink: 0; }
+
+/* ═══ LOGIN ═══ */
+.login-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: var(--bg-base); z-index: 2000;
+    display: flex; align-items: center; justify-content: center;
 }
-.empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
-.empty-state h4 { font-family: var(--font-display); font-size: 1.2rem; margin-bottom: 8px; color: var(--text-secondary); }
+.login-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 40px 36px; max-width: 340px; width: 90%; text-align: center;
+    box-shadow: 0 0 60px rgba(201,168,76,0.06);
+}
+.login-card h2 { font-family: var(--font-display); color: var(--gold); font-size: 1.6rem; margin-bottom: 4px; font-style: italic; }
+.login-card p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 24px; }
+.login-input {
+    width: 100%; background: var(--bg-surface); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 11px 14px; font-size: 0.85rem; margin-bottom: 10px; outline: none;
+    font-family: var(--font-body);
+}
+.login-input:focus { border-color: var(--gold-dim); }
+.login-btn {
+    width: 100%; background: var(--gold); color: var(--bg-base); border: none;
+    border-radius: var(--radius-sm); padding: 11px; font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; font-family: var(--font-body); margin-top: 6px; transition: var(--transition);
+}
+.login-btn:hover { filter: brightness(1.1); }
+
+/* ═══ DIALOG ═══ */
+.dialog-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;
+}
+.dialog {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; max-width: 560px; width: 92%;
+}
 
 /* ═══ RESPONSIVE ═══ */
-@media (max-width: 900px) {
-    .charts-row { grid-template-columns: 1fr; }
-    .stats-grid { grid-template-columns: repeat(2, 1fr); }
-    .config-bar { flex-wrap: wrap; }
-    .config-bar input { width: 100%; }
+@media (max-width: 768px) {
+    .app { padding: 10px; }
+    .header { flex-direction: column; gap: 10px; align-items: flex-start; }
+    .header-right { width: 100%; justify-content: flex-end; }
+    .nav { gap: 0; }
+    .nav-item { padding: 9px 12px; font-size: 0.72rem; }
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .metric-value { font-size: 1.3rem; }
+    .card-row { grid-template-columns: 1fr; }
+    .tbl-header { flex-direction: column; align-items: flex-start; }
+    .tbl-filters { width: 100%; }
+    .sel, .inp { flex: 1; min-width: 0; font-size: 0.72rem; }
+    .chart-wrap { height: 200px; }
+    .cov-label { width: 100px; font-size: 0.7rem; }
+    .brand h1 { font-size: 1.2rem; }
+    table { font-size: 0.72rem; }
+    thead th { padding: 8px 6px; font-size: 0.62rem; }
+    tbody td { padding: 6px; }
 }
-@media (max-width: 600px) {
-    .stats-grid { grid-template-columns: 1fr; }
-    .tab { padding: 10px 14px; font-size: 0.8rem; }
+@media (max-width: 480px) {
+    .metrics { grid-template-columns: 1fr 1fr; gap: 6px; }
+    .metric { padding: 12px 10px; }
+    .metric-value { font-size: 1.1rem; }
+    .nav-item { padding: 8px 10px; font-size: 0.68rem; }
 }
+
+/* Hidden config */
+.config-bar { display: none; }
 </style>
 </head>
 <body>
-<div class="app-container">
 
-    <!-- ═══ HEADER ═══ -->
+<div class="app">
     <header class="header">
-        <div class="header-left">
+        <div class="brand">
             <div class="vinyl-icon"></div>
             <div>
                 <h1>Vinyl Vault</h1>
-                <div class="subtitle">Collection Dashboard & Benchmark Analysis</div>
+                <div class="brand-sub">Collection Dashboard & Benchmark Analysis</div>
             </div>
         </div>
-        <div class="api-status">
+        <div class="header-right">
             <div class="status-dot" id="statusDot"></div>
-            <span id="statusText">Disconnected</span>
-            <button onclick="logout()" style="margin-left:12px;background:none;color:var(--text-muted);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;font-size:0.7rem;cursor:pointer;letter-spacing:0.05em">LOGOUT</button>
+            <span id="statusText" style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted)">Disconnected</span>
+            <button class="btn-ghost" onclick="logout()">LOGOUT</button>
         </div>
     </header>
 
-    <!-- ═══ LOGIN OVERLAY ═══ -->
-    <div id="loginOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg-base);z-index:2000;display:flex;align-items:center;justify-content:center">
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:40px;max-width:360px;width:90%;text-align:center">
-            <h2 style="font-family:var(--font-display);color:var(--accent-gold);margin-bottom:8px">Vinyl Vault</h2>
-            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:24px">Sign in to your collection</p>
-            <input type="text" id="loginUser" placeholder="Username" style="width:100%;background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:0.9rem;margin-bottom:12px;outline:none;box-sizing:border-box">
-            <input type="password" id="loginPass" placeholder="Password" style="width:100%;background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:0.9rem;margin-bottom:16px;outline:none;box-sizing:border-box"
-                   onkeydown="if(event.key==='Enter')doLogin()">
-            <button onclick="doLogin()" style="width:100%;background:var(--accent-gold);color:var(--bg-base);border:none;border-radius:var(--radius-sm);padding:10px;font-size:0.9rem;font-weight:600;cursor:pointer">Sign In</button>
-            <p id="loginError" style="color:var(--accent-red);font-size:0.8rem;margin-top:12px;display:none"></p>
+    <!-- LOGIN -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-card">
+            <h2>Vinyl Vault</h2>
+            <p>Sign in to your collection</p>
+            <input class="login-input" type="text" id="loginUser" placeholder="Username">
+            <input class="login-input" type="password" id="loginPass" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+            <button class="login-btn" onclick="doLogin()">Sign In</button>
+            <p id="loginError" style="color:var(--red);font-size:0.78rem;margin-top:10px;display:none"></p>
         </div>
     </div>
 
-    <!-- ═══ CONFIG ═══ -->
-    <div class="config-bar" style="display:none">
-        <label>API Base URL</label>
-        <input type="text" id="apiUrl" value="https://api.jceneviva.com.br" placeholder="https://api.jceneviva.com.br">
-    </div>
+    <div class="config-bar"><input type="text" id="apiUrl" value="https://api.jceneviva.com.br"></div>
 
-    <!-- ═══ TABS ═══ -->
-    <div class="tab-bar" id="tabBar">
-        <div class="tab active" data-tab="overview">Overview</div>
-        <div class="tab" data-tab="collection">Collection</div>
-        <div class="tab" data-tab="benchmark">Benchmark</div>
-        <div class="tab" data-tab="gaps">Gap Analysis</div>
-        <div class="tab" data-tab="ratings">Insights</div>
-        <div class="tab" data-tab="linking">Linking</div>
-    </div>
+    <!-- NAV -->
+    <nav class="nav" id="tabBar">
+        <div class="nav-item active" data-tab="dashboard">Dashboard</div>
+        <div class="nav-item" data-tab="collection">Collection</div>
+        <div class="nav-item" data-tab="benchmark">Benchmark</div>
+        <div class="nav-item" data-tab="gaps">Gaps</div>
+        <div class="nav-item" data-tab="linking">Linking</div>
+        <div class="nav-item" data-tab="admin">Admin</div>
+    </nav>
 
-    <!-- ═══ OVERVIEW PANEL ═══ -->
-    <div class="panel active" id="panel-overview">
-        <div class="stats-grid" id="statsGrid">
-            <div class="stat-card"><div class="stat-label">Total Items</div><div class="stat-value" id="statTotal">—</div></div>
-            <div class="stat-card"><div class="stat-label">Benchmark Albums</div><div class="stat-value" id="statBenchmark">—</div></div>
-            <div class="stat-card"><div class="stat-label">Owned from Benchmark</div><div class="stat-value" id="statOwned">—</div></div>
-            <div class="stat-card"><div class="stat-label">Coverage</div><div class="stat-value" id="statCoverage">—</div><div class="stat-sub" id="statCoverageSub"></div></div>
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
+    <!-- DASHBOARD (merged Overview + Insights) -->
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
+    <div class="panel active" id="panel-dashboard">
+        <!-- Hero metrics -->
+        <div class="metrics">
+            <div class="metric"><div class="metric-label">Total Items</div><div class="metric-value" id="statTotal">—</div></div>
+            <div class="metric"><div class="metric-label">Definitive</div><div class="metric-value green" id="statDef">—</div><div class="metric-sub" id="statDefSub"></div></div>
+            <div class="metric"><div class="metric-label">Avg Rating</div><div class="metric-value gold" id="collRatingAvg">—</div><div class="metric-sub" id="collRatingSub"></div></div>
+            <div class="metric"><div class="metric-label">Benchmark</div><div class="metric-value" id="statBenchmark">—</div></div>
+            <div class="metric"><div class="metric-label">Owned</div><div class="metric-value green" id="statOwned">—</div></div>
+            <div class="metric"><div class="metric-label">Coverage</div><div class="metric-value gold" id="statCoverage">—</div><div class="metric-sub" id="statCoverageSub"></div></div>
         </div>
-        <div class="charts-row">
-            <div class="chart-card">
+
+        <!-- Charts row 1: Decade + Folders/Genre -->
+        <div class="card-row">
+            <div class="card">
                 <h3>By Decade</h3>
-                <div class="chart-wrapper"><canvas id="chartDecade"></canvas></div>
+                <div class="chart-wrap"><canvas id="chartDecade"></canvas></div>
             </div>
-            <div class="chart-card">
-                <h3>By Country (Top 15)</h3>
-                <div class="chart-wrapper"><canvas id="chartCountry"></canvas></div>
+            <div class="card">
+                <h3>By Folder / Genre</h3>
+                <div class="chart-wrap"><canvas id="chartFolder"></canvas></div>
             </div>
         </div>
-        <div class="charts-row">
-            <div class="chart-card">
+
+        <!-- Charts row 2: Country + Format -->
+        <div class="card-row">
+            <div class="card">
+                <h3>By Country (Top 15)</h3>
+                <div class="chart-wrap"><canvas id="chartCountry"></canvas></div>
+            </div>
+            <div class="card">
                 <h3>By Format</h3>
-                <div class="chart-wrapper"><canvas id="chartFormat"></canvas></div>
+                <div class="chart-wrap"><canvas id="chartFormat"></canvas></div>
             </div>
-            <div class="chart-card">
-                <h3>Benchmark Coverage by Subgenre</h3>
-                <div class="chart-wrapper"><canvas id="chartCoverage"></canvas></div>
+        </div>
+
+        <!-- Charts row 3: Curation + Media Condition -->
+        <div class="card-row">
+            <div class="card">
+                <h3>Curation Type</h3>
+                <div class="chart-wrap"><canvas id="chartCuration"></canvas></div>
             </div>
+            <div class="card">
+                <h3>Media Condition</h3>
+                <div class="chart-wrap"><canvas id="chartMediaCond"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Charts row 4: Pressing + Edition -->
+        <div class="card-row">
+            <div class="card">
+                <h3>Pressing</h3>
+                <div class="chart-wrap"><canvas id="chartPressing"></canvas></div>
+            </div>
+            <div class="card">
+                <h3>Edition</h3>
+                <div class="chart-wrap"><canvas id="chartEdition"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Top Rated -->
+        <div class="card">
+            <h3>Top Rated in Your Collection</h3>
+            <div id="ratingTopAlbums"></div>
         </div>
     </div>
 
-    <!-- ═══ COLLECTION PANEL ═══ -->
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
+    <!-- COLLECTION -->
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
     <div class="panel" id="panel-collection">
-        <div class="table-card">
-            <div class="table-header">
+        <div class="tbl-card">
+            <div class="tbl-header">
                 <h3>Full Collection</h3>
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                    <select id="cfFilterFolder" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:0.8rem;outline:none">
-                        <option value="">All Folders</option>
-                    </select>
-                    <select id="cfFilterCuration" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:0.8rem;outline:none">
-                        <option value="">All Types</option>
-                    </select>
-                    <select id="cfFilterPressing" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:0.8rem;outline:none">
-                        <option value="">All Pressings</option>
-                    </select>
-                    <select id="cfFilterCondition" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:0.8rem;outline:none">
-                        <option value="">All Conditions</option>
-                    </select>
-                    <select id="cfFilterFormat" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:0.8rem;outline:none">
-                        <option value="">All Formats</option>
-                    </select>
-                    <input type="text" class="table-search" id="cfSearch" placeholder="Search...">
+                <div class="tbl-filters">
+                    <select class="sel" id="cfFilterFolder"><option value="">All Folders</option></select>
+                    <select class="sel" id="cfFilterCuration"><option value="">All Types</option></select>
+                    <select class="sel" id="cfFilterPressing"><option value="">All Pressings</option></select>
+                    <select class="sel" id="cfFilterCondition"><option value="">All Conditions</option></select>
+                    <select class="sel" id="cfFilterFormat"><option value="">All Formats</option></select>
+                    <input type="text" class="inp" id="cfSearch" placeholder="Search...">
                 </div>
             </div>
-            <div class="table-scroll" style="max-height:700px">
+            <div class="tbl-scroll" style="max-height:70vh">
                 <table>
                     <thead>
                         <tr id="cfHeaders">
                             <th data-sort="artist_name" style="cursor:pointer">Artist ⇅</th>
                             <th data-sort="basic_title" style="cursor:pointer">Title ⇅</th>
                             <th data-sort="original_year" style="cursor:pointer">Orig ⇅</th>
-                            <th data-sort="basic_year" style="cursor:pointer">Release ⇅</th>
+                            <th data-sort="basic_year" style="cursor:pointer">Rel ⇅</th>
                             <th data-sort="country" style="cursor:pointer">Country ⇅</th>
                             <th data-sort="folder_name" style="cursor:pointer">Folder ⇅</th>
-                            <th data-sort="format_primary" style="cursor:pointer">Format ⇅</th>
+                            <th data-sort="format_primary" style="cursor:pointer">Fmt ⇅</th>
                             <th data-sort="media_condition" style="cursor:pointer">Media ⇅</th>
                             <th data-sort="sleeve_condition" style="cursor:pointer">Sleeve ⇅</th>
                             <th data-sort="curation_type" style="cursor:pointer">Type ⇅</th>
                             <th data-sort="edition" style="cursor:pointer">Edition ⇅</th>
-                            <th data-sort="pressing" style="cursor:pointer">Pressing ⇅</th>
+                            <th data-sort="pressing" style="cursor:pointer">Press ⇅</th>
                             <th data-sort="rating" style="cursor:pointer">Rating ⇅</th>
                             <th>Notes</th>
                         </tr>
@@ -405,225 +417,148 @@ tbody tr:hover { background: var(--bg-card-hover); }
                     <tbody id="cfBody"></tbody>
                 </table>
             </div>
-            <div style="text-align:center;padding:12px;font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted)" id="cfCount"></div>
+            <div style="text-align:center;padding:10px;font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted)" id="cfCount"></div>
         </div>
     </div>
 
-    <!-- ═══ BENCHMARK PANEL ═══ -->
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
+    <!-- BENCHMARK -->
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
     <div class="panel" id="panel-benchmark">
-        <div class="stats-grid" style="margin-bottom:24px;grid-template-columns:repeat(7,1fr);gap:10px">
-            <div class="stat-card" style="padding:14px 12px"><div class="stat-label">Total</div><div class="stat-value" style="font-size:1.6rem" id="bStatTotal">—</div></div>
-            <div class="stat-card" style="padding:14px 12px"><div class="stat-label">You Own</div><div class="stat-value" style="font-size:1.6rem" id="bStatOwned">—</div></div>
-            <div class="stat-card" style="padding:14px 12px">
-                <div class="stat-label">Top 10</div>
-                <div class="stat-value" style="font-size:1.6rem" id="bStatTop10">—</div>
-                <div class="stat-sub" id="bStatTop10Sub"></div>
-            </div>
-            <div class="stat-card" style="padding:14px 12px">
-                <div class="stat-label">Top 25</div>
-                <div class="stat-value" style="font-size:1.6rem" id="bStatTop25">—</div>
-                <div class="stat-sub" id="bStatTop25Sub"></div>
-            </div>
-            <div class="stat-card" style="padding:14px 12px">
-                <div class="stat-label">Top 50</div>
-                <div class="stat-value" style="font-size:1.6rem" id="bStatTop50">—</div>
-                <div class="stat-sub" id="bStatTop50Sub"></div>
-            </div>
-            <div class="stat-card" style="padding:14px 12px">
-                <div class="stat-label">Top 100</div>
-                <div class="stat-value" style="font-size:1.6rem" id="bStatTop100">—</div>
-                <div class="stat-sub" id="bStatTop100Sub"></div>
-            </div>
-            <div class="stat-card" style="padding:14px 12px">
-                <div class="stat-label">Overall</div>
-                <div class="stat-value" style="font-size:1.6rem" id="bStatPct">—</div>
-                <div class="stat-sub" id="bStatPctSub"></div>
-            </div>
+        <div class="metrics" style="grid-template-columns:repeat(auto-fit,minmax(100px,1fr))">
+            <div class="metric"><div class="metric-label">Total</div><div class="metric-value" id="bStatTotal">—</div></div>
+            <div class="metric"><div class="metric-label">Owned</div><div class="metric-value green" id="bStatOwned">—</div></div>
+            <div class="metric"><div class="metric-label">Top 10</div><div class="metric-value gold" id="bStatTop10">—</div><div class="metric-sub" id="bStatTop10Sub"></div></div>
+            <div class="metric"><div class="metric-label">Top 25</div><div class="metric-value gold" id="bStatTop25">—</div><div class="metric-sub" id="bStatTop25Sub"></div></div>
+            <div class="metric"><div class="metric-label">Top 50</div><div class="metric-value gold" id="bStatTop50">—</div><div class="metric-sub" id="bStatTop50Sub"></div></div>
+            <div class="metric"><div class="metric-label">Top 100</div><div class="metric-value gold" id="bStatTop100">—</div><div class="metric-sub" id="bStatTop100Sub"></div></div>
+            <div class="metric"><div class="metric-label">Overall</div><div class="metric-value gold" id="bStatPct">—</div><div class="metric-sub" id="bStatPctSub"></div></div>
         </div>
-        <div class="chart-card" style="margin-bottom:24px">
+
+        <div class="card" style="margin-bottom:16px">
             <h3>Coverage by Subgenre</h3>
             <div id="coverageRows"></div>
         </div>
-        <div class="table-card">
-            <div class="table-header">
-                <h3>ProgArchives Albums</h3>
-                <div style="display:flex;gap:12px;align-items:center">
-                    <select id="sourceSelect" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;font-size:0.8rem;outline:none">
-                        <option value="">All Rankings</option>
-                    </select>
-                    <select id="subgenreSelect" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;font-size:0.8rem;outline:none">
-                        <option value="">All Subgenres</option>
-                    </select>
-                    <input type="text" class="table-search" id="benchmarkSearch" placeholder="Search...">
+
+        <div class="tbl-card">
+            <div class="tbl-header">
+                <h3>Benchmark Albums</h3>
+                <div class="tbl-filters">
+                    <select class="sel" id="sourceSelect"><option value="">All Rankings</option></select>
+                    <select class="sel" id="subgenreSelect"><option value="">All Subgenres</option></select>
+                    <input type="text" class="inp" id="benchmarkSearch" placeholder="Search...">
                 </div>
             </div>
-            <div class="table-scroll">
+            <div class="tbl-scroll" style="max-height:60vh">
                 <table>
-                    <thead>
-                        <tr><th>#</th><th>Artist</th><th>Album</th><th>Year</th><th>Subgenre</th><th>Rating</th><th>Reviews</th><th>Status</th></tr>
-                    </thead>
+                    <thead><tr><th>#</th><th>Artist</th><th>Album</th><th>Year</th><th>Subgenre</th><th>Rating</th><th>Reviews</th><th>Status</th></tr></thead>
                     <tbody id="benchmarkBody"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- ═══ GAP ANALYSIS PANEL ═══ -->
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
+    <!-- GAPS -->
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
     <div class="panel" id="panel-gaps">
-        <div class="filter-bar">
-            <select id="gapSource" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 14px;font-size:0.8rem;outline:none">
-                <option value="">All Rankings</option>
-            </select>
-            <select id="gapSubgenre" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 14px;font-size:0.8rem;outline:none">
-                <option value="">All Subgenres</option>
-            </select>
-            <div style="display:flex;align-items:center;gap:8px">
-                <label style="font-size:0.8rem;color:var(--text-secondary)">Min Rating:</label>
-                <input type="range" id="gapRating" min="2" max="5" step="0.1" value="3.5"
-                    style="width:120px;accent-color:var(--accent-gold)">
-                <span id="gapRatingVal" style="font-family:var(--font-mono);font-size:0.8rem;color:var(--accent-gold)">3.5</span>
+        <div class="tbl-filters" style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap">
+            <select class="sel" id="gapSource"><option value="">All Rankings</option></select>
+            <select class="sel" id="gapSubgenre"><option value="">All Subgenres</option></select>
+            <div style="display:flex;align-items:center;gap:6px">
+                <label style="font-size:0.75rem;color:var(--text-secondary)">Min Rating:</label>
+                <input type="range" id="gapRating" min="2" max="5" step="0.1" value="3.5" style="width:100px;accent-color:var(--gold)">
+                <span id="gapRatingVal" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--gold)">3.5</span>
             </div>
-            <button class="filter-chip active" onclick="loadGaps()">Find Gaps</button>
+            <button class="btn btn-action" onclick="loadGaps()">Find Gaps</button>
         </div>
-        <div class="table-card">
-            <div class="table-header">
-                <h3>Missing Albums — Recommended Purchases</h3>
-                <span id="gapCount" style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted)"></span>
+        <div class="tbl-card">
+            <div class="tbl-header">
+                <h3>Missing Albums — Recommended</h3>
+                <span id="gapCount" style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted)"></span>
             </div>
-            <div class="table-scroll">
+            <div class="tbl-scroll" style="max-height:65vh">
                 <table>
-                    <thead>
-                        <tr><th>#</th><th>Artist</th><th>Album</th><th>Year</th><th>Subgenre</th><th>Rating</th><th>Reviews</th></tr>
-                    </thead>
+                    <thead><tr><th>#</th><th>Artist</th><th>Album</th><th>Year</th><th>Subgenre</th><th>Rating</th><th>Reviews</th></tr></thead>
                     <tbody id="gapsBody"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- ═══ INSIGHTS PANEL ═══ -->
-    <div class="panel" id="panel-ratings">
-        <div class="empty-state" id="ratingsEmpty">
-            <h4>Collection Insights</h4>
-            <p>Connect to the API to load condition, curation, edition and pressing data.</p>
-        </div>
-        <div id="ratingsContent" style="display:none">
-            <!-- Stats row -->
-            <div class="stats-grid" id="cfStatsGrid"></div>
-            <!-- Collection Rating -->
-            <div class="chart-card" style="margin-bottom:24px">
-                <h3>Collection Rating (from Benchmarks)</h3>
-                <div id="ratingContent" style="padding:12px">
-                    <div style="display:flex;gap:24px;align-items:center;margin-bottom:16px">
-                        <div>
-                            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Average Rating</div>
-                            <div id="collRatingAvg" style="font-family:var(--font-display);font-size:2.5rem;background:var(--gradient-gold);-webkit-background-clip:text;-webkit-text-fill-color:transparent">—</div>
-                        </div>
-                        <div>
-                            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Rated Albums</div>
-                            <div id="collRatingCount" style="font-family:var(--font-display);font-size:2.5rem;color:var(--accent-blue)">—</div>
-                        </div>
-                        <div>
-                            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Unrated</div>
-                            <div id="collRatingUnrated" style="font-family:var(--font-display);font-size:2.5rem;color:var(--text-muted)">—</div>
-                        </div>
-                    </div>
-                    <div id="ratingTopAlbums"></div>
-                </div>
-            </div>
-            <!-- Charts -->
-            <div class="charts-row">
-                <div class="chart-card">
-                    <h3>Media Condition</h3>
-                    <div class="chart-wrapper"><canvas id="chartMediaCond"></canvas></div>
-                </div>
-                <div class="chart-card">
-                    <h3>Curation Type</h3>
-                    <div class="chart-wrapper"><canvas id="chartCuration"></canvas></div>
-                </div>
-            </div>
-            <div class="charts-row">
-                <div class="chart-card">
-                    <h3>Pressing</h3>
-                    <div class="chart-wrapper"><canvas id="chartPressing"></canvas></div>
-                </div>
-                <div class="chart-card">
-                    <h3>Edition</h3>
-                    <div class="chart-wrapper"><canvas id="chartEdition"></canvas></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ═══ LINKING PANEL ═══ -->
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
+    <!-- LINKING (kept as-is with minor styling updates) -->
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
     <div class="panel" id="panel-linking">
-        <div class="stats-grid" id="linkingStats">
-            <div class="stat-card"><div class="stat-label">Total Benchmarks</div><div class="stat-value" id="linkTotal">—</div></div>
-            <div class="stat-card"><div class="stat-label">Linked (master_id)</div><div class="stat-value" id="linkLinked" style="color:var(--accent-green)">—</div></div>
-            <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value" id="linkPending" style="color:var(--accent-gold)">—</div></div>
-            <div class="stat-card"><div class="stat-label">Coverage</div><div class="stat-value" id="linkPct">—</div></div>
+        <div class="metrics">
+            <div class="metric"><div class="metric-label">Total Benchmarks</div><div class="metric-value" id="linkTotal">—</div></div>
+            <div class="metric"><div class="metric-label">Linked</div><div class="metric-value green" id="linkLinked">—</div></div>
+            <div class="metric"><div class="metric-label">Pending</div><div class="metric-value gold" id="linkPending">—</div></div>
+            <div class="metric"><div class="metric-label">Coverage</div><div class="metric-value" id="linkPct">—</div></div>
         </div>
-        <div style="margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-            <button class="filter-chip" onclick="runSync()" id="syncBtn" style="background:rgba(96,165,250,0.15);color:#60a5fa;border-color:rgba(96,165,250,0.3)">Sync Discogs Collection</button>
-            <button class="filter-chip" onclick="runPurge()" id="purgeBtn" style="background:rgba(248,113,113,0.15);color:var(--accent-red);border-color:rgba(248,113,113,0.3)">Purge Deleted</button>
-            <button class="filter-chip" onclick="downloadSnapshot()" id="snapBtn" style="background:rgba(251,191,36,0.15);color:var(--accent-gold);border-color:rgba(251,191,36,0.3)">Download Curator Snapshot</button>
-            <span id="purgeResult" style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted)"></span>
-        </div>
-        <div class="table-card">
-            <div class="table-header">
+        <div class="tbl-card">
+            <div class="tbl-header">
                 <h3>Benchmark → Discogs Linking</h3>
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                    <select id="linkSourceFilter" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:0.8rem;outline:none">
-                        <option value="">All Rankings</option>
-                    </select>
-                    <select id="linkMethodFilter" style="background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:0.8rem;outline:none">
+                <div class="tbl-filters">
+                    <select class="sel" id="linkSourceFilter"><option value="">All Rankings</option></select>
+                    <select class="sel" id="linkMethodFilter">
                         <option value="">All Methods</option>
-                        <option value="pending">Pending</option>
-                        <option value="auto">Auto</option>
-                        <option value="manual">Manual</option>
-                        <option value="skipped">Skipped</option>
+                        <option value="pending">Pending</option><option value="auto">Auto</option>
+                        <option value="manual">Manual</option><option value="skipped">Skipped</option>
                     </select>
-                    <input type="text" class="table-search" id="linkSearch" placeholder="Search...">
-                    <button class="filter-chip active" onclick="loadLinkingData()">Refresh</button>
+                    <input type="text" class="inp" id="linkSearch" placeholder="Search...">
+                    <button class="btn btn-action" onclick="loadLinkingData()">Refresh</button>
                 </div>
             </div>
-            <div class="table-scroll" style="max-height:600px">
+            <div class="tbl-scroll" style="max-height:55vh">
                 <table>
-                    <thead>
-                        <tr>
-                            <th>#</th><th>Artist</th><th>Album</th><th>Year</th><th>Source</th>
-                            <th>Method</th><th>Master ID</th><th>Release ID</th><th>Discogs Title</th><th>Action</th>
-                        </tr>
-                    </thead>
+                    <thead><tr>
+                        <th>#</th><th>Artist</th><th>Album</th><th>Year</th><th>Source</th>
+                        <th>Method</th><th>Master ID</th><th>Release ID</th><th>Discogs Title</th><th>Action</th>
+                    </tr></thead>
                     <tbody id="linkBody"></tbody>
                 </table>
             </div>
-            <div style="text-align:center;padding:12px">
-                <button class="filter-chip" id="linkLoadMore" onclick="loadLinkingMore()" style="display:none">Load More</button>
-                <span id="linkCount" style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted);margin-left:12px"></span>
+            <div style="text-align:center;padding:10px">
+                <button class="btn btn-action" id="linkLoadMore" onclick="loadLinkingMore()" style="display:none">Load More</button>
+                <span id="linkCount" style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);margin-left:10px"></span>
             </div>
         </div>
-        <!-- Manual link dialog -->
-        <div id="linkDialog" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;display:none;align-items:center;justify-content:center">
-            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;max-width:600px;width:90%">
-                <h3 style="margin-bottom:16px">Link: <span id="linkDialogTitle"></span></h3>
-                <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px">Select from your collection or enter IDs manually:</p>
-                <div id="linkDialogResults" style="max-height:250px;overflow-y:auto;margin-bottom:16px"></div>
+        <!-- Link dialog -->
+        <div class="dialog-overlay" id="linkDialog">
+            <div class="dialog">
+                <h3 style="font-family:var(--font-display);margin-bottom:14px;font-style:italic">Link: <span id="linkDialogTitle"></span></h3>
+                <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:14px">Select from your collection or enter IDs:</p>
+                <div id="linkDialogResults" style="max-height:220px;overflow-y:auto;margin-bottom:14px"></div>
                 <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-                    <input type="number" id="linkManualMasterId" placeholder="master_id" style="flex:1;background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:0.85rem;outline:none">
-                    <span style="color:var(--text-muted);font-size:0.8rem">or</span>
-                    <input type="number" id="linkManualReleaseId" placeholder="release_id (for box sets)" style="flex:1;background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:0.85rem;outline:none">
-                    <button class="filter-chip active" onclick="submitManualLink()">Link</button>
+                    <input type="number" class="inp" id="linkManualMasterId" placeholder="master_id" style="flex:1">
+                    <span style="color:var(--text-muted);font-size:0.75rem">or</span>
+                    <input type="number" class="inp" id="linkManualReleaseId" placeholder="release_id (box sets)" style="flex:1">
+                    <button class="btn btn-action" onclick="submitManualLink()">Link</button>
                 </div>
-                <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:16px">Duplicates across rankings are linked automatically.</p>
+                <p style="font-size:0.7rem;color:var(--text-muted);margin-bottom:14px">Duplicates across rankings linked automatically.</p>
                 <div style="display:flex;gap:8px;justify-content:flex-end">
-                    <button class="filter-chip" onclick="skipLink()">Skip</button>
-                    <button class="filter-chip" onclick="closeLinkDialog()">Cancel</button>
+                    <button class="btn btn-ghost" onclick="skipLink()" style="border:1px solid var(--border)">Skip</button>
+                    <button class="btn btn-ghost" onclick="closeLinkDialog()" style="border:1px solid var(--border)">Cancel</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
+    <!-- ADMIN (moved from Linking) -->
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
+    <div class="panel" id="panel-admin">
+        <div class="card">
+            <h3>Data Management</h3>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+                <button class="btn btn-sync" onclick="runSync()" id="syncBtn">Sync Discogs Collection</button>
+                <button class="btn btn-purge" onclick="runPurge()" id="purgeBtn">Purge Deleted</button>
+                <button class="btn btn-snap" onclick="downloadSnapshot()" id="snapBtn">Download Curator Snapshot</button>
+            </div>
+            <div id="purgeResult" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);min-height:20px"></div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -633,21 +568,9 @@ tbody tr:hover { background: var(--bg-card-hover); }
 let API = 'https://api.jceneviva.com.br';
 let API_KEY = localStorage.getItem('vinyl_vault_api_key') || '';
 let state = {
-    connected: false,
-    summary: null,
-    formats: [],
-    items: [],
-    itemsTotal: 0,
-    itemsOffset: 0,
-    paSummary: null,
-    paAlbums: [],
-    paSources: [],
-    gaps: [],
-    notes: [],
-    charts: {},
-    activeFolder: null,
-    searchDebounce: null,
-    collectionRatings: {},
+    connected: false, summary: null, formats: [], customFields: null,
+    paSummary: null, paAlbums: [], paSources: [], gaps: [],
+    charts: {}, searchDebounce: null, ratingByMaster: {},
     cfSort: { col: 'artist_name', dir: 'asc' },
 };
 
@@ -661,8 +584,7 @@ async function doLogin() {
     errEl.style.display = 'none';
     try {
         const resp = await fetch(`${API}/api/auth/login`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            method: 'POST', headers: {'Content-Type':'application/json'},
             body: JSON.stringify({username: user, password: pass})
         });
         if (!resp.ok) throw new Error('Invalid credentials');
@@ -671,15 +593,10 @@ async function doLogin() {
         localStorage.setItem('vinyl_vault_api_key', API_KEY);
         document.getElementById('loginOverlay').style.display = 'none';
         connectAPI();
-    } catch(e) {
-        errEl.textContent = e.message;
-        errEl.style.display = '';
-    }
+    } catch(e) { errEl.textContent = e.message; errEl.style.display = ''; }
 }
-
 function logout() {
-    API_KEY = '';
-    localStorage.removeItem('vinyl_vault_api_key');
+    API_KEY = ''; localStorage.removeItem('vinyl_vault_api_key');
     document.getElementById('loginOverlay').style.display = 'flex';
     state.connected = false;
     document.getElementById('statusDot').classList.remove('connected');
@@ -687,17 +604,14 @@ function logout() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// API CALLS
+// API
 // ═══════════════════════════════════════════════════════════════════════════════
 async function api(path) {
-    const resp = await fetch(`${API}${path}`, {
-        headers: API_KEY ? {'X-API-Key': API_KEY} : {}
-    });
+    const resp = await fetch(`${API}${path}`, { headers: API_KEY ? {'X-API-Key': API_KEY} : {} });
     if (resp.status === 401) { logout(); throw new Error('Session expired'); }
     if (!resp.ok) throw new Error(`API ${resp.status}`);
     return resp.json();
 }
-
 async function connectAPI() {
     API = document.getElementById('apiUrl').value.replace(/\/+$/, '');
     const dot = document.getElementById('statusDot');
@@ -706,28 +620,17 @@ async function connectAPI() {
         const h = await fetch(`${API}/api/health`);
         const data = await h.json();
         if (data.status === 'ok') {
-            dot.classList.add('connected');
-            txt.textContent = 'Connected';
-            state.connected = true;
-            loadAll();
+            dot.classList.add('connected'); txt.textContent = 'Connected';
+            state.connected = true; loadAll();
         } else throw new Error(data.db);
-    } catch (e) {
-        dot.classList.remove('connected');
-        txt.textContent = 'Error: ' + e.message;
-        state.connected = false;
-    }
+    } catch(e) { dot.classList.remove('connected'); txt.textContent = 'Error: ' + e.message; state.connected = false; }
 }
-
 async function loadAll() {
-    await Promise.all([
-        loadSummary(), loadFormats(),
-        loadPASources(), loadPASummary(), loadPAAlbums(), loadNotes(),
-        loadLinkingStats()
-    ]);
+    await Promise.all([loadSummary(), loadFormats(), loadPASources(), loadPASummary(), loadPAAlbums(), loadNotes(), loadLinkingStats()]);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 1. OVERVIEW
+// 1. DASHBOARD
 // ═══════════════════════════════════════════════════════════════════════════════
 async function loadSummary() {
     try {
@@ -738,50 +641,29 @@ async function loadSummary() {
         renderCountryChart(d.by_country);
     } catch(e) { console.error('Summary:', e); }
 }
-
 async function loadFormats() {
-    try {
-        state.formats = await api('/api/collection/formats');
-        renderFormatChart(state.formats);
-    } catch(e) { console.error('Formats:', e); }
+    try { state.formats = await api('/api/collection/formats'); renderFormatChart(state.formats); } catch(e) { console.error('Formats:', e); }
 }
-
 async function loadPASources() {
     try {
         state.paSources = await api('/api/benchmark/progarchives/sources');
         const labels = {
-            top250: 'Top 250 All-Time',
-            progmetal: 'Top 250 Progressive Metal',
-            jazzfusion: 'Top 250 Jazz Rock/Fusion',
-            symphprog: 'Top 250 Symphonic Prog',
-            heavyprog: 'Top Heavy Prog',
-            rpi: 'Top Rock Progressivo Italiano',
-            eclecticprog: 'Top 250 Eclectic Prog',
-            psychspace: 'Top 250 Psychedelic/Space Rock',
-            protoprog: 'Top Proto-Prog',
-            techextreme: 'Top Tech/Extreme Prog Metal',
-            classicrock: 'Classic Rock Curated 250',
-            heavymetal: 'Heavy Metal Curated 250',
-            bluesrock: 'Blues Rock Top 100',
-            liverock: 'Live Rock Top 100',
-            jazz: 'Jazz Top 100',
-            poprock: 'Pop Rock / Art Rock 100',
-            soul: 'Soul / R&B / Vocal 100',
-            jazzwise: 'Jazzwise Top 100',
+            top250:'Top 250 All-Time', progmetal:'Top 250 Progressive Metal', jazzfusion:'Top 250 Jazz Rock/Fusion',
+            symphprog:'Top 250 Symphonic Prog', heavyprog:'Top Heavy Prog', rpi:'Top Rock Progressivo Italiano',
+            eclecticprog:'Top 250 Eclectic Prog', psychspace:'Top 250 Psychedelic/Space Rock', protoprog:'Top Proto-Prog',
+            techextreme:'Top Tech/Extreme Prog Metal', classicrock:'Classic Rock 250', heavymetal:'Heavy Metal 250',
+            bluesrock:'Blues Rock 100', liverock:'Live Rock 100', jazz:'Jazz 100', poprock:'Pop Rock 100',
+            soul:'Soul / R&B 100', jazzwise:'Jazzwise 100',
         };
         const html = '<option value="">All Rankings</option>' +
-            state.paSources.map(s => `<option value="${esc(s.source_list)}">${esc(labels[s.source_list] || s.source_list)} (${s.total})</option>`).join('');
-        document.getElementById('sourceSelect').innerHTML = html;
-        document.getElementById('gapSource').innerHTML = html;
-        document.getElementById('linkSourceFilter').innerHTML = html;
+            state.paSources.map(s => `<option value="${esc(s.source_list)}">${esc(labels[s.source_list]||s.source_list)} (${s.total})</option>`).join('');
+        ['sourceSelect','gapSource','linkSourceFilter'].forEach(id => document.getElementById(id).innerHTML = html);
     } catch(e) { console.error('Sources:', e); }
 }
-
 async function loadPASummary() {
     try {
         const source = document.getElementById('sourceSelect').value;
-        const params = new URLSearchParams();
-        if (source) params.set('source', source);
+        const params = new URLSearchParams(); if (source) params.set('source', source);
         const d = await api('/api/benchmark/progarchives/summary?' + params);
         state.paSummary = d;
         document.getElementById('statBenchmark').textContent = d.total_benchmark.toLocaleString('pt-BR');
@@ -789,182 +671,110 @@ async function loadPASummary() {
         const pct = d.coverage_pct || 0;
         document.getElementById('statCoverage').textContent = pct + '%';
         document.getElementById('statCoverageSub').textContent = `${d.total_owned} of ${d.total_benchmark}`;
-
-        document.getElementById('bStatTotal').textContent = d.total_benchmark.toLocaleString('pt-BR');
-        document.getElementById('bStatOwned').textContent = d.total_owned.toLocaleString('pt-BR');
-        document.getElementById('bStatPct').textContent = pct + '%';
-
-        renderCoverageChart(d.by_subgenre);
         renderCoverageRows(d.by_subgenre);
         populateSubgenreSelects(d.by_subgenre);
     } catch(e) { console.error('PA Summary:', e); }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 2. COLLECTION TABLE (now powered by custom-fields endpoint)
-// ═══════════════════════════════════════════════════════════════════════════════
-// Collection table is rendered by renderCFTable() in the custom fields section
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 3. BENCHMARK
+// 2. BENCHMARK
 // ═══════════════════════════════════════════════════════════════════════════════
 async function loadPAAlbums() {
     try {
         const source = document.getElementById('sourceSelect').value;
         const sub = document.getElementById('subgenreSelect').value;
         const params = new URLSearchParams({ limit: 500 });
-        if (source) params.set('source', source);
-        if (sub) params.set('subgenre', sub);
+        if (source) params.set('source', source); if (sub) params.set('subgenre', sub);
         state.paAlbums = await api('/api/benchmark/progarchives/albums?' + params);
-        renderBenchmarkTable();
-        updateCoverageCards();
+        renderBenchmarkTable(); updateCoverageCards();
     } catch(e) { console.error('PA Albums:', e); }
 }
-
 function updateCoverageCards() {
     const albums = state.paAlbums || [];
     const ranked = albums.filter(a => a.rank_position).sort((a,b) => a.rank_position - b.rank_position);
-
-    function coverage(list) {
-        if (!list.length) return { pct: 0, owned: 0, total: 0 };
-        const owned = list.filter(a => a.status === 'owned').length;
-        return { pct: (owned / list.length * 100).toFixed(1), owned, total: list.length };
-    }
-
-    const top10 = coverage(ranked.slice(0, 10));
-    const top25 = coverage(ranked.slice(0, 25));
-    const top50 = coverage(ranked.slice(0, 50));
-    const top100 = coverage(ranked.slice(0, 100));
-    const overall = coverage(albums);
-
+    function cov(list) { if (!list.length) return {pct:0,o:0,t:0}; const o=list.filter(a=>a.status==='owned').length; return {pct:(o/list.length*100).toFixed(1),o,t:list.length}; }
+    const t10=cov(ranked.slice(0,10)), t25=cov(ranked.slice(0,25)), t50=cov(ranked.slice(0,50)), t100=cov(ranked.slice(0,100)), all=cov(albums);
     document.getElementById('bStatTotal').textContent = albums.length;
-    document.getElementById('bStatOwned').textContent = overall.owned;
-    document.getElementById('bStatTop10').textContent = top10.pct + '%';
-    document.getElementById('bStatTop10Sub').textContent = `${top10.owned} of ${top10.total}`;
-    document.getElementById('bStatTop25').textContent = top25.pct + '%';
-    document.getElementById('bStatTop25Sub').textContent = `${top25.owned} of ${top25.total}`;
-    document.getElementById('bStatTop50').textContent = top50.pct + '%';
-    document.getElementById('bStatTop50Sub').textContent = `${top50.owned} of ${top50.total}`;
-    document.getElementById('bStatTop100').textContent = top100.pct + '%';
-    document.getElementById('bStatTop100Sub').textContent = `${top100.owned} of ${top100.total}`;
-    document.getElementById('bStatPct').textContent = overall.pct + '%';
-    document.getElementById('bStatPctSub').textContent = `${overall.owned} of ${overall.total}`;
+    document.getElementById('bStatOwned').textContent = all.o;
+    [['bStatTop10',t10],['bStatTop25',t25],['bStatTop50',t50],['bStatTop100',t100],['bStatPct',all]].forEach(([id,d]) => {
+        document.getElementById(id).textContent = d.pct + '%';
+        document.getElementById(id+'Sub').textContent = `${d.o}/${d.t}`;
+    });
 }
-
 function renderBenchmarkTable() {
     const q = document.getElementById('benchmarkSearch').value.toLowerCase();
-    const filtered = q
-        ? state.paAlbums.filter(a => a.artist_name.toLowerCase().includes(q) || a.album_title.toLowerCase().includes(q))
-        : state.paAlbums;
-
-    document.getElementById('benchmarkBody').innerHTML = filtered.map(a => `
-        <tr>
-            <td style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted)">${a.rank_position || '—'}</td>
-            <td style="font-weight:500">${esc(a.artist_name)}</td>
-            <td>${esc(a.album_title)}</td>
-            <td style="font-family:var(--font-mono);font-size:0.8rem">${a.year || '—'}</td>
-            <td><span class="badge badge-pillar">${esc(a.subgenre || '—')}</span></td>
-            <td style="font-family:var(--font-mono);color:var(--accent-gold)">${a.rating_avg ? Number(a.rating_avg).toFixed(2) : '—'}</td>
-            <td style="font-family:var(--font-mono);font-size:0.8rem">${a.rating_count || '—'}</td>
-            <td>${a.status === 'owned' ? '<span class="badge badge-owned">OWNED</span>' : '<span class="badge badge-gap">GAP</span>'}</td>
-        </tr>
-    `).join('');
+    const f = q ? state.paAlbums.filter(a => a.artist_name.toLowerCase().includes(q)||a.album_title.toLowerCase().includes(q)) : state.paAlbums;
+    document.getElementById('benchmarkBody').innerHTML = f.map(a => `<tr>
+        <td style="font-family:var(--font-mono);color:var(--text-muted)">${a.rank_position||'—'}</td>
+        <td style="font-weight:500">${esc(a.artist_name)}</td><td>${esc(a.album_title)}</td>
+        <td style="font-family:var(--font-mono)">${a.year||'—'}</td>
+        <td><span class="badge b-genre">${esc(a.subgenre||'—')}</span></td>
+        <td style="font-family:var(--font-mono);color:var(--gold)">${a.rating_avg?Number(a.rating_avg).toFixed(2):'—'}</td>
+        <td style="font-family:var(--font-mono)">${a.rating_count||'—'}</td>
+        <td>${a.status==='owned'?'<span class="badge b-owned">OWNED</span>':'<span class="badge b-gap">GAP</span>'}</td>
+    </tr>`).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 4. GAP ANALYSIS
+// 3. GAP ANALYSIS
 // ═══════════════════════════════════════════════════════════════════════════════
 async function loadGaps() {
     try {
-        const source = document.getElementById('gapSource').value;
-        const sub = document.getElementById('gapSubgenre').value;
+        const source = document.getElementById('gapSource').value, sub = document.getElementById('gapSubgenre').value;
         const rating = document.getElementById('gapRating').value;
-        const params = new URLSearchParams({ min_rating: rating, limit: 200 });
-        if (source) params.set('source', source);
-        if (sub) params.set('subgenre', sub);
-
+        const params = new URLSearchParams({min_rating:rating,limit:200});
+        if (source) params.set('source',source); if (sub) params.set('subgenre',sub);
         state.gaps = await api(`/api/benchmark/progarchives/gaps?${params}`);
         document.getElementById('gapCount').textContent = `${state.gaps.length} albums found`;
-        renderGapsTable();
+        document.getElementById('gapsBody').innerHTML = state.gaps.map(a => `<tr>
+            <td style="font-family:var(--font-mono);color:var(--gold)">#${a.rank_position||'—'}</td>
+            <td style="font-weight:500">${esc(a.artist_name)}</td><td>${esc(a.album_title)}</td>
+            <td style="font-family:var(--font-mono)">${a.year||'—'}</td>
+            <td><span class="badge b-genre">${esc(a.subgenre||'—')}</span></td>
+            <td style="font-family:var(--font-mono);color:var(--gold)">${a.rating_avg?Number(a.rating_avg).toFixed(2):'—'}</td>
+            <td style="font-family:var(--font-mono)">${a.rating_count||'—'}</td>
+        </tr>`).join('');
     } catch(e) { console.error('Gaps:', e); }
 }
 
-function renderGapsTable() {
-    document.getElementById('gapsBody').innerHTML = state.gaps.map(a => `
-        <tr>
-            <td style="font-family:var(--font-mono);font-weight:600;color:var(--accent-gold)">#${a.rank_position || '—'}</td>
-            <td style="font-weight:500">${esc(a.artist_name)}</td>
-            <td>${esc(a.album_title)}</td>
-            <td style="font-family:var(--font-mono);font-size:0.8rem">${a.year || '—'}</td>
-            <td><span class="badge badge-pillar">${esc(a.subgenre || '—')}</span></td>
-            <td style="font-family:var(--font-mono);color:var(--accent-gold)">${a.rating_avg ? Number(a.rating_avg).toFixed(2) : '—'}</td>
-            <td style="font-family:var(--font-mono);font-size:0.8rem">${a.rating_count || '—'}</td>
-        </tr>
-    `).join('');
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
-// 5. CUSTOM FIELDS / COLLECTION INSIGHTS
+// 4. CUSTOM FIELDS / INSIGHTS (loaded into Dashboard)
 // ═══════════════════════════════════════════════════════════════════════════════
 async function loadNotes() {
     try {
         const data = await api('/api/collection/custom-fields');
         if (data.total > 0) {
             state.customFields = data;
-            document.getElementById('ratingsEmpty').style.display = 'none';
-            document.getElementById('ratingsContent').style.display = '';
-            renderCFStats(data.stats);
-            renderCFCharts(data.stats);
-            populateCFFilters(data.stats, data.items);
+            // Stats
+            const stats = data.stats;
+            const defCount = stats.curation_type['Def']||0;
+            const total = Object.values(stats.curation_type).reduce((a,b)=>a+b,0);
+            document.getElementById('statDef').textContent = defCount;
+            document.getElementById('statDefSub').textContent = `${(defCount/total*100).toFixed(0)}%`;
 
-            // Load collection ratings from benchmark via master_id
+            // Render doughnut charts
+            renderCFCharts(stats);
+            populateCFFilters(stats, data.items);
+
+            // Folder/Genre chart from items
+            renderFolderChart(data.items);
+
+            // Ratings via master_id
             try {
                 const ratings = await api('/api/benchmark/ratings-by-master');
-                const ratingByMaster = {};  // master_id -> { rating, artist, album }
-                ratings.forEach(r => {
-                    if (r.master_id && (!ratingByMaster[r.master_id] || r.rating_avg > ratingByMaster[r.master_id].rating)) {
-                        ratingByMaster[r.master_id] = { rating: r.rating_avg, artist: r.artist_name, album: r.album_title };
-                    }
-                });
+                const ratingByMaster = {};
+                ratings.forEach(r => { if (r.master_id && (!ratingByMaster[r.master_id]||r.rating_avg>ratingByMaster[r.master_id].rating)) ratingByMaster[r.master_id]={rating:r.rating_avg,artist:r.artist_name,album:r.album_title}; });
                 state.ratingByMaster = ratingByMaster;
-
-                // Calculate collection rating stats: match items by master_id
-                let ratedCount = 0, ratingSum = 0;
-                const topRated = [];
-                data.items.forEach(i => {
-                    if (i.master_id && ratingByMaster[i.master_id]) {
-                        const r = ratingByMaster[i.master_id].rating;
-                        ratedCount++; ratingSum += r;
-                        topRated.push({ artist: i.artist_name, title: i.basic_title, rating: r });
-                    }
-                });
-                // Deduplicate by master_id (multiple copies)
-                const seenMasters = new Set();
-                const uniqueRated = [];
-                data.items.forEach(i => {
-                    if (i.master_id && ratingByMaster[i.master_id] && !seenMasters.has(i.master_id)) {
-                        seenMasters.add(i.master_id);
-                        uniqueRated.push({ artist: i.artist_name, title: i.basic_title, rating: ratingByMaster[i.master_id].rating });
-                    }
-                });
-                const avgRating = uniqueRated.length > 0 ? uniqueRated.reduce((s,x) => s + x.rating, 0) / uniqueRated.length : 0;
-                const unrated = new Set(data.items.map(i => i.master_id || i.release_id)).size - uniqueRated.length;
-
-                document.getElementById('collRatingAvg').textContent = avgRating > 0 ? avgRating.toFixed(2) : '—';
-                document.getElementById('collRatingCount').textContent = uniqueRated.length;
-                document.getElementById('collRatingUnrated').textContent = unrated;
-
-                // Top 10 rated
-                uniqueRated.sort((a,b) => b.rating - a.rating);
-                document.getElementById('ratingTopAlbums').innerHTML =
-                    '<div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Top Rated in Your Collection</div>' +
-                    uniqueRated.slice(0, 10).map((item, i) =>
-                        `<div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid rgba(42,42,58,0.3)">
-                            <span style="font-family:var(--font-mono);color:var(--accent-gold);width:30px">#${i+1}</span>
-                            <span style="font-weight:500;flex:1">${esc(item.artist)} — ${esc(item.title)}</span>
-                            <span style="font-family:var(--font-mono);color:var(--accent-gold)">${Number(item.rating).toFixed(2)}</span>
-                        </div>`
-                    ).join('');
+                const seenMasters = new Set(); const uniqueRated = [];
+                data.items.forEach(i => { if (i.master_id&&ratingByMaster[i.master_id]&&!seenMasters.has(i.master_id)) { seenMasters.add(i.master_id); uniqueRated.push({artist:i.artist_name,title:i.basic_title,rating:ratingByMaster[i.master_id].rating}); } });
+                const avgR = uniqueRated.length>0 ? uniqueRated.reduce((s,x)=>s+x.rating,0)/uniqueRated.length : 0;
+                const unrated = new Set(data.items.map(i=>i.master_id||i.release_id)).size - uniqueRated.length;
+                document.getElementById('collRatingAvg').textContent = avgR>0?avgR.toFixed(2):'—';
+                document.getElementById('collRatingSub').textContent = `${uniqueRated.length} rated · ${unrated} unrated`;
+                uniqueRated.sort((a,b)=>b.rating-a.rating);
+                document.getElementById('ratingTopAlbums').innerHTML = uniqueRated.slice(0,15).map((item,i) =>
+                    `<div class="top-item"><span class="top-rank">#${i+1}</span><span class="top-name">${esc(item.artist)} — ${esc(item.title)}</span><span class="top-rating">${Number(item.rating).toFixed(2)}</span></div>`
+                ).join('');
             } catch(e) { console.error('Ratings:', e); state.ratingByMaster = {}; }
 
             renderCFTable(data.items);
@@ -972,564 +782,212 @@ async function loadNotes() {
     } catch(e) { console.error('Custom fields:', e); }
 }
 
-function renderCFStats(stats) {
-    const defCount = stats.curation_type['Def'] || 0;
-    const firstEd = stats.pressing['FirstEdition'] || 0;
-    const mint = (stats.media_condition['Mint (M)'] || 0) + (stats.media_condition['Near Mint (NM or M-)'] || 0);
-    const total = Object.values(stats.curation_type).reduce((a,b) => a+b, 0);
-    document.getElementById('cfStatsGrid').innerHTML = `
-        <div class="stat-card"><div class="stat-label">Definitive</div><div class="stat-value">${defCount}</div><div class="stat-sub">${(defCount/total*100).toFixed(0)}% of collection</div></div>
-        <div class="stat-card"><div class="stat-label">First Editions</div><div class="stat-value">${firstEd}</div><div class="stat-sub">${(firstEd/total*100).toFixed(0)}% of collection</div></div>
-        <div class="stat-card"><div class="stat-label">Mint / Near Mint</div><div class="stat-value">${mint}</div><div class="stat-sub">${(mint/total*100).toFixed(0)}% of collection</div></div>
-        <div class="stat-card"><div class="stat-label">Total Cataloged</div><div class="stat-value">${total}</div></div>
-    `;
+function renderFolderChart(items) {
+    const folders = {};
+    items.forEach(i => { const f = i.folder_name||'Unknown'; folders[f]=(folders[f]||0)+1; });
+    const sorted = Object.entries(folders).sort((a,b)=>b[1]-a[1]);
+    destroyChart('folder');
+    state.charts.folder = new Chart(document.getElementById('chartFolder'), {
+        type: 'bar', data: {
+            labels: sorted.map(d=>d[0]), datasets: [{label:'Albums',data:sorted.map(d=>d[1]),backgroundColor:chartColors,borderRadius:4,borderSkipped:false}]
+        },
+        options: {...chartDefaults, indexAxis:'y', plugins:{...chartDefaults.plugins,legend:{display:false}}}
+    });
 }
 
 function renderCFCharts(stats) {
-    const condColors = {'Mint (M)':'#4ade80','Near Mint (NM or M-)':'#22d3ee','Very Good Plus (VG+)':'#d4a853','Very Good (VG)':'#fb923c','Good Plus (G+)':'#f87171','Good (G)':'#e879f9','Fair (F)':'#9896a8','Poor (P)':'#5e5c6e'};
-    const curationColors = {'Def':'#d4a853','Editorial':'#5b8cf7','Temp':'#fb923c','Unofficial':'#f87171','PicDisc':'#a78bfa','Historical':'#22d3ee','Sentimental':'#e879f9'};
-    const pressingColors = {'FirstEdition':'#4ade80','Reissue':'#5b8cf7','Unknown':'#9896a8','FirstPress':'#d4a853'};
-    const editionColors = {'Original':'#d4a853','Expanded':'#5b8cf7','Bundle':'#4ade80','Standard':'#fb923c','Bonus':'#a78bfa'};
-
-    function makeDoughnut(canvasId, data, colorMap) {
-        destroyChart(canvasId);
-        const labels = Object.keys(data);
-        const values = Object.values(data);
-        const colors = labels.map(l => colorMap[l] || '#5e5c6e');
-        state.charts[canvasId] = new Chart(document.getElementById(canvasId), {
-            type: 'doughnut',
-            data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }] },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'right', labels: { color: '#9896a8', font: { family: 'Outfit', size: 11 }, padding: 10 } } }
-            }
-        });
-    }
-
-    makeDoughnut('chartMediaCond', stats.media_condition, condColors);
-    makeDoughnut('chartCuration', stats.curation_type, curationColors);
-    makeDoughnut('chartPressing', stats.pressing, pressingColors);
-    makeDoughnut('chartEdition', stats.edition, editionColors);
+    const condColors = {'Mint (M)':'#4ade80','Near Mint (NM or M-)':'#22d3ee','Very Good Plus (VG+)':'#c9a84c','Very Good (VG)':'#fb923c','Good Plus (G+)':'#f87171','Good (G)':'#e879f9','Fair (F)':'#9896a8','Poor (P)':'#56546a'};
+    const curationColors = {'Def':'#c9a84c','Editorial':'#5b8cf7','Temp':'#fb923c','Unofficial':'#f87171','PicDisc':'#a78bfa','Historical':'#22d3ee','Sentimental':'#e879f9'};
+    const pressingColors = {'FirstEdition':'#4ade80','Reissue':'#5b8cf7','Unknown':'#9896a8','FirstPress':'#c9a84c'};
+    const editionColors = {'Original':'#c9a84c','Expanded':'#5b8cf7','Bundle':'#4ade80','Standard':'#fb923c','Bonus':'#a78bfa'};
+    function mkD(id,data,cm) { destroyChart(id); state.charts[id]=new Chart(document.getElementById(id),{type:'doughnut',data:{labels:Object.keys(data),datasets:[{data:Object.values(data),backgroundColor:Object.keys(data).map(l=>cm[l]||'#56546a'),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#9896a8',font:{family:'DM Sans',size:11},padding:8}}}}}); }
+    mkD('chartMediaCond',stats.media_condition,condColors);
+    mkD('chartCuration',stats.curation_type,curationColors);
+    mkD('chartPressing',stats.pressing,pressingColors);
+    mkD('chartEdition',stats.edition,editionColors);
 }
 
 function populateCFFilters(stats, items) {
-    function fill(selectId, data) {
-        const el = document.getElementById(selectId);
-        const first = el.options[0].outerHTML;
-        el.innerHTML = first + Object.keys(data).map(k => `<option value="${esc(k)}">${esc(k)} (${data[k]})</option>`).join('');
-    }
-    fill('cfFilterCuration', stats.curation_type);
-    fill('cfFilterPressing', stats.pressing);
-    fill('cfFilterCondition', stats.media_condition);
-
-    // Populate folder dropdown from items
-    const folders = {};
-    items.forEach(i => { const f = i.folder_name || 'Unknown'; folders[f] = (folders[f]||0)+1; });
-    const folderEl = document.getElementById('cfFilterFolder');
-    folderEl.innerHTML = '<option value="">All Folders</option>' +
-        Object.entries(folders).sort((a,b) => b[1]-a[1]).map(([k,v]) => `<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
-
-    // Populate format dropdown
-    const formats = {};
-    items.forEach(i => { const f = i.format_primary || 'Unknown'; formats[f] = (formats[f]||0)+1; });
-    const fmtEl = document.getElementById('cfFilterFormat');
-    fmtEl.innerHTML = '<option value="">All Formats</option>' +
-        Object.entries(formats).sort((a,b) => b[1]-a[1]).map(([k,v]) => `<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
+    function fill(id,data) { const el=document.getElementById(id); const f=el.options[0].outerHTML; el.innerHTML=f+Object.keys(data).map(k=>`<option value="${esc(k)}">${esc(k)} (${data[k]})</option>`).join(''); }
+    fill('cfFilterCuration',stats.curation_type); fill('cfFilterPressing',stats.pressing); fill('cfFilterCondition',stats.media_condition);
+    const folders={}; items.forEach(i=>{const f=i.folder_name||'Unknown';folders[f]=(folders[f]||0)+1;});
+    document.getElementById('cfFilterFolder').innerHTML='<option value="">All Folders</option>'+Object.entries(folders).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
+    const fmts={}; items.forEach(i=>{const f=i.format_primary||'Unknown';fmts[f]=(fmts[f]||0)+1;});
+    document.getElementById('cfFilterFormat').innerHTML='<option value="">All Formats</option>'+Object.entries(fmts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
 }
 
 function renderCFTable(items) {
     if (!items) items = state.customFields.items;
-    const curation = document.getElementById('cfFilterCuration').value;
-    const pressing = document.getElementById('cfFilterPressing').value;
-    const condition = document.getElementById('cfFilterCondition').value;
-    const folder = document.getElementById('cfFilterFolder').value;
-    const format = document.getElementById('cfFilterFormat').value;
-    const search = document.getElementById('cfSearch').value.toLowerCase();
-
-    let filtered = items;
-    if (curation) filtered = filtered.filter(i => i.curation_type === curation);
-    if (pressing) filtered = filtered.filter(i => i.pressing === pressing);
-    if (condition) filtered = filtered.filter(i => i.media_condition === condition);
-    if (folder) filtered = filtered.filter(i => i.folder_name === folder);
-    if (format) filtered = filtered.filter(i => i.format_primary === format);
-    if (search) filtered = filtered.filter(i =>
-        (i.artist_name || '').toLowerCase().includes(search) ||
-        (i.basic_title || '').toLowerCase().includes(search) ||
-        (i.notes || '').toLowerCase().includes(search)
-    );
-
-    // Sort
-    const ratingByMaster = state.ratingByMaster || {};
-    const { col, dir } = state.cfSort;
-    const mult = dir === 'asc' ? 1 : -1;
-    filtered.sort((a, b) => {
-        let va, vb;
-        if (col === 'rating') {
-            const ra = a.master_id ? ratingByMaster[a.master_id] : null;
-            const rb = b.master_id ? ratingByMaster[b.master_id] : null;
-            va = ra ? ra.rating : -1;
-            vb = rb ? rb.rating : -1;
-        } else if (col === 'original_year' || col === 'basic_year') {
-            va = (a[col] && a[col] > 0) ? a[col] : 99999;
-            vb = (b[col] && b[col] > 0) ? b[col] : 99999;
-        } else {
-            va = (a[col] || '').toLowerCase();
-            vb = (b[col] || '').toLowerCase();
-        }
-        if (va < vb) return -1 * mult;
-        if (va > vb) return 1 * mult;
-        return 0;
-    });
-
-    function condBadge(c) {
-        if (!c) return '—';
-        const short = c.replace(/ \(.*\)/, '');
-        const cls = c.includes('Mint') ? 'badge-owned' : c.includes('Good') ? 'badge-format' : 'badge-gap';
-        return `<span class="badge ${cls}">${esc(short)}</span>`;
-    }
-    function typeBadge(t) {
-        if (!t) return '—';
-        const colors = {'Def':'badge-owned','Editorial':'badge-format','Temp':'badge-gap','Unofficial':'badge-gap','PicDisc':'badge-pillar','Historical':'badge-format','Sentimental':'badge-pillar'};
-        return `<span class="badge ${colors[t] || 'badge-format'}">${esc(t)}</span>`;
-    }
-
-    document.getElementById('cfBody').innerHTML = filtered.map(i => {
-        const origYr = i.original_year && i.original_year > 0 ? i.original_year : '—';
-        const relYr = i.basic_year && i.basic_year > 0 ? i.basic_year : '—';
-        const yrStyle = origYr !== '—' && relYr !== '—' && origYr !== relYr
-            ? 'color:var(--accent-cyan)' : '';
-        const rEntry = i.master_id ? ratingByMaster[i.master_id] : null;
-        const ratingHtml = rEntry
-            ? `<span style="font-family:var(--font-mono);color:var(--accent-gold)">${Number(rEntry.rating).toFixed(2)}</span>`
-            : '<span style="color:var(--text-muted)">—</span>';
+    const curation=document.getElementById('cfFilterCuration').value, pressing=document.getElementById('cfFilterPressing').value;
+    const condition=document.getElementById('cfFilterCondition').value, folder=document.getElementById('cfFilterFolder').value;
+    const format=document.getElementById('cfFilterFormat').value, search=document.getElementById('cfSearch').value.toLowerCase();
+    let f = items;
+    if (curation) f=f.filter(i=>i.curation_type===curation); if (pressing) f=f.filter(i=>i.pressing===pressing);
+    if (condition) f=f.filter(i=>i.media_condition===condition); if (folder) f=f.filter(i=>i.folder_name===folder);
+    if (format) f=f.filter(i=>i.format_primary===format);
+    if (search) f=f.filter(i=>(i.artist_name||'').toLowerCase().includes(search)||(i.basic_title||'').toLowerCase().includes(search)||(i.notes||'').toLowerCase().includes(search));
+    const rbm=state.ratingByMaster||{}; const {col,dir}=state.cfSort; const m=dir==='asc'?1:-1;
+    f.sort((a,b)=>{let va,vb; if(col==='rating'){const ra=a.master_id?rbm[a.master_id]:null;const rb=b.master_id?rbm[b.master_id]:null;va=ra?ra.rating:-1;vb=rb?rb.rating:-1;}else if(col==='original_year'||col==='basic_year'){va=(a[col]&&a[col]>0)?a[col]:99999;vb=(b[col]&&b[col]>0)?b[col]:99999;}else{va=(a[col]||'').toLowerCase();vb=(b[col]||'').toLowerCase();}if(va<vb)return -1*m;if(va>vb)return 1*m;return 0;});
+    function cb(c){if(!c)return'—';const s=c.replace(/ \(.*\)/,'');const cl=c.includes('Mint')?'b-owned':c.includes('Good')?'b-format':'b-gap';return`<span class="badge ${cl}">${esc(s)}</span>`;}
+    function tb(t){if(!t)return'—';const c={'Def':'b-owned','Editorial':'b-format','Temp':'b-gap','Unofficial':'b-gap','PicDisc':'b-genre','Historical':'b-format','Sentimental':'b-genre'};return`<span class="badge ${c[t]||'b-format'}">${esc(t)}</span>`;}
+    document.getElementById('cfBody').innerHTML = f.map(i => {
+        const oy=i.original_year&&i.original_year>0?i.original_year:'—', ry=i.basic_year&&i.basic_year>0?i.basic_year:'—';
+        const ys=oy!=='—'&&ry!=='—'&&oy!==ry?'color:var(--cyan)':'';
+        const re=i.master_id?rbm[i.master_id]:null;
+        const rh=re?`<span style="font-family:var(--font-mono);color:var(--gold)">${Number(re.rating).toFixed(2)}</span>`:'<span style="color:var(--text-muted)">—</span>';
         return `<tr>
-            <td style="font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.artist_name || '—')}</td>
-            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.basic_title || '—')}</td>
-            <td style="font-family:var(--font-mono);font-size:0.8rem">${origYr}</td>
-            <td style="font-family:var(--font-mono);font-size:0.8rem;${yrStyle}">${relYr}</td>
-            <td style="font-size:0.8rem">${esc(i.country || '—')}</td>
-            <td style="font-size:0.75rem;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(i.folder_name || '')}">${esc(i.folder_name || '—')}</td>
-            <td><span class="badge badge-format">${esc(i.format_primary || '—')}</span></td>
-            <td>${condBadge(i.media_condition)}</td>
-            <td>${condBadge(i.sleeve_condition)}</td>
-            <td>${typeBadge(i.curation_type)}</td>
-            <td style="font-size:0.8rem">${esc(i.edition || '—')}</td>
-            <td style="font-size:0.8rem">${esc(i.pressing || '—')}</td>
-            <td style="font-size:0.8rem">${ratingHtml}</td>
-            <td style="font-size:0.75rem;color:var(--text-muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(i.notes || '')}">${esc(i.notes || '')}</td>
+            <td style="font-weight:500;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.artist_name||'—')}</td>
+            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.basic_title||'—')}</td>
+            <td style="font-family:var(--font-mono)">${oy}</td><td style="font-family:var(--font-mono);${ys}">${ry}</td>
+            <td>${esc(i.country||'—')}</td>
+            <td style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(i.folder_name||'')}">${esc(i.folder_name||'—')}</td>
+            <td><span class="badge b-format">${esc(i.format_primary||'—')}</span></td>
+            <td>${cb(i.media_condition)}</td><td>${cb(i.sleeve_condition)}</td><td>${tb(i.curation_type)}</td>
+            <td>${esc(i.edition||'—')}</td><td>${esc(i.pressing||'—')}</td><td>${rh}</td>
+            <td style="color:var(--text-muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(i.notes||'')}">${esc(i.notes||'')}</td>
         </tr>`;
     }).join('');
-    document.getElementById('cfCount').textContent = `${filtered.length} of ${items.length} items`;
+    document.getElementById('cfCount').textContent = `${f.length} of ${items.length} items`;
 }
 
-// CF filter listeners
-['cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFolder','cfFilterFormat'].forEach(id => {
-    document.getElementById(id).addEventListener('change', () => renderCFTable());
-});
-document.getElementById('cfSearch').addEventListener('input', () => {
-    clearTimeout(state.searchDebounce);
-    state.searchDebounce = setTimeout(() => renderCFTable(), 300);
-});
-
-// CF sort click handler
-document.getElementById('cfHeaders').addEventListener('click', e => {
-    const th = e.target.closest('th[data-sort]');
-    if (!th) return;
-    const col = th.dataset.sort;
-    if (state.cfSort.col === col) {
-        state.cfSort.dir = state.cfSort.dir === 'asc' ? 'desc' : 'asc';
-    } else {
-        state.cfSort.col = col;
-        state.cfSort.dir = 'asc';
-    }
-    // Update header indicators
-    document.querySelectorAll('#cfHeaders th[data-sort]').forEach(h => {
-        const arrow = h.dataset.sort === state.cfSort.col
-            ? (state.cfSort.dir === 'asc' ? ' ▲' : ' ▼')
-            : ' ⇅';
-        h.textContent = h.textContent.replace(/ [⇅▲▼]$/, '') + arrow;
-    });
-    renderCFTable();
-});
+// CF listeners
+['cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFolder','cfFilterFormat'].forEach(id=>document.getElementById(id).addEventListener('change',()=>renderCFTable()));
+document.getElementById('cfSearch').addEventListener('input',()=>{clearTimeout(state.searchDebounce);state.searchDebounce=setTimeout(()=>renderCFTable(),300);});
+document.getElementById('cfHeaders').addEventListener('click',e=>{const th=e.target.closest('th[data-sort]');if(!th)return;const c=th.dataset.sort;if(state.cfSort.col===c)state.cfSort.dir=state.cfSort.dir==='asc'?'desc':'asc';else{state.cfSort.col=c;state.cfSort.dir='asc';}document.querySelectorAll('#cfHeaders th[data-sort]').forEach(h=>{const a=h.dataset.sort===state.cfSort.col?(state.cfSort.dir==='asc'?' ▲':' ▼'):' ⇅';h.textContent=h.textContent.replace(/ [⇅▲▼]$/,'')+a;});renderCFTable();});
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CHARTS (Chart.js)
+// CHARTS
 // ═══════════════════════════════════════════════════════════════════════════════
-const chartColors = ['#d4a853','#5b8cf7','#4ade80','#f87171','#a78bfa','#22d3ee','#fb923c','#e879f9','#fbbf24','#34d399','#f472b6','#818cf8','#a3e635','#f97316','#06b6d4'];
-const chartDefaults = {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { labels: { color: '#9896a8', font: { family: 'Outfit', size: 11 } } } },
-    scales: {
-        x: { ticks: { color: '#5e5c6e', font: { size: 10 } }, grid: { color: 'rgba(42,42,58,0.3)' } },
-        y: { ticks: { color: '#5e5c6e', font: { size: 10 } }, grid: { color: 'rgba(42,42,58,0.3)' } },
-    }
-};
-
-function destroyChart(id) { if (state.charts[id]) { state.charts[id].destroy(); } }
-
-function renderDecadeChart(data) {
-    destroyChart('decade');
-    state.charts.decade = new Chart(document.getElementById('chartDecade'), {
-        type: 'bar',
-        data: {
-            labels: data.map(d => d.decade + 's'),
-            datasets: [{ label: 'Albums', data: data.map(d => d.count),
-                backgroundColor: '#d4a853', borderRadius: 6, borderSkipped: false }]
-        },
-        options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: false } } }
-    });
-}
-
-function renderCountryChart(data) {
-    destroyChart('country');
-    const top = data.slice(0, 15);
-    state.charts.country = new Chart(document.getElementById('chartCountry'), {
-        type: 'bar',
-        data: {
-            labels: top.map(d => d.country),
-            datasets: [{ label: 'Releases', data: top.map(d => d.count),
-                backgroundColor: chartColors, borderRadius: 6, borderSkipped: false }]
-        },
-        options: {
-            ...chartDefaults, indexAxis: 'y',
-            plugins: { ...chartDefaults.plugins, legend: { display: false } }
-        }
-    });
-}
-
-function renderFormatChart(data) {
-    destroyChart('format');
-    state.charts.format = new Chart(document.getElementById('chartFormat'), {
-        type: 'doughnut',
-        data: {
-            labels: data.map(d => d.format),
-            datasets: [{ data: data.map(d => d.count), backgroundColor: chartColors, borderWidth: 0 }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'right', labels: { color: '#9896a8', font: { family: 'Outfit', size: 11 }, padding: 12 } } }
-        }
-    });
-}
-
-function renderCoverageChart(data) {
-    destroyChart('coverage');
-    const sorted = [...data].sort((a, b) => (b.owned / (b.benchmark_total || 1)) - (a.owned / (a.benchmark_total || 1)));
-    state.charts.coverage = new Chart(document.getElementById('chartCoverage'), {
-        type: 'bar',
-        data: {
-            labels: sorted.map(d => d.subgenre || 'Unknown'),
-            datasets: [
-                { label: 'Owned', data: sorted.map(d => d.owned), backgroundColor: '#4ade80', borderRadius: 4 },
-                { label: 'Missing', data: sorted.map(d => d.benchmark_total - d.owned), backgroundColor: 'rgba(248,113,113,0.3)', borderRadius: 4 },
-            ]
-        },
-        options: {
-            ...chartDefaults, indexAxis: 'y',
-            scales: { ...chartDefaults.scales, x: { ...chartDefaults.scales.x, stacked: true }, y: { ...chartDefaults.scales.y, stacked: true } },
-        }
-    });
-}
-
+const chartColors = ['#c9a84c','#5b8cf7','#4ade80','#f87171','#a78bfa','#22d3ee','#fb923c','#e879f9','#fbbf24','#34d399','#f472b6','#818cf8','#a3e635','#f97316','#06b6d4'];
+const chartDefaults = {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#9896a8',font:{family:'DM Sans',size:11}}}},scales:{x:{ticks:{color:'#56546a',font:{size:10}},grid:{color:'rgba(35,35,51,0.3)'}},y:{ticks:{color:'#56546a',font:{size:10}},grid:{color:'rgba(35,35,51,0.3)'}}}};
+function destroyChart(id) { if(state.charts[id])state.charts[id].destroy(); }
+function renderDecadeChart(data) { destroyChart('decade'); state.charts.decade=new Chart(document.getElementById('chartDecade'),{type:'bar',data:{labels:data.map(d=>d.decade+'s'),datasets:[{label:'Albums',data:data.map(d=>d.count),backgroundColor:'#c9a84c',borderRadius:4,borderSkipped:false}]},options:{...chartDefaults,plugins:{...chartDefaults.plugins,legend:{display:false}}}}); }
+function renderCountryChart(data) { destroyChart('country'); const t=data.slice(0,15); state.charts.country=new Chart(document.getElementById('chartCountry'),{type:'bar',data:{labels:t.map(d=>d.country),datasets:[{label:'Releases',data:t.map(d=>d.count),backgroundColor:chartColors,borderRadius:4,borderSkipped:false}]},options:{...chartDefaults,indexAxis:'y',plugins:{...chartDefaults.plugins,legend:{display:false}}}}); }
+function renderFormatChart(data) { destroyChart('format'); state.charts.format=new Chart(document.getElementById('chartFormat'),{type:'doughnut',data:{labels:data.map(d=>d.format),datasets:[{data:data.map(d=>d.count),backgroundColor:chartColors,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#9896a8',font:{family:'DM Sans',size:11},padding:10}}}}}); }
 function renderCoverageRows(data) {
-    const sorted = [...data].sort((a, b) => {
-        const pA = a.benchmark_total > 0 ? a.owned / a.benchmark_total : 0;
-        const pB = b.benchmark_total > 0 ? b.owned / b.benchmark_total : 0;
-        return pB - pA;
-    });
-    document.getElementById('coverageRows').innerHTML = sorted.map(d => {
-        const pct = d.benchmark_total > 0 ? ((d.owned / d.benchmark_total) * 100).toFixed(1) : 0;
-        return `
-            <div class="coverage-row">
-                <div class="coverage-label">${esc(d.subgenre || 'Unknown')}</div>
-                <div class="coverage-bar-bg">
-                    <div class="coverage-bar-fill" style="width:${pct}%"></div>
-                </div>
-                <div class="coverage-stats">
-                    <span class="coverage-pct">${pct}%</span>
-                    <span style="color:var(--text-muted);margin-left:8px">${d.owned}/${d.benchmark_total}</span>
-                </div>
-            </div>`;
-    }).join('');
+    const sorted=[...data].sort((a,b)=>{const pA=a.benchmark_total>0?a.owned/a.benchmark_total:0;const pB=b.benchmark_total>0?b.owned/b.benchmark_total:0;return pB-pA;});
+    document.getElementById('coverageRows').innerHTML=sorted.map(d=>{const p=d.benchmark_total>0?((d.owned/d.benchmark_total)*100).toFixed(1):0;return`<div class="cov-row"><div class="cov-label">${esc(d.subgenre||'Unknown')}</div><div class="cov-bar"><div class="cov-fill" style="width:${p}%"></div></div><div class="cov-stats">${p}% ${d.owned}/${d.benchmark_total}</div></div>`;}).join('');
 }
-
 function populateSubgenreSelects(data) {
-    const subgenres = data.map(d => d.subgenre).filter(Boolean).sort();
-    const html = '<option value="">All Subgenres</option>' +
-        subgenres.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
-    document.getElementById('subgenreSelect').innerHTML = html;
-    document.getElementById('gapSubgenre').innerHTML = html;
+    const s=data.map(d=>d.subgenre).filter(Boolean).sort();
+    const h='<option value="">All Subgenres</option>'+s.map(sg=>`<option value="${esc(sg)}">${esc(sg)}</option>`).join('');
+    document.getElementById('subgenreSelect').innerHTML=h; document.getElementById('gapSubgenre').innerHTML=h;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TABS
 // ═══════════════════════════════════════════════════════════════════════════════
 document.getElementById('tabBar').addEventListener('click', e => {
-    if (!e.target.classList.contains('tab')) return;
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    if (!e.target.classList.contains('nav-item')) return;
+    document.querySelectorAll('.nav-item').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
     e.target.classList.add('active');
-    document.getElementById('panel-' + e.target.dataset.tab).classList.add('active');
-    // Lazy-load linking data on first visit
-    if (e.target.dataset.tab === 'linking' && linkingState.items.length === 0) {
-        loadLinkingData();
-    }
+    document.getElementById('panel-'+e.target.dataset.tab).classList.add('active');
+    if (e.target.dataset.tab==='linking'&&linkingState.items.length===0) loadLinkingData();
 });
+document.getElementById('benchmarkSearch').addEventListener('input',()=>renderBenchmarkTable());
+document.getElementById('sourceSelect').addEventListener('change',()=>{loadPASummary();loadPAAlbums();});
+document.getElementById('subgenreSelect').addEventListener('change',()=>loadPAAlbums());
+document.getElementById('gapRating').addEventListener('input',e=>{document.getElementById('gapRatingVal').textContent=e.target.value;});
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SEARCH / FILTER EVENT LISTENERS
+// LINKING
 // ═══════════════════════════════════════════════════════════════════════════════
-document.getElementById('benchmarkSearch').addEventListener('input', () => renderBenchmarkTable());
-document.getElementById('sourceSelect').addEventListener('change', () => {
-    loadPASummary();
-    loadPAAlbums();
-});
-document.getElementById('subgenreSelect').addEventListener('change', () => loadPAAlbums());
-document.getElementById('gapRating').addEventListener('input', e => {
-    document.getElementById('gapRatingVal').textContent = e.target.value;
-});
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 6. LINKING
-// ═══════════════════════════════════════════════════════════════════════════════
-let linkingState = { items: [], offset: 0, currentPaId: null };
-
-async function loadLinkingStats() {
-    try {
-        const d = await api('/api/linking/stats');
-        document.getElementById('linkTotal').textContent = d.total;
-        document.getElementById('linkLinked').textContent = d.linked;
-        document.getElementById('linkPending').textContent = d.total - d.linked;
-        document.getElementById('linkPct').textContent = d.pct + '%';
-    } catch(e) { console.error('Linking stats:', e); }
-}
-
+let linkingState = { items:[], offset:0, currentPaId:null };
+async function loadLinkingStats() { try { const d=await api('/api/linking/stats'); document.getElementById('linkTotal').textContent=d.total; document.getElementById('linkLinked').textContent=d.linked; document.getElementById('linkPending').textContent=d.total-d.linked; document.getElementById('linkPct').textContent=d.pct+'%'; } catch(e){} }
 async function loadLinkingData(append) {
     try {
-        if (!append) { linkingState.items = []; linkingState.offset = 0; }
-        const source = document.getElementById('linkSourceFilter').value;
-        const method = document.getElementById('linkMethodFilter').value;
-        const params = new URLSearchParams({ limit: 100, offset: linkingState.offset });
-        if (source) params.set('source', source);
-        if (method) params.set('method', method);
-        const items = await api('/api/linking/all?' + params);
-        linkingState.items = append ? linkingState.items.concat(items) : items;
-        linkingState.offset += items.length;
-        renderLinkingTable();
-        document.getElementById('linkLoadMore').style.display = items.length >= 100 ? '' : 'none';
-        loadLinkingStats();
-        // Reload benchmarks so status changes are reflected
-        if (!append) { loadPASummary(); loadPAAlbums(); }
+        if (!append){linkingState.items=[];linkingState.offset=0;}
+        const source=document.getElementById('linkSourceFilter').value, method=document.getElementById('linkMethodFilter').value;
+        const params=new URLSearchParams({limit:100,offset:linkingState.offset});
+        if(source)params.set('source',source);if(method)params.set('method',method);
+        const items=await api('/api/linking/all?'+params);
+        linkingState.items=append?linkingState.items.concat(items):items;
+        linkingState.offset+=items.length; renderLinkingTable();
+        document.getElementById('linkLoadMore').style.display=items.length>=100?'':'none';
+        loadLinkingStats(); if(!append){loadPASummary();loadPAAlbums();}
     } catch(e) { console.error('Linking data:', e); }
 }
-
-function loadLinkingMore() { loadLinkingData(true); }
-
+function loadLinkingMore(){loadLinkingData(true);}
 function renderLinkingTable() {
-    const search = document.getElementById('linkSearch').value.toLowerCase();
-    let items = linkingState.items;
-    if (search) items = items.filter(i =>
-        (i.artist_name||'').toLowerCase().includes(search) ||
-        (i.album_title||'').toLowerCase().includes(search));
-
-    const methodBadge = m => ({
-        'auto': '<span class="badge badge-owned">AUTO</span>',
-        'manual': '<span class="badge" style="background:rgba(96,165,250,0.15);color:#60a5fa">MANUAL</span>',
-        'pending': '<span class="badge" style="background:rgba(251,191,36,0.15);color:#fbbf24">PENDING</span>',
-        'skipped': '<span class="badge badge-gap">SKIPPED</span>',
-    })[m] || `<span class="badge badge-format">${esc(m)}</span>`;
-
-    document.getElementById('linkBody').innerHTML = items.map(i => `
-        <tr>
-            <td style="font-family:var(--font-mono);font-size:0.8rem">${i.rank_position || '—'}</td>
-            <td style="font-weight:500;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.artist_name)}</td>
-            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.album_title)}</td>
-            <td style="font-family:var(--font-mono);font-size:0.8rem">${i.year || '—'}</td>
-            <td style="font-size:0.75rem">${esc(i.source_list || '—')}</td>
-            <td>${methodBadge(i.match_method)}</td>
-            <td style="font-family:var(--font-mono);font-size:0.8rem">${i.master_id ? `<a href="https://www.discogs.com/master/${i.master_id}" target="_blank" style="color:var(--accent-cyan)">${i.master_id}</a>` : '—'}</td>
-            <td style="font-family:var(--font-mono);font-size:0.8rem">${i.link_release_id ? `<a href="https://www.discogs.com/release/${i.link_release_id}" target="_blank" style="color:var(--accent-cyan)">${i.link_release_id}</a>` : '—'}</td>
-            <td style="font-size:0.8rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.master_title || '—')}</td>
-            <td>
-                <button data-paid="${i.pa_album_id}" data-artist="${esc(i.artist_name)}" data-album="${esc(i.album_title)}"
-                    onclick="openLinkDialog(+this.dataset.paid, this.dataset.artist, this.dataset.album)"
-                    style="background:var(--bg-surface);color:var(--accent-gold);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 8px;font-size:0.75rem;cursor:pointer">
-                    ${i.master_id || i.link_release_id ? 'Edit' : 'Link'}
-                </button>
-            </td>
-        </tr>
-    `).join('');
-    document.getElementById('linkCount').textContent = `${items.length} items`;
+    const search=document.getElementById('linkSearch').value.toLowerCase();
+    let items=linkingState.items;
+    if(search)items=items.filter(i=>(i.artist_name||'').toLowerCase().includes(search)||(i.album_title||'').toLowerCase().includes(search));
+    const mb=m=>({'auto':'<span class="badge b-auto">AUTO</span>','manual':'<span class="badge b-manual">MANUAL</span>','pending':'<span class="badge b-pending">PENDING</span>','skipped':'<span class="badge b-skip">SKIPPED</span>'})[m]||`<span class="badge b-format">${esc(m)}</span>`;
+    document.getElementById('linkBody').innerHTML=items.map(i=>`<tr>
+        <td style="font-family:var(--font-mono)">${i.rank_position||'—'}</td>
+        <td style="font-weight:500;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.artist_name)}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.album_title)}</td>
+        <td style="font-family:var(--font-mono)">${i.year||'—'}</td>
+        <td style="font-size:0.7rem">${esc(i.source_list||'—')}</td>
+        <td>${mb(i.match_method)}</td>
+        <td style="font-family:var(--font-mono)">${i.master_id?`<a href="https://www.discogs.com/master/${i.master_id}" target="_blank" style="color:var(--cyan)">${i.master_id}</a>`:'—'}</td>
+        <td style="font-family:var(--font-mono)">${i.link_release_id?`<a href="https://www.discogs.com/release/${i.link_release_id}" target="_blank" style="color:var(--cyan)">${i.link_release_id}</a>`:'—'}</td>
+        <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.master_title||'—')}</td>
+        <td><button data-paid="${i.pa_album_id}" data-artist="${esc(i.artist_name)}" data-album="${esc(i.album_title)}"
+            onclick="openLinkDialog(+this.dataset.paid,this.dataset.artist,this.dataset.album)"
+            class="btn btn-action" style="padding:3px 8px;font-size:0.7rem">${i.master_id||i.link_release_id?'Edit':'Link'}</button></td>
+    </tr>`).join('');
+    document.getElementById('linkCount').textContent=`${items.length} items`;
 }
-
-async function openLinkDialog(paId, artist, album) {
-    linkingState.currentPaId = paId;
-    document.getElementById('linkDialogTitle').textContent = `${artist} — ${album}`;
-    document.getElementById('linkManualMasterId').value = '';
-    document.getElementById('linkManualReleaseId').value = '';
-
-    // Search collection for candidates
+async function openLinkDialog(paId,artist,album) {
+    linkingState.currentPaId=paId;
+    document.getElementById('linkDialogTitle').textContent=`${artist} — ${album}`;
+    document.getElementById('linkManualMasterId').value=''; document.getElementById('linkManualReleaseId').value='';
     try {
-        const results = await api(`/api/linking/search-discogs?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}`);
-        document.getElementById('linkDialogResults').innerHTML = results.length > 0
-            ? results.map(r => `
-                <div style="display:flex;align-items:center;gap:12px;padding:8px;border-bottom:1px solid var(--border);cursor:pointer"
-                     onclick="selectMasterLink(${r.master_id || 'null'}, ${r.release_id})">
-                    <span style="font-family:var(--font-mono);color:var(--accent-cyan);min-width:90px">M:${r.master_id || '—'} R:${r.release_id}</span>
-                    <span style="font-weight:500">${esc(r.artist_name)}</span>
-                    <span style="color:var(--text-muted)">—</span>
-                    <span>${esc(r.release_title)}</span>
-                    <span style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted)">${r.master_year || ''}</span>
-                </div>
-            `).join('')
-            : '<p style="color:var(--text-muted);padding:12px">No matches found in your collection. Enter master_id or release_id manually.</p>';
-    } catch(e) {
-        document.getElementById('linkDialogResults').innerHTML = '<p style="color:var(--accent-red)">Error searching collection</p>';
-    }
-
-    const dialog = document.getElementById('linkDialog');
-    dialog.style.display = 'flex';
+        const results=await api(`/api/linking/search-discogs?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}`);
+        document.getElementById('linkDialogResults').innerHTML=results.length>0
+            ?results.map(r=>`<div style="display:flex;align-items:center;gap:10px;padding:7px;border-bottom:1px solid var(--border);cursor:pointer" onclick="selectMasterLink(${r.master_id||'null'},${r.release_id})">
+                <span style="font-family:var(--font-mono);color:var(--cyan);min-width:80px;font-size:0.75rem">M:${r.master_id||'—'} R:${r.release_id}</span>
+                <span style="font-weight:500;font-size:0.82rem">${esc(r.artist_name)}</span><span style="color:var(--text-muted)">—</span>
+                <span style="font-size:0.82rem">${esc(r.release_title)}</span>
+                <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted)">${r.master_year||''}</span>
+            </div>`).join('')
+            :'<p style="color:var(--text-muted);padding:10px">No matches found. Enter IDs manually.</p>';
+    } catch(e) { document.getElementById('linkDialogResults').innerHTML='<p style="color:var(--red)">Error</p>'; }
+    document.getElementById('linkDialog').style.display='flex';
 }
-
-function selectMasterLink(masterId, releaseId) {
-    if (masterId) {
-        document.getElementById('linkManualMasterId').value = masterId;
-        document.getElementById('linkManualReleaseId').value = '';
-    } else {
-        document.getElementById('linkManualMasterId').value = '';
-        document.getElementById('linkManualReleaseId').value = releaseId;
-    }
-}
-
+function selectMasterLink(mid,rid) { if(mid){document.getElementById('linkManualMasterId').value=mid;document.getElementById('linkManualReleaseId').value='';}else{document.getElementById('linkManualMasterId').value='';document.getElementById('linkManualReleaseId').value=rid;} }
 async function submitManualLink() {
-    const paId = linkingState.currentPaId;
-    const masterId = document.getElementById('linkManualMasterId').value;
-    const releaseId = document.getElementById('linkManualReleaseId').value;
-    if (!masterId && !releaseId) { alert('Enter a master_id or release_id'); return; }
-    try {
-        const params = new URLSearchParams({ pa_album_id: paId });
-        if (masterId) params.set('master_id', masterId);
-        if (releaseId) params.set('release_id', releaseId);
-        const result = await api('/api/linking/link?' + params);
-        const msg = result.propagated_to > 1 ? ` (propagated to ${result.propagated_to} entries)` : '';
-        closeLinkDialog();
-        loadLinkingData();
-        if (msg) { document.getElementById('linkCount').textContent += msg; }
-    } catch(e) { alert('Error linking: ' + e.message); }
+    const paId=linkingState.currentPaId,mid=document.getElementById('linkManualMasterId').value,rid=document.getElementById('linkManualReleaseId').value;
+    if(!mid&&!rid){alert('Enter a master_id or release_id');return;}
+    try { const p=new URLSearchParams({pa_album_id:paId}); if(mid)p.set('master_id',mid); if(rid)p.set('release_id',rid);
+        const r=await api('/api/linking/link?'+p); closeLinkDialog(); loadLinkingData();
+    } catch(e){alert('Error: '+e.message);}
 }
+async function skipLink(){try{await api(`/api/linking/link?pa_album_id=${linkingState.currentPaId}&master_id=0&notes=manually_skipped`);closeLinkDialog();loadLinkingData();}catch(e){}}
+function closeLinkDialog(){document.getElementById('linkDialog').style.display='none';linkingState.currentPaId=null;}
+document.getElementById('linkSourceFilter').addEventListener('change',()=>loadLinkingData());
+document.getElementById('linkMethodFilter').addEventListener('change',()=>loadLinkingData());
+document.getElementById('linkSearch').addEventListener('input',()=>{clearTimeout(state.searchDebounce);state.searchDebounce=setTimeout(()=>renderLinkingTable(),300);});
 
-async function skipLink() {
-    const paId = linkingState.currentPaId;
-    try {
-        await api(`/api/linking/link?pa_album_id=${paId}&master_id=0&notes=manually_skipped`);
-        closeLinkDialog();
-        loadLinkingData();
-    } catch(e) { console.error(e); }
-}
-
-function closeLinkDialog() {
-    document.getElementById('linkDialog').style.display = 'none';
-    linkingState.currentPaId = null;
-}
-
-// Linking filter listeners
-document.getElementById('linkSourceFilter').addEventListener('change', () => loadLinkingData());
-document.getElementById('linkMethodFilter').addEventListener('change', () => loadLinkingData());
-document.getElementById('linkSearch').addEventListener('input', () => {
-    clearTimeout(state.searchDebounce);
-    state.searchDebounce = setTimeout(() => renderLinkingTable(), 300);
-});
-
+// ═══════════════════════════════════════════════════════════════════════════════
+// ADMIN
+// ═══════════════════════════════════════════════════════════════════════════════
 async function downloadSnapshot() {
-    const btn = document.getElementById('snapBtn');
-    const result = document.getElementById('purgeResult');
-    btn.disabled = true; btn.textContent = 'Generating...';
-    result.textContent = 'Building curator snapshot...'; result.style.color = 'var(--text-muted)';
-    try {
-        const data = await api('/api/curator/snapshot');
-        // Create and download JSON file
-        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const date = new Date().toISOString().slice(0,10);
-        a.download = `vinyl-vault-snapshot-${date}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        result.textContent = `Snapshot downloaded! ${data.total_items} items, ${data.collection.length} with details, ${data.top_gaps.length} top gaps`;
-        result.style.color = 'var(--accent-green)';
-    } catch(e) {
-        result.textContent = 'Error: ' + e.message;
-        result.style.color = 'var(--accent-red)';
-    }
-    btn.disabled = false; btn.textContent = 'Download Curator Snapshot';
+    const btn=document.getElementById('snapBtn'),res=document.getElementById('purgeResult');
+    btn.disabled=true;btn.textContent='Generating...';res.textContent='Building snapshot...';res.style.color='var(--text-muted)';
+    try { const data=await api('/api/curator/snapshot'); const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`vinyl-vault-snapshot-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); res.textContent=`Downloaded! ${data.total_items} items, ${data.top_gaps.length} gaps`; res.style.color='var(--green)';
+    } catch(e){res.textContent='Error: '+e.message;res.style.color='var(--red)';} btn.disabled=false;btn.textContent='Download Curator Snapshot';
 }
-
 async function runSync() {
-    const btn = document.getElementById('syncBtn');
-    const result = document.getElementById('purgeResult');
-    btn.disabled = true; btn.textContent = 'Syncing...';
-    result.textContent = 'This may take 30-60 seconds...'; result.style.color = 'var(--text-muted)';
-    try {
-        const d = await api('/api/admin/sync-discogs');
-        if (d.status === 'ok') {
-            result.textContent = `Synced! Discogs: ${d.discogs_count}, Updated: ${d.upserted}, Purged: ${d.purged}`;
-            result.style.color = 'var(--accent-green)';
-            loadAll(); // Reload everything
-        } else {
-            result.textContent = 'Error: ' + d.message;
-            result.style.color = 'var(--accent-red)';
-        }
-    } catch(e) {
-        result.textContent = 'Error: ' + e.message;
-        result.style.color = 'var(--accent-red)';
-    }
-    btn.disabled = false; btn.textContent = 'Sync Discogs Collection';
+    const btn=document.getElementById('syncBtn'),res=document.getElementById('purgeResult');
+    btn.disabled=true;btn.textContent='Syncing...';res.textContent='This may take 30-60s...';res.style.color='var(--text-muted)';
+    try { const d=await api('/api/admin/sync-discogs'); if(d.status==='ok'){res.textContent=`Synced! ${JSON.stringify(d.results||{})}`;res.style.color='var(--green)';loadAll();}else{res.textContent='Error: '+d.message;res.style.color='var(--red)';} } catch(e){res.textContent='Error: '+e.message;res.style.color='var(--red)';} btn.disabled=false;btn.textContent='Sync Discogs Collection';
 }
-
 async function runPurge() {
-    const btn = document.getElementById('purgeBtn');
-    const result = document.getElementById('purgeResult');
-    btn.disabled = true; btn.textContent = 'Purging...';
-    result.textContent = '';
-    try {
-        const d = await api('/api/admin/purge-deleted');
-        if (d.status === 'ok') {
-            result.textContent = `Done! Discogs: ${d.discogs_count}, DB was: ${d.db_count}, Orphans removed: ${d.deleted}`;
-            if (d.deleted > 0) {
-                result.textContent += ' — ' + d.details.map(x => `${x.artist} - ${x.title}`).join(', ');
-            }
-            result.style.color = d.deleted > 0 ? 'var(--accent-green)' : 'var(--text-muted)';
-        } else {
-            result.textContent = 'Error: ' + d.message;
-            result.style.color = 'var(--accent-red)';
-        }
-    } catch(e) {
-        result.textContent = 'Error: ' + e.message;
-        result.style.color = 'var(--accent-red)';
-    }
-    btn.disabled = false; btn.textContent = 'Purge Deleted from Discogs';
+    const btn=document.getElementById('purgeBtn'),res=document.getElementById('purgeResult');
+    btn.disabled=true;btn.textContent='Purging...';res.textContent='';
+    try { const d=await api('/api/admin/purge-deleted'); if(d.status==='ok'){res.textContent=`Done! Discogs:${d.discogs_count}, DB:${d.db_count}, Purged:${d.deleted}`;res.style.color=d.deleted>0?'var(--green)':'var(--text-muted)';} else{res.textContent='Error: '+d.message;res.style.color='var(--red)';} } catch(e){res.textContent='Error: '+e.message;res.style.color='var(--red)';} btn.disabled=false;btn.textContent='Purge Deleted';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════════════════════════════════════════
-function esc(s) {
-    if (!s) return '';
-    const d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-}
+function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
-// Auto-connect if API key is saved
-window.addEventListener('DOMContentLoaded', () => {
-    if (API_KEY) {
-        document.getElementById('loginOverlay').style.display = 'none';
-        connectAPI();
-    }
-});
+// Auto-connect
+window.addEventListener('DOMContentLoaded',()=>{if(API_KEY){document.getElementById('loginOverlay').style.display='none';connectAPI();}});
 </script>
 </body>
 </html>
