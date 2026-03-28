@@ -306,6 +306,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
         <div class="nav-item" data-tab="benchmark">Benchmark</div>
         <div class="nav-item" data-tab="gaps">Gaps</div>
         <div class="nav-item" data-tab="linking">Linking</div>
+        <div class="nav-item" data-tab="artists">Artists</div>
         <div class="nav-item" data-tab="admin">Admin</div>
     </nav>
 
@@ -387,6 +388,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
                 <h3>Full Collection</h3>
                 <div class="tbl-filters">
                     <select class="sel" id="cfFilterFolder"><option value="">All Folders</option></select>
+                    <select class="sel" id="cfFilterSubgenre"><option value="">All Subgenres</option></select>
                     <select class="sel" id="cfFilterCuration"><option value="">All Types</option></select>
                     <select class="sel" id="cfFilterPressing"><option value="">All Pressings</option></select>
                     <select class="sel" id="cfFilterCondition"><option value="">All Conditions</option></select>
@@ -403,7 +405,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
                             <th data-sort="original_year" style="cursor:pointer">Orig ⇅</th>
                             <th data-sort="basic_year" style="cursor:pointer">Rel ⇅</th>
                             <th data-sort="country" style="cursor:pointer">Country ⇅</th>
-                            <th data-sort="folder_name" style="cursor:pointer">Folder ⇅</th>
+                            <th data-sort="artist_subgenre" style="cursor:pointer">Subgenre ⇅</th>
                             <th data-sort="format_primary" style="cursor:pointer">Fmt ⇅</th>
                             <th data-sort="media_condition" style="cursor:pointer">Media ⇅</th>
                             <th data-sort="sleeve_condition" style="cursor:pointer">Sleeve ⇅</th>
@@ -559,6 +561,45 @@ tbody tr:hover { background: var(--bg-card-hover); }
             <div id="purgeResult" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);min-height:20px"></div>
         </div>
     </div>
+
+    <!-- ═══ ARTISTS PANEL ═══ -->
+    <div class="panel" id="panel-artists">
+        <div class="stats-grid" style="margin-bottom:20px">
+            <div class="stat-card"><div class="stat-label">Total Artists</div><div class="stat-value" id="artTotal">—</div></div>
+            <div class="stat-card"><div class="stat-label">Classified</div><div class="stat-value" id="artClassified" style="color:var(--accent-green)">—</div></div>
+            <div class="stat-card"><div class="stat-label">Unclassified</div><div class="stat-value" id="artUnclassified" style="color:var(--accent-gold)">—</div></div>
+        </div>
+        <div class="tbl-card">
+            <div class="tbl-header">
+                <h3>Artist → Subgenre Classification</h3>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <select class="sel" id="artFilterStatus">
+                        <option value="">All</option>
+                        <option value="unclassified">Unclassified Only</option>
+                        <option value="classified">Classified Only</option>
+                    </select>
+                    <select class="sel" id="artFilterGenre"><option value="">All Genres</option></select>
+                    <input type="text" class="inp" id="artSearch" placeholder="Search artist...">
+                    <button class="btn btn-sync" onclick="autoPopulateSubgenres()">Auto-Populate from Benchmarks</button>
+                </div>
+            </div>
+            <div class="tbl-scroll" style="max-height:600px">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Artist</th><th>Albums</th><th>Current Subgenre</th>
+                            <th>Genre</th><th>Subgenre</th><th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="artBody"></tbody>
+                </table>
+            </div>
+            <div style="text-align:center;padding:10px">
+                <span id="artCount" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted)"></span>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -810,6 +851,7 @@ function renderCFCharts(stats) {
 function populateCFFilters(stats, items) {
     function fill(id,data) { const el=document.getElementById(id); const f=el.options[0].outerHTML; el.innerHTML=f+Object.keys(data).map(k=>`<option value="${esc(k)}">${esc(k)} (${data[k]})</option>`).join(''); }
     fill('cfFilterCuration',stats.curation_type); fill('cfFilterPressing',stats.pressing); fill('cfFilterCondition',stats.media_condition);
+    if (stats.artist_subgenre) fill('cfFilterSubgenre',stats.artist_subgenre);
     const folders={}; items.forEach(i=>{const f=i.folder_name||'Unknown';folders[f]=(folders[f]||0)+1;});
     document.getElementById('cfFilterFolder').innerHTML='<option value="">All Folders</option>'+Object.entries(folders).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
     const fmts={}; items.forEach(i=>{const f=i.format_primary||'Unknown';fmts[f]=(fmts[f]||0)+1;});
@@ -821,10 +863,12 @@ function renderCFTable(items) {
     const curation=document.getElementById('cfFilterCuration').value, pressing=document.getElementById('cfFilterPressing').value;
     const condition=document.getElementById('cfFilterCondition').value, folder=document.getElementById('cfFilterFolder').value;
     const format=document.getElementById('cfFilterFormat').value, search=document.getElementById('cfSearch').value.toLowerCase();
+    const subgenreFilter=document.getElementById('cfFilterSubgenre').value;
     let f = items;
     if (curation) f=f.filter(i=>i.curation_type===curation); if (pressing) f=f.filter(i=>i.pressing===pressing);
     if (condition) f=f.filter(i=>i.media_condition===condition); if (folder) f=f.filter(i=>i.folder_name===folder);
     if (format) f=f.filter(i=>i.format_primary===format);
+    if (subgenreFilter) f=f.filter(i=>i.artist_subgenre===subgenreFilter);
     if (search) f=f.filter(i=>(i.artist_name||'').toLowerCase().includes(search)||(i.basic_title||'').toLowerCase().includes(search)||(i.notes||'').toLowerCase().includes(search));
     const rbm=state.ratingByMaster||{}; const {col,dir}=state.cfSort; const m=dir==='asc'?1:-1;
     f.sort((a,b)=>{let va,vb; if(col==='rating'){const ra=a.master_id?rbm[a.master_id]:null;const rb=b.master_id?rbm[b.master_id]:null;va=ra?ra.rating:-1;vb=rb?rb.rating:-1;}else if(col==='original_year'||col==='basic_year'){va=(a[col]&&a[col]>0)?a[col]:99999;vb=(b[col]&&b[col]>0)?b[col]:99999;}else{va=(a[col]||'').toLowerCase();vb=(b[col]||'').toLowerCase();}if(va<vb)return -1*m;if(va>vb)return 1*m;return 0;});
@@ -840,7 +884,7 @@ function renderCFTable(items) {
             <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.basic_title||'—')}</td>
             <td style="font-family:var(--font-mono)">${oy}</td><td style="font-family:var(--font-mono);${ys}">${ry}</td>
             <td>${esc(i.country||'—')}</td>
-            <td style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(i.folder_name||'')}">${esc(i.folder_name||'—')}</td>
+            <td>${i.artist_subgenre ? `<span class="badge badge-pillar">${esc(i.artist_subgenre)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
             <td><span class="badge b-format">${esc(i.format_primary||'—')}</span></td>
             <td>${cb(i.media_condition)}</td><td>${cb(i.sleeve_condition)}</td><td>${tb(i.curation_type)}</td>
             <td>${esc(i.edition||'—')}</td><td>${esc(i.pressing||'—')}</td><td>${rh}</td>
@@ -851,7 +895,7 @@ function renderCFTable(items) {
 }
 
 // CF listeners
-['cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFolder','cfFilterFormat'].forEach(id=>document.getElementById(id).addEventListener('change',()=>renderCFTable()));
+['cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFolder','cfFilterFormat','cfFilterSubgenre'].forEach(id=>document.getElementById(id).addEventListener('change',()=>renderCFTable()));
 document.getElementById('cfSearch').addEventListener('input',()=>{clearTimeout(state.searchDebounce);state.searchDebounce=setTimeout(()=>renderCFTable(),300);});
 document.getElementById('cfHeaders').addEventListener('click',e=>{const th=e.target.closest('th[data-sort]');if(!th)return;const c=th.dataset.sort;if(state.cfSort.col===c)state.cfSort.dir=state.cfSort.dir==='asc'?'desc':'asc';else{state.cfSort.col=c;state.cfSort.dir='asc';}document.querySelectorAll('#cfHeaders th[data-sort]').forEach(h=>{const a=h.dataset.sort===state.cfSort.col?(state.cfSort.dir==='asc'?' ▲':' ▼'):' ⇅';h.textContent=h.textContent.replace(/ [⇅▲▼]$/,'')+a;});renderCFTable();});
 
@@ -884,6 +928,7 @@ document.getElementById('tabBar').addEventListener('click', e => {
     e.target.classList.add('active');
     document.getElementById('panel-'+e.target.dataset.tab).classList.add('active');
     if (e.target.dataset.tab==='linking'&&linkingState.items.length===0) loadLinkingData();
+    if (e.target.dataset.tab==='artists'&&artistsState.items.length===0) loadArtists();
 });
 document.getElementById('benchmarkSearch').addEventListener('input',()=>renderBenchmarkTable());
 document.getElementById('sourceSelect').addEventListener('change',()=>{loadPASummary();loadPAAlbums();});
@@ -984,6 +1029,145 @@ async function runPurge() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// 7. ARTISTS SUBGENRE
+// ═══════════════════════════════════════════════════════════════════════════════
+const GENRE_SUBGENRE = {
+    'Progressive Rock': ['Symphonic Prog','Eclectic Prog','Heavy Prog','Neo-Prog','Canterbury Scene','Crossover Prog','Prog Folk','Zeuhl','Progressive Electronic','Proto-Prog','Rock Progressivo Italiano','Psychedelic/Space Rock'],
+    'Progressive Metal': ['Progressive Metal','Tech/Extreme Prog Metal'],
+    'Classic Rock': ['Hard Rock','Blues Rock','Southern Rock','AOR','Arena Rock','Classic Rock'],
+    'Heavy Metal': ['Heavy Metal','NWOBHM','Power Metal','Thrash Metal','Doom Metal','Speed Metal'],
+    'Jazz': ['Hard Bop','Cool Jazz','Bebop','Free Jazz','Avant-Garde','Fusion','Post-Bop','Swing','Big Band','Vocal Jazz','Piano Jazz','Bossa Nova','ECM','World Jazz','Early Jazz'],
+    'Soul/R&B': ['Soul','R&B','Pop Soul','Funk'],
+    'Pop Rock': ['Pop Rock','Art Rock','New Wave','Synth Pop'],
+    'Blues': ['Blues','Electric Blues','Chicago Blues'],
+    'Classical': ['Classical','Modern Classical'],
+    'Other': ['Soundtrack','World','Electronic','Ambient']
+};
+
+let artistsState = { items: [], subgenreMap: {} };
+
+async function loadArtists() {
+    try {
+        // Get all artists from collection with album counts
+        const cf = state.customFields;
+        if (!cf || !cf.items) return;
+
+        // Build artist list with album counts and current subgenre
+        const artistMap = {};
+        cf.items.forEach(i => {
+            const aid = i.artist_id;
+            const name = i.artist_name || '—';
+            if (!aid) return;
+            if (!artistMap[aid]) artistMap[aid] = { artist_id: aid, artist_name: name, albums: 0, subgenre: i.artist_subgenre || '' };
+            artistMap[aid].albums++;
+        });
+        artistsState.items = Object.values(artistMap).sort((a,b) => a.artist_name.localeCompare(b.artist_name));
+
+        // Stats
+        const total = artistsState.items.length;
+        const classified = artistsState.items.filter(a => a.subgenre).length;
+        document.getElementById('artTotal').textContent = total;
+        document.getElementById('artClassified').textContent = classified;
+        document.getElementById('artUnclassified').textContent = total - classified;
+
+        // Populate genre filter
+        const genreOpts = '<option value="">All Genres</option>' + Object.keys(GENRE_SUBGENRE).map(g => `<option value="${g}">${g}</option>`).join('');
+        document.getElementById('artFilterGenre').innerHTML = genreOpts;
+
+        renderArtistsTable();
+    } catch(e) { console.error('Artists:', e); }
+}
+
+function renderArtistsTable() {
+    const status = document.getElementById('artFilterStatus').value;
+    const genreFilter = document.getElementById('artFilterGenre').value;
+    const search = document.getElementById('artSearch').value.toLowerCase();
+
+    let items = artistsState.items;
+    if (status === 'unclassified') items = items.filter(a => !a.subgenre);
+    if (status === 'classified') items = items.filter(a => a.subgenre);
+    if (genreFilter) {
+        const subs = GENRE_SUBGENRE[genreFilter] || [];
+        items = items.filter(a => subs.includes(a.subgenre));
+    }
+    if (search) items = items.filter(a => a.artist_name.toLowerCase().includes(search));
+
+    document.getElementById('artBody').innerHTML = items.map(a => {
+        // Detect current genre from subgenre
+        let currentGenre = '';
+        for (const [g, subs] of Object.entries(GENRE_SUBGENRE)) {
+            if (subs.includes(a.subgenre)) { currentGenre = g; break; }
+        }
+
+        return `<tr>
+            <td style="font-weight:500">${esc(a.artist_name)}</td>
+            <td style="font-family:var(--font-mono);font-size:0.8rem;text-align:center">${a.albums}</td>
+            <td>${a.subgenre ? `<span class="badge badge-pillar">${esc(a.subgenre)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+            <td>
+                <select class="sel" style="font-size:0.78rem;padding:4px 6px" onchange="updateArtistSubgenreOptions(this, ${a.artist_id})" data-aid="${a.artist_id}">
+                    <option value="">Genre...</option>
+                    ${Object.keys(GENRE_SUBGENRE).map(g => `<option value="${g}" ${g===currentGenre?'selected':''}>${g}</option>`).join('')}
+                </select>
+            </td>
+            <td>
+                <select class="sel" style="font-size:0.78rem;padding:4px 6px" id="subSel_${a.artist_id}" onchange="saveArtistSubgenre(${a.artist_id}, '${esc(a.artist_name)}', this.value)">
+                    <option value="">Subgenre...</option>
+                    ${currentGenre ? GENRE_SUBGENRE[currentGenre].map(s => `<option value="${s}" ${s===a.subgenre?'selected':''}>${s}</option>`).join('') : ''}
+                </select>
+            </td>
+            <td style="text-align:center">
+                ${a.subgenre ? `<span style="color:var(--accent-green);font-size:0.75rem">✓</span>` : ''}
+            </td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('artCount').textContent = `${items.length} artists`;
+}
+
+function updateArtistSubgenreOptions(genreSelect, artistId) {
+    const genre = genreSelect.value;
+    const subSelect = document.getElementById('subSel_' + artistId);
+    if (!genre) {
+        subSelect.innerHTML = '<option value="">Subgenre...</option>';
+        return;
+    }
+    const subs = GENRE_SUBGENRE[genre] || [];
+    subSelect.innerHTML = '<option value="">Subgenre...</option>' + subs.map(s => `<option value="${s}">${s}</option>`).join('');
+}
+
+async function saveArtistSubgenre(artistId, artistName, subgenre) {
+    if (!subgenre) return;
+    try {
+        const result = await api(`/api/artist-subgenre/set?artist_id=${artistId}&artist_name=${encodeURIComponent(artistName)}&subgenre=${encodeURIComponent(subgenre)}`);
+        if (result.status === 'ok') {
+            // Update local state
+            const artist = artistsState.items.find(a => a.artist_id === artistId);
+            if (artist) artist.subgenre = subgenre;
+            // Update stats
+            const classified = artistsState.items.filter(a => a.subgenre).length;
+            document.getElementById('artClassified').textContent = classified;
+            document.getElementById('artUnclassified').textContent = artistsState.items.length - classified;
+        }
+    } catch(e) { console.error('Save subgenre:', e); }
+}
+
+async function autoPopulateSubgenres() {
+    try {
+        const result = await api('/api/artist-subgenre/auto-populate');
+        alert(`Auto-populated ${result.auto_populated} artists from benchmarks`);
+        // Reload everything
+        loadAll();
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+// Artists filter listeners
+['artFilterStatus','artFilterGenre'].forEach(id => document.getElementById(id).addEventListener('change', () => renderArtistsTable()));
+document.getElementById('artSearch').addEventListener('input', () => {
+    clearTimeout(state.searchDebounce);
+    state.searchDebounce = setTimeout(() => renderArtistsTable(), 300);
+});
+
 function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
 // Auto-connect
