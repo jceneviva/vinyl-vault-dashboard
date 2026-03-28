@@ -327,12 +327,12 @@ tbody tr:hover { background: var(--bg-card-hover); }
         <!-- Charts row 1: Decade + Folders/Genre -->
         <div class="card-row">
             <div class="card">
-                <h3>By Decade</h3>
+                <h3>By Original Decade</h3>
                 <div class="chart-wrap"><canvas id="chartDecade"></canvas></div>
             </div>
             <div class="card">
-                <h3>By Folder / Genre</h3>
-                <div class="chart-wrap"><canvas id="chartFolder"></canvas></div>
+                <h3>By Subgenre</h3>
+                <div class="chart-wrap"><canvas id="chartSubgenre"></canvas></div>
             </div>
         </div>
 
@@ -680,6 +680,7 @@ async function loadSummary() {
         document.getElementById('statTotal').textContent = d.total_items.toLocaleString('pt-BR');
         renderDecadeChart(d.by_decade);
         renderCountryChart(d.by_country);
+        if (d.by_subgenre) renderSubgenreChart(d.by_subgenre);
     } catch(e) { console.error('Summary:', e); }
 }
 async function loadFormats() {
@@ -797,9 +798,6 @@ async function loadNotes() {
             renderCFCharts(stats);
             populateCFFilters(stats, data.items);
 
-            // Folder/Genre chart from items
-            renderFolderChart(data.items);
-
             // Ratings via master_id
             try {
                 const ratings = await api('/api/benchmark/ratings-by-master');
@@ -823,14 +821,15 @@ async function loadNotes() {
     } catch(e) { console.error('Custom fields:', e); }
 }
 
-function renderFolderChart(items) {
-    const folders = {};
-    items.forEach(i => { const f = i.folder_name||'Unknown'; folders[f]=(folders[f]||0)+1; });
-    const sorted = Object.entries(folders).sort((a,b)=>b[1]-a[1]);
+function renderSubgenreChart(data) {
+    // Filter out 'Unclassified' if too dominant, and limit to top 15
+    const filtered = data.filter(d => d.subgenre !== 'Unclassified').slice(0, 15);
+    const unclassified = data.find(d => d.subgenre === 'Unclassified');
+    if (unclassified) filtered.push(unclassified);
     destroyChart('folder');
-    state.charts.folder = new Chart(document.getElementById('chartFolder'), {
+    state.charts.folder = new Chart(document.getElementById('chartSubgenre'), {
         type: 'bar', data: {
-            labels: sorted.map(d=>d[0]), datasets: [{label:'Albums',data:sorted.map(d=>d[1]),backgroundColor:chartColors,borderRadius:4,borderSkipped:false}]
+            labels: filtered.map(d=>d.subgenre), datasets: [{label:'Albums',data:filtered.map(d=>d.count),backgroundColor:chartColors,borderRadius:4,borderSkipped:false}]
         },
         options: {...chartDefaults, indexAxis:'y', plugins:{...chartDefaults.plugins,legend:{display:false}}}
     });
