@@ -552,9 +552,6 @@ tbody tr:hover { background: var(--bg-card-hover); }
     <!-- WISHLIST -->
     <!-- ════════════════════════════════════════════════════════════════════════ -->
     <div class="panel" id="panel-wishlist">
-        <div class="stats-grid" style="margin-bottom:20px">
-            <div class="stat-card"><div class="stat-label">Wishlist Items</div><div class="stat-value" id="wlTotal">—</div></div>
-        </div>
         <div class="card" style="margin-bottom:20px">
             <h3>Add to Wishlist</h3>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -617,11 +614,6 @@ tbody tr:hover { background: var(--bg-card-hover); }
 
     <!-- ═══ ARTISTS PANEL ═══ -->
     <div class="panel" id="panel-artists">
-        <div class="stats-grid" style="margin-bottom:20px">
-            <div class="stat-card"><div class="stat-label">Total Artists</div><div class="stat-value" id="artTotal">—</div></div>
-            <div class="stat-card"><div class="stat-label">Classified</div><div class="stat-value" id="artClassified" style="color:var(--accent-green)">—</div></div>
-            <div class="stat-card"><div class="stat-label">Unclassified</div><div class="stat-value" id="artUnclassified" style="color:var(--accent-gold)">—</div></div>
-        </div>
         <div class="tbl-card">
             <div class="tbl-header">
                 <h3>Artist → Subgenre Classification</h3>
@@ -1122,9 +1114,9 @@ async function loadArtists() {
         // Stats
         const total = artistsState.items.length;
         const classified = artistsState.items.filter(a => a.subgenre).length;
-        document.getElementById('artTotal').textContent = total;
-        document.getElementById('artClassified').textContent = classified;
-        document.getElementById('artUnclassified').textContent = total - classified;
+        
+        
+        
 
         // Populate genre filter
         const genreOpts = '<option value="">All Genres</option>' + Object.keys(GENRE_SUBGENRE).map(g => `<option value="${g}">${g}</option>`).join('');
@@ -1201,8 +1193,8 @@ async function saveArtistSubgenre(artistId, artistName, subgenre) {
             if (artist) artist.subgenre = subgenre;
             // Update stats
             const classified = artistsState.items.filter(a => a.subgenre).length;
-            document.getElementById('artClassified').textContent = classified;
-            document.getElementById('artUnclassified').textContent = artistsState.items.length - classified;
+            
+            
         }
     } catch(e) { console.error('Save subgenre:', e); }
 }
@@ -1236,7 +1228,7 @@ async function loadWishlist(append) {
         wlState.pages = d.pages;
         wlState.total = d.total;
         wlState.page++;
-        document.getElementById('wlTotal').textContent = d.total;
+        
         document.getElementById('wlLoadMore').style.display = wlState.page <= wlState.pages ? '' : 'none';
         renderWishlistTable();
     } catch(e) { console.error('Wishlist:', e); }
