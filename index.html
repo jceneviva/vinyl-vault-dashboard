@@ -1085,24 +1085,25 @@ async function runPurge() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // 7. ARTISTS SUBGENRE
 // ═══════════════════════════════════════════════════════════════════════════════
-const GENRE_SUBGENRE = {
-    'Progressive Rock': ['Symphonic Prog','Eclectic Prog','Heavy Prog','Neo-Prog','Canterbury Scene','Crossover Prog','Prog Folk','Zeuhl','Progressive Electronic','Proto-Prog','Rock Progressivo Italiano','Psychedelic/Space Rock'],
-    'Progressive Metal': ['Progressive Metal','Tech/Extreme Prog Metal','Experimental/Post Metal'],
-    'Classic Rock': ['Hard Rock','Blues Rock','Southern Rock','AOR','Arena Rock','Classic Rock'],
-    'Heavy Metal': ['Heavy Metal','NWOBHM','Power Metal','Doom Metal','Speed Metal'],
-    'Extreme Metal': ['Thrash Metal','Black Metal','Death Metal'],
-    'Jazz': ['Hard Bop','Cool Jazz','Bebop','Free Jazz','Avant-Garde','Fusion','Post-Bop','Swing','Big Band','Vocal Jazz','Piano Jazz','Bossa Nova','ECM','World Jazz','Early Jazz'],
-    'Soul/R&B': ['Soul','R&B','Pop Soul','Funk'],
-    'Pop Rock': ['Pop Rock','Art Rock','New Wave','Synth Pop'],
-    'Blues': ['Blues','Electric Blues','Chicago Blues'],
-    'Classical': ['Classical','Modern Classical'],
-    'Other': ['Soundtrack','World','Electronic','Ambient']
-};
+let GENRE_SUBGENRE = {};
 
 let artistsState = { items: [], subgenreMap: {} };
 
+async function loadGenreHierarchy() {
+    try {
+        const data = await api('/api/artist-subgenre/genres');
+        GENRE_SUBGENRE = {};
+        for (const [genre, subs] of Object.entries(data)) {
+            GENRE_SUBGENRE[genre] = subs.map(s => s.id);
+        }
+    } catch(e) { console.error('Genre hierarchy:', e); }
+}
+
 async function loadArtists() {
     try {
+        // Load genre hierarchy if not loaded yet
+        if (Object.keys(GENRE_SUBGENRE).length === 0) await loadGenreHierarchy();
+
         // Get all artists from collection with album counts
         const cf = state.customFields;
         if (!cf || !cf.items) return;
