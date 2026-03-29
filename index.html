@@ -482,7 +482,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
             </div>
             <div class="tbl-scroll" style="max-height:65vh">
                 <table>
-                    <thead><tr><th>#</th><th>Artist</th><th>Album</th><th>Year</th><th>Subgenre</th><th>Rating</th><th>Reviews</th></tr></thead>
+                    <thead><tr><th>#</th><th>Artist</th><th>Album</th><th>Year</th><th>Subgenre</th><th>Rating</th><th>Reviews</th><th>Action</th></tr></thead>
                     <tbody id="gapsBody"></tbody>
                 </table>
             </div>
@@ -820,8 +820,35 @@ async function loadGaps() {
             <td><span class="badge b-genre">${esc(a.subgenre||'—')}</span></td>
             <td style="font-family:var(--font-mono);color:var(--gold)">${a.rating_avg?Number(a.rating_avg).toFixed(2):'—'}</td>
             <td style="font-family:var(--font-mono)">${a.rating_count||'—'}</td>
+            <td style="white-space:nowrap">
+                ${a.master_id ? `<button class="btn btn-sync" style="font-size:0.68rem;padding:3px 7px;margin-right:4px"
+                    data-mid="${a.master_id}" data-title="${esc(a.artist_name)} - ${esc(a.album_title)}"
+                    onclick="wantByMaster(+this.dataset.mid, this.dataset.title, this)">Want</button>
+                <a href="https://www.discogs.com/master/${a.master_id}" target="_blank"
+                    class="btn" style="font-size:0.68rem;padding:3px 7px;text-decoration:none;color:var(--accent-cyan)">View</a>`
+                : '<span style="color:var(--text-muted);font-size:0.7rem">No link</span>'}
+            </td>
         </tr>`).join('');
     } catch(e) { console.error('Gaps:', e); }
+}
+
+async function wantByMaster(masterId, title, btn) {
+    btn.disabled = true; btn.textContent = '...';
+    try {
+        const d = await api(`/api/wishlist/want-by-master?master_id=${masterId}&notes=From Gap Analysis`);
+        if (d.status === 'ok') {
+            btn.textContent = '✓';
+            btn.style.color = 'var(--accent-green)';
+            btn.style.background = 'rgba(74,222,128,0.15)';
+        } else {
+            btn.textContent = '✗';
+            btn.style.color = 'var(--accent-red)';
+            alert('Error: ' + (d.message || 'Unknown'));
+        }
+    } catch(e) {
+        btn.textContent = '✗';
+        alert('Error: ' + e.message);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
