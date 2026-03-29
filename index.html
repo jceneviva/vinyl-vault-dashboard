@@ -580,9 +580,14 @@ tbody tr:hover { background: var(--bg-card-hover); }
             <div class="tbl-scroll" style="max-height:600px">
                 <table>
                     <thead>
-                        <tr>
-                            <th>Artist</th><th>Title</th><th>Year</th><th>Format</th>
-                            <th>Rating</th><th>Added</th><th>Notes</th><th>Action</th>
+                        <tr id="wlHeaders">
+                            <th data-sort="artist" style="cursor:pointer">Artist ⇅</th>
+                            <th data-sort="title" style="cursor:pointer">Title ⇅</th>
+                            <th data-sort="year" style="cursor:pointer">Year ⇅</th>
+                            <th data-sort="format" style="cursor:pointer">Format ⇅</th>
+                            <th data-sort="rating" style="cursor:pointer">Rating ⇅</th>
+                            <th data-sort="date_added" style="cursor:pointer">Added ⇅</th>
+                            <th>Notes</th><th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="wlBody"></tbody>
@@ -1219,7 +1224,7 @@ document.getElementById('artSearch').addEventListener('input', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 // 8. WISHLIST (Discogs Wantlist)
 // ═══════════════════════════════════════════════════════════════════════════════
-let wlState = { items: [], page: 1, pages: 1, total: 0 };
+let wlState = { items: [], page: 1, pages: 1, total: 0, sort: { col: 'date_added', dir: 'desc' } };
 
 async function loadWishlist(append) {
     try {
@@ -1239,10 +1244,25 @@ function loadWishlistMore() { loadWishlist(true); }
 
 function renderWishlistTable() {
     const search = document.getElementById('wlSearch').value.toLowerCase();
-    let items = wlState.items;
+    let items = [...wlState.items];
     if (search) items = items.filter(w =>
         (w.artist||'').toLowerCase().includes(search) ||
         (w.title||'').toLowerCase().includes(search));
+
+    // Sort
+    const { col, dir } = wlState.sort;
+    const mult = dir === 'asc' ? 1 : -1;
+    items.sort((a, b) => {
+        let va, vb;
+        if (col === 'year' || col === 'rating') {
+            va = a[col] || 0; vb = b[col] || 0;
+        } else {
+            va = (a[col] || '').toLowerCase(); vb = (b[col] || '').toLowerCase();
+        }
+        if (va < vb) return -1 * mult;
+        if (va > vb) return 1 * mult;
+        return 0;
+    });
 
     document.getElementById('wlBody').innerHTML = items.map(w => `
         <tr>
@@ -1300,6 +1320,25 @@ async function removeFromWishlist(releaseId, title) {
 document.getElementById('wlSearch').addEventListener('input', () => {
     clearTimeout(state.searchDebounce);
     state.searchDebounce = setTimeout(() => renderWishlistTable(), 300);
+});
+
+document.getElementById('wlHeaders').addEventListener('click', e => {
+    const th = e.target.closest('th[data-sort]');
+    if (!th) return;
+    const col = th.dataset.sort;
+    if (wlState.sort.col === col) {
+        wlState.sort.dir = wlState.sort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+        wlState.sort.col = col;
+        wlState.sort.dir = 'asc';
+    }
+    document.querySelectorAll('#wlHeaders th[data-sort]').forEach(h => {
+        const arrow = h.dataset.sort === wlState.sort.col
+            ? (wlState.sort.dir === 'asc' ? ' ▲' : ' ▼')
+            : ' ⇅';
+        h.textContent = h.textContent.replace(/ [⇅▲▼]$/, '') + arrow;
+    });
+    renderWishlistTable();
 });
 
 function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
