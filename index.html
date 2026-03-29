@@ -307,6 +307,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
         <div class="nav-item" data-tab="gaps">Gaps</div>
         <div class="nav-item" data-tab="linking">Linking</div>
         <div class="nav-item" data-tab="artists">Artists</div>
+        <div class="nav-item" data-tab="wishlist">Wishlist</div>
         <div class="nav-item" data-tab="admin">Admin</div>
     </nav>
 
@@ -543,6 +544,53 @@ tbody tr:hover { background: var(--bg-card-hover); }
                     <button class="btn btn-ghost" onclick="skipLink()" style="border:1px solid var(--border)">Skip</button>
                     <button class="btn btn-ghost" onclick="closeLinkDialog()" style="border:1px solid var(--border)">Cancel</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
+    <!-- WISHLIST -->
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
+    <div class="panel" id="panel-wishlist">
+        <div class="stats-grid" style="margin-bottom:20px">
+            <div class="stat-card"><div class="stat-label">Wishlist Items</div><div class="stat-value" id="wlTotal">—</div></div>
+        </div>
+        <div class="card" style="margin-bottom:20px">
+            <h3>Add to Wishlist</h3>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input type="number" id="wlAddReleaseId" placeholder="Discogs Release ID" class="inp" style="width:180px">
+                <input type="text" id="wlAddNotes" placeholder="Notes (optional)" class="inp" style="flex:1;min-width:150px">
+                <select class="sel" id="wlAddRating" style="width:80px">
+                    <option value="0">Rating</option>
+                    <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                    <option value="4">4</option><option value="5">5</option>
+                </select>
+                <button class="btn btn-sync" onclick="addToWishlist()">Add</button>
+            </div>
+            <div id="wlAddResult" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);margin-top:8px"></div>
+        </div>
+        <div class="tbl-card">
+            <div class="tbl-header">
+                <h3>Discogs Wantlist</h3>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <input type="text" class="inp" id="wlSearch" placeholder="Search...">
+                    <button class="btn btn-sync" onclick="loadWishlist()">Refresh</button>
+                </div>
+            </div>
+            <div class="tbl-scroll" style="max-height:600px">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Artist</th><th>Title</th><th>Year</th><th>Format</th>
+                            <th>Rating</th><th>Added</th><th>Notes</th><th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wlBody"></tbody>
+                </table>
+            </div>
+            <div style="text-align:center;padding:10px">
+                <button class="btn" id="wlLoadMore" onclick="loadWishlistMore()" style="display:none">Load More</button>
+                <span id="wlCount" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);margin-left:12px"></span>
             </div>
         </div>
     </div>
@@ -928,6 +976,7 @@ document.getElementById('tabBar').addEventListener('click', e => {
     document.getElementById('panel-'+e.target.dataset.tab).classList.add('active');
     if (e.target.dataset.tab==='linking'&&linkingState.items.length===0) loadLinkingData();
     if (e.target.dataset.tab==='artists'&&artistsState.items.length===0) loadArtists();
+    if (e.target.dataset.tab==='wishlist'&&wlState.items.length===0) loadWishlist();
 });
 document.getElementById('benchmarkSearch').addEventListener('input',()=>renderBenchmarkTable());
 document.getElementById('sourceSelect').addEventListener('change',()=>{loadPASummary();loadPAAlbums();});
@@ -1165,6 +1214,92 @@ async function autoPopulateSubgenres() {
 document.getElementById('artSearch').addEventListener('input', () => {
     clearTimeout(state.searchDebounce);
     state.searchDebounce = setTimeout(() => renderArtistsTable(), 300);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 8. WISHLIST (Discogs Wantlist)
+// ═══════════════════════════════════════════════════════════════════════════════
+let wlState = { items: [], page: 1, pages: 1, total: 0 };
+
+async function loadWishlist(append) {
+    try {
+        if (!append) { wlState.items = []; wlState.page = 1; }
+        const d = await api(`/api/wishlist?page=${wlState.page}&per_page=50`);
+        wlState.items = append ? wlState.items.concat(d.wants) : d.wants;
+        wlState.pages = d.pages;
+        wlState.total = d.total;
+        wlState.page++;
+        document.getElementById('wlTotal').textContent = d.total;
+        document.getElementById('wlLoadMore').style.display = wlState.page <= wlState.pages ? '' : 'none';
+        renderWishlistTable();
+    } catch(e) { console.error('Wishlist:', e); }
+}
+
+function loadWishlistMore() { loadWishlist(true); }
+
+function renderWishlistTable() {
+    const search = document.getElementById('wlSearch').value.toLowerCase();
+    let items = wlState.items;
+    if (search) items = items.filter(w =>
+        (w.artist||'').toLowerCase().includes(search) ||
+        (w.title||'').toLowerCase().includes(search));
+
+    document.getElementById('wlBody').innerHTML = items.map(w => `
+        <tr>
+            <td style="font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(w.artist)}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                <a href="https://www.discogs.com/release/${w.release_id}" target="_blank" style="color:var(--accent-cyan)">${esc(w.title)}</a>
+            </td>
+            <td style="font-family:var(--font-mono);font-size:0.8rem">${w.year || '—'}</td>
+            <td style="font-size:0.78rem">${esc(w.format || '—')}</td>
+            <td style="font-family:var(--font-mono);color:var(--gold)">${w.rating || '—'}</td>
+            <td style="font-size:0.75rem;color:var(--text-muted)">${w.date_added ? w.date_added.slice(0,10) : '—'}</td>
+            <td style="font-size:0.78rem;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(w.notes || '')}</td>
+            <td>
+                <button class="btn btn-purge" style="font-size:0.7rem;padding:3px 8px"
+                    data-rid="${w.release_id}" data-title="${esc(w.title)}"
+                    onclick="removeFromWishlist(+this.dataset.rid, this.dataset.title)">Remove</button>
+            </td>
+        </tr>
+    `).join('');
+    document.getElementById('wlCount').textContent = `${items.length} of ${wlState.total} items`;
+}
+
+async function addToWishlist() {
+    const rid = document.getElementById('wlAddReleaseId').value;
+    const notes = document.getElementById('wlAddNotes').value;
+    const rating = document.getElementById('wlAddRating').value;
+    const resultEl = document.getElementById('wlAddResult');
+    if (!rid) { resultEl.textContent = 'Enter a Release ID'; resultEl.style.color = 'var(--accent-red)'; return; }
+    try {
+        const params = new URLSearchParams({ release_id: rid });
+        if (notes) params.set('notes', notes);
+        if (rating && rating !== '0') params.set('rating', rating);
+        const d = await api(`/api/wishlist/add?${params}`);
+        if (d.status === 'ok') {
+            resultEl.textContent = `Added: ${d.artist} — ${d.title}`;
+            resultEl.style.color = 'var(--accent-green)';
+            document.getElementById('wlAddReleaseId').value = '';
+            document.getElementById('wlAddNotes').value = '';
+            document.getElementById('wlAddRating').value = '0';
+            loadWishlist();
+        } else {
+            resultEl.textContent = 'Error: ' + (d.message || 'Unknown'); resultEl.style.color = 'var(--accent-red)';
+        }
+    } catch(e) { resultEl.textContent = 'Error: ' + e.message; resultEl.style.color = 'var(--accent-red)'; }
+}
+
+async function removeFromWishlist(releaseId, title) {
+    if (!confirm(`Remove "${title}" from wishlist?`)) return;
+    try {
+        const d = await api(`/api/wishlist/remove?release_id=${releaseId}`);
+        if (d.status === 'ok') loadWishlist();
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+document.getElementById('wlSearch').addEventListener('input', () => {
+    clearTimeout(state.searchDebounce);
+    state.searchDebounce = setTimeout(() => renderWishlistTable(), 300);
 });
 
 function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
