@@ -1200,7 +1200,7 @@ let benchSort = { col: 'rank_position', dir: 'asc' };
 async function loadPAAlbums() {
     try {
         const source = document.getElementById('sourceSelect').value;
-        const params = new URLSearchParams({ limit: 2000 });
+        const params = new URLSearchParams({ limit: 5000 });
         if (source) params.set('source', source);
 
         const albums = await api('/api/benchmark/progarchives/albums?' + params);
