@@ -754,77 +754,124 @@ tbody tr:hover { background: var(--bg-card-hover); }
     <!-- BENCHMARK (Interactive Cross-Filtered) -->
     <!-- ════════════════════════════════════════════════════════════════════════ -->
     <div class="panel" id="panel-benchmark">
-        <!-- Metrics — reactively updated -->
-        <div class="metrics" style="grid-template-columns:repeat(auto-fit,minmax(100px,1fr))">
-            <div class="metric"><div class="metric-label">Showing</div><div class="metric-value" id="bStatTotal">—</div><div class="metric-sub" id="bStatTotalSub"></div></div>
-            <div class="metric"><div class="metric-label">Owned</div><div class="metric-value green" id="bStatOwned">—</div></div>
-            <div class="metric"><div class="metric-label">Gaps</div><div class="metric-value" id="bStatGaps" style="color:var(--red)">—</div></div>
-            <div class="metric"><div class="metric-label">Top 10</div><div class="metric-value gold" id="bStatTop10">—</div><div class="metric-sub" id="bStatTop10Sub"></div></div>
-            <div class="metric"><div class="metric-label">Top 25</div><div class="metric-value gold" id="bStatTop25">—</div><div class="metric-sub" id="bStatTop25Sub"></div></div>
-            <div class="metric"><div class="metric-label">Top 50</div><div class="metric-value gold" id="bStatTop50">—</div><div class="metric-sub" id="bStatTop50Sub"></div></div>
-            <div class="metric"><div class="metric-label">Top 100</div><div class="metric-value gold" id="bStatTop100">—</div><div class="metric-sub" id="bStatTop100Sub"></div></div>
-            <div class="metric"><div class="metric-label">Coverage</div><div class="metric-value gold" id="bStatPct">—</div><div class="metric-sub" id="bStatPctSub"></div></div>
-        </div>
+        <div class="dash-layout">
 
-        <!-- Source (Ranking) selector — drives API reload -->
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
-            <select class="sel" id="sourceSelect"><option value="">All Rankings</option></select>
-            <span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted)">source drives API query</span>
-        </div>
-
-        <!-- Active Filters Bar -->
-        <div class="dash-filter-bar" id="benchFilterBar" style="display:none">
-            <div class="filter-bar-inner">
-                <span class="filter-bar-label">Filters:</span>
-                <div class="filter-chips" id="benchFilterChips"></div>
-                <button class="filter-clear-all" onclick="benchClearAllFilters()">Clear All ✕</button>
-            </div>
-        </div>
-
-        <!-- Charts row: Status + Subgenre -->
-        <div class="card-row">
-            <div class="card dash-chart-card" data-benchdim="status">
-                <h3>Owned vs Gaps <span class="chart-filter-hint">click to filter</span></h3>
-                <div class="chart-wrap"><canvas id="chartBenchStatus"></canvas></div>
-            </div>
-            <div class="card dash-chart-card" data-benchdim="subgenre">
-                <h3>By Subgenre <span class="chart-filter-hint">click to filter</span></h3>
-                <div class="chart-wrap"><canvas id="chartBenchSubgenre"></canvas></div>
-            </div>
-        </div>
-
-        <!-- Coverage bars — filtered -->
-        <div class="card" style="margin-bottom:12px">
-            <h3>Coverage by Subgenre</h3>
-            <div id="coverageRows"></div>
-        </div>
-
-        <!-- Full album table -->
-        <div class="tbl-card">
-            <div class="tbl-header">
-                <h3>Benchmark Albums</h3>
-                <div class="tbl-filters">
-                    <input type="text" class="inp" id="benchmarkSearch" placeholder="Search...">
+            <!-- ── SIDEBAR ── -->
+            <aside class="dash-sidebar">
+                <div class="sidebar-header">
+                    <span class="sidebar-title">Filters</span>
+                    <button class="filter-clear-all" onclick="benchClearAllFilters()" style="font-size:0.62rem;padding:2px 9px">Clear ✕</button>
                 </div>
-            </div>
-            <div class="tbl-scroll" style="max-height:60vh">
-                <table>
-                    <thead><tr id="benchHeaders">
-                        <th data-bsort="rank_position" style="cursor:pointer"># ⇅</th>
-                        <th data-bsort="artist_name" style="cursor:pointer">Artist ⇅</th>
-                        <th data-bsort="album_title" style="cursor:pointer">Album ⇅</th>
-                        <th data-bsort="year" style="cursor:pointer">Year ⇅</th>
-                        <th data-bsort="subgenre" style="cursor:pointer">Subgenre ⇅</th>
-                        <th data-bsort="rating_avg" style="cursor:pointer">Rating ⇅</th>
-                        <th data-bsort="rating_count" style="cursor:pointer">Reviews ⇅</th>
-                        <th data-bsort="status" style="cursor:pointer">Status ⇅</th>
-                        <th>Action</th>
-                    </tr></thead>
-                    <tbody id="benchmarkBody"></tbody>
-                </table>
-            </div>
-            <div style="text-align:center;padding:8px;font-family:var(--font-mono);font-size:0.72rem;color:var(--text-muted)" id="benchCount"></div>
-        </div>
+
+                <!-- Ranking source — drives API reload -->
+                <div class="section-body" style="border-bottom:1px solid var(--border);padding-bottom:12px">
+                    <div class="section-dim-label" style="margin-top:4px">Ranking</div>
+                    <select class="sel" id="sourceSelect" style="width:100%;margin-top:4px"><option value="">All Rankings</option></select>
+                </div>
+
+                <!-- Search -->
+                <div class="cf-search-wrap">
+                    <input type="text" id="benchmarkSearch" placeholder="Search artist, album…">
+                </div>
+
+                <!-- STATUS -->
+                <div class="sidebar-section">
+                    <button class="section-toggle" onclick="toggleSection(this)">
+                        Status <span class="section-toggle-arrow">▾</span>
+                    </button>
+                    <div class="section-body">
+                        <div class="sb-chips">
+                            <button class="sb-chip" data-dim="status" data-val="owned"
+                                onclick="benchSetFilter(this.dataset.dim, this.dataset.val)">
+                                Owned
+                            </button>
+                            <button class="sb-chip" data-dim="status" data-val="gap"
+                                onclick="benchSetFilter(this.dataset.dim, this.dataset.val)">
+                                Gap
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUBGÊNERO -->
+                <div class="sidebar-section">
+                    <button class="section-toggle" onclick="toggleSection(this)">
+                        Subgênero <span class="section-toggle-arrow">▾</span>
+                    </button>
+                    <div class="section-body">
+                        <div class="sb-chips" id="bench-sb-subgenre"></div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- ── MAIN ── -->
+            <div class="dash-main">
+
+                <!-- Active Filters Bar -->
+                <div class="dash-filter-bar" id="benchFilterBar" style="display:none">
+                    <div class="filter-bar-inner">
+                        <span class="filter-bar-label">Filters:</span>
+                        <div class="filter-chips" id="benchFilterChips"></div>
+                        <button class="filter-clear-all" onclick="benchClearAllFilters()">Clear All ✕</button>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="kpi-grid" style="grid-template-columns:repeat(8,1fr)">
+                    <div class="metric"><div class="metric-label">Showing</div><div class="metric-value" id="bStatTotal">—</div><div class="metric-sub" id="bStatTotalSub"></div></div>
+                    <div class="metric"><div class="metric-label">Owned</div><div class="metric-value green" id="bStatOwned">—</div></div>
+                    <div class="metric"><div class="metric-label">Gaps</div><div class="metric-value" id="bStatGaps" style="color:var(--red)">—</div></div>
+                    <div class="metric"><div class="metric-label">Top 10</div><div class="metric-value gold" id="bStatTop10">—</div><div class="metric-sub" id="bStatTop10Sub"></div></div>
+                    <div class="metric"><div class="metric-label">Top 25</div><div class="metric-value gold" id="bStatTop25">—</div><div class="metric-sub" id="bStatTop25Sub"></div></div>
+                    <div class="metric"><div class="metric-label">Top 50</div><div class="metric-value gold" id="bStatTop50">—</div><div class="metric-sub" id="bStatTop50Sub"></div></div>
+                    <div class="metric"><div class="metric-label">Top 100</div><div class="metric-value gold" id="bStatTop100">—</div><div class="metric-sub" id="bStatTop100Sub"></div></div>
+                    <div class="metric"><div class="metric-label">Coverage</div><div class="metric-value gold" id="bStatPct">—</div><div class="metric-sub" id="bStatPctSub"></div></div>
+                </div>
+
+                <!-- Charts row: Status + Subgenre -->
+                <div class="card-row">
+                    <div class="card dash-chart-card" data-benchdim="status">
+                        <h3>Owned vs Gaps <span class="chart-filter-hint">click to filter</span></h3>
+                        <div class="chart-wrap"><canvas id="chartBenchStatus"></canvas></div>
+                    </div>
+                    <div class="card dash-chart-card" data-benchdim="subgenre">
+                        <h3>By Subgenre <span class="chart-filter-hint">click to filter</span></h3>
+                        <div class="chart-wrap"><canvas id="chartBenchSubgenre"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Coverage bars -->
+                <div class="card" style="margin-bottom:12px">
+                    <h3>Coverage by Subgenre</h3>
+                    <div id="coverageRows"></div>
+                </div>
+
+                <!-- Album table -->
+                <div class="tbl-card">
+                    <div class="tbl-header">
+                        <h3>Benchmark Albums</h3>
+                        <span class="cf-count-label" id="benchCount"></span>
+                    </div>
+                    <div class="tbl-scroll" style="max-height:calc(100vh - 220px)">
+                        <table>
+                            <thead><tr id="benchHeaders">
+                                <th data-bsort="rank_position" style="cursor:pointer"># ⇅</th>
+                                <th data-bsort="artist_name" style="cursor:pointer">Artist ⇅</th>
+                                <th data-bsort="album_title" style="cursor:pointer">Album ⇅</th>
+                                <th data-bsort="year" style="cursor:pointer">Year ⇅</th>
+                                <th data-bsort="subgenre" style="cursor:pointer">Subgenre ⇅</th>
+                                <th data-bsort="rating_avg" style="cursor:pointer">Rating ⇅</th>
+                                <th data-bsort="rating_count" style="cursor:pointer">Reviews ⇅</th>
+                                <th data-bsort="status" style="cursor:pointer">Status ⇅</th>
+                                <th>Action</th>
+                            </tr></thead>
+                            <tbody id="benchmarkBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div><!-- /.dash-main -->
+        </div><!-- /.dash-layout -->
     </div>
 
 
@@ -1551,6 +1598,7 @@ async function loadPAAlbums() {
 
         state.paAlbums = albums;
         benchFilters = {};
+        benchPopulateSidebar();
         benchApplyFilters();
     } catch (e) { console.error('PA Albums:', e); }
 }
@@ -1598,6 +1646,7 @@ function benchApplyFilters() {
     benchRebuildCharts(filtered);
     benchRenderCoverage(filtered);
     benchRenderTable(filtered);
+    benchUpdateSidebarActive();
 }
 
 function benchRenderFilterBar() {
@@ -1975,6 +2024,33 @@ document.getElementById('tabBar').addEventListener('click', e => {
     if (e.target.dataset.tab==='artists'&&artistsState.items.length===0) loadArtists();
     if (e.target.dataset.tab==='wishlist'&&wlState.items.length===0) loadWishlist();
 });
+// ── Benchmark sidebar functions ───────────────────────────────────────────
+
+// Populate subgenre chips from state.paAlbums (called at end of loadPAAlbums)
+function benchPopulateSidebar() {
+    const counts = {};
+    (state.paAlbums || []).forEach(a => {
+        const sg = a.subgenre || 'Unknown';
+        counts[sg] = (counts[sg] || 0) + 1;
+    });
+    const container = document.getElementById('bench-sb-subgenre');
+    if (!container) return;
+    container.innerHTML = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([sg, n]) => `<button class="sb-chip" data-dim="subgenre" data-val="${esc(sg)}"
+            onclick="benchSetFilter(this.dataset.dim, this.dataset.val)">
+            ${esc(sg)}<span class="sb-chip-count">${n}</span>
+        </button>`).join('');
+    benchUpdateSidebarActive();
+}
+
+// Sync chip active states with benchFilters (called at end of benchApplyFilters)
+function benchUpdateSidebarActive() {
+    document.querySelectorAll('#panel-benchmark .sb-chip').forEach(btn => {
+        btn.classList.toggle('active', benchFilters[btn.dataset.dim] === btn.dataset.val);
+    });
+}
+
 document.getElementById('benchmarkSearch').addEventListener('input', () => {
     clearTimeout(state.searchDebounce);
     state.searchDebounce = setTimeout(() => benchApplyFilters(), 300);
