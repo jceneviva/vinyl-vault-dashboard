@@ -418,6 +418,44 @@ tbody tr:hover { background: var(--bg-card-hover); }
     .kpi-grid { grid-template-columns: repeat(2, 1fr); }
     .charts-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Collection tab ──────────────────────────────────────────────────────── */
+.cf-search-wrap {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 45px; background: var(--bg-surface); z-index: 1;
+}
+.cf-search-wrap input {
+    width: 100%; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 6px 10px; color: var(--text-primary);
+    font-family: var(--font-body); font-size: 0.78rem; outline: none;
+    transition: var(--transition);
+}
+.cf-search-wrap input:focus { border-color: var(--accent); }
+.cf-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px; gap: 8px; flex-wrap: wrap; min-height: 28px;
+}
+.cf-count-label {
+    font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted);
+}
+.cf-active-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.cf-active-chip {
+    background: var(--accent-glow); border: 1px solid var(--accent);
+    color: var(--accent); border-radius: 20px; padding: 2px 9px;
+    font-size: 0.67rem; cursor: pointer; display: inline-flex;
+    align-items: center; gap: 5px; font-family: var(--font-body);
+    transition: var(--transition);
+}
+.cf-active-chip:hover { background: var(--accent-dim); color: #fff; border-color: var(--accent-dim); }
+.cf-hidden-selects { display: none; }
+#panel-collection .tbl-scroll { max-height: calc(100vh - 180px); }
+#panel-collection thead th {
+    position: sticky; top: 0; background: var(--bg-elevated); z-index: 2;
+    border-bottom: 1px solid var(--border);
+}
+#panel-collection tbody tr:nth-child(even) { background: rgba(255,255,255,0.018); }
+#panel-collection tbody tr:hover { background: var(--bg-card-hover); }
 </style>
 </head>
 <body>
@@ -610,44 +648,106 @@ tbody tr:hover { background: var(--bg-card-hover); }
     <!-- COLLECTION -->
     <!-- ════════════════════════════════════════════════════════════════════════ -->
     <div class="panel" id="panel-collection">
-        <div class="tbl-card">
-            <div class="tbl-header">
-                <h3>Full Collection</h3>
-                <div class="tbl-filters">
-                    <select class="sel" id="cfFilterFolder"><option value="">All Folders</option></select>
-                    <select class="sel" id="cfFilterSubgenre"><option value="">All Subgenres</option></select>
-                    <select class="sel" id="cfFilterCuration"><option value="">All Types</option></select>
-                    <select class="sel" id="cfFilterPressing"><option value="">All Pressings</option></select>
-                    <select class="sel" id="cfFilterCondition"><option value="">All Conditions</option></select>
-                    <select class="sel" id="cfFilterFormat"><option value="">All Formats</option></select>
-                    <input type="text" class="inp" id="cfSearch" placeholder="Search...">
-                </div>
-            </div>
-            <div class="tbl-scroll" style="max-height:70vh">
-                <table>
-                    <thead>
-                        <tr id="cfHeaders">
-                            <th data-sort="artist_name" style="cursor:pointer">Artist ⇅</th>
-                            <th data-sort="basic_title" style="cursor:pointer">Title ⇅</th>
-                            <th data-sort="original_year" style="cursor:pointer">Orig ⇅</th>
-                            <th data-sort="basic_year" style="cursor:pointer">Rel ⇅</th>
-                            <th data-sort="country" style="cursor:pointer">Country ⇅</th>
-                            <th data-sort="artist_subgenre" style="cursor:pointer">Subgenre ⇅</th>
-                            <th data-sort="format_primary" style="cursor:pointer">Fmt ⇅</th>
-                            <th data-sort="media_condition" style="cursor:pointer">Media ⇅</th>
-                            <th data-sort="sleeve_condition" style="cursor:pointer">Sleeve ⇅</th>
-                            <th data-sort="curation_type" style="cursor:pointer">Type ⇅</th>
-                            <th data-sort="edition" style="cursor:pointer">Edition ⇅</th>
-                            <th data-sort="pressing" style="cursor:pointer">Press ⇅</th>
-                            <th data-sort="rating" style="cursor:pointer">Rating ⇅</th>
-                            <th>Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody id="cfBody"></tbody>
-                </table>
-            </div>
-            <div style="text-align:center;padding:10px;font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted)" id="cfCount"></div>
+
+        <!-- Hidden selects — kept in DOM so renderCFTable() can read their values -->
+        <div class="cf-hidden-selects">
+            <select id="cfFilterFolder"><option value="">All Folders</option></select>
+            <select id="cfFilterSubgenre"><option value="">All Subgenres</option></select>
+            <select id="cfFilterCuration"><option value="">All Types</option></select>
+            <select id="cfFilterPressing"><option value="">All Pressings</option></select>
+            <select id="cfFilterCondition"><option value="">All Conditions</option></select>
+            <select id="cfFilterFormat"><option value="">All Formats</option></select>
+            <input type="text" id="cfSearch">
         </div>
+
+        <div class="dash-layout">
+
+            <!-- ── SIDEBAR ── -->
+            <aside class="dash-sidebar">
+                <div class="sidebar-header">
+                    <span class="sidebar-title">Filters</span>
+                    <button class="filter-clear-all" onclick="cfClearAllFilters()" style="font-size:0.62rem;padding:2px 9px">Clear ✕</button>
+                </div>
+
+                <!-- Search -->
+                <div class="cf-search-wrap">
+                    <input type="text" id="cfSearchVisible" placeholder="Search artist, title…" oninput="cfSyncSearch(this.value)">
+                </div>
+
+                <!-- BIBLIOTECA -->
+                <div class="sidebar-section">
+                    <button class="section-toggle" onclick="toggleSection(this)">
+                        Biblioteca <span class="section-toggle-arrow">▾</span>
+                    </button>
+                    <div class="section-body">
+                        <div class="section-dim-label">Folder</div>
+                        <div class="sb-chips" id="cf-sb-folder"></div>
+                        <div class="section-dim-label">Format</div>
+                        <div class="sb-chips" id="cf-sb-format"></div>
+                    </div>
+                </div>
+
+                <!-- MÚSICA -->
+                <div class="sidebar-section">
+                    <button class="section-toggle" onclick="toggleSection(this)">
+                        Música <span class="section-toggle-arrow">▾</span>
+                    </button>
+                    <div class="section-body">
+                        <div class="section-dim-label">Subgenre</div>
+                        <div class="sb-chips" id="cf-sb-subgenre"></div>
+                    </div>
+                </div>
+
+                <!-- CURADORIA -->
+                <div class="sidebar-section">
+                    <button class="section-toggle" onclick="toggleSection(this)">
+                        Curadoria <span class="section-toggle-arrow">▾</span>
+                    </button>
+                    <div class="section-body">
+                        <div class="section-dim-label">Type</div>
+                        <div class="sb-chips" id="cf-sb-curation"></div>
+                        <div class="section-dim-label">Pressing</div>
+                        <div class="sb-chips" id="cf-sb-pressing"></div>
+                        <div class="section-dim-label">Condition</div>
+                        <div class="sb-chips" id="cf-sb-condition"></div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- ── MAIN ── -->
+            <div class="dash-main">
+                <div class="cf-topbar">
+                    <span class="cf-count-label" id="cfCount"></span>
+                    <div class="cf-active-chips" id="cfActiveChips"></div>
+                </div>
+                <div class="card" style="padding:0;overflow:hidden">
+                    <div class="tbl-scroll">
+                        <table>
+                            <thead>
+                                <tr id="cfHeaders">
+                                    <th data-sort="artist_name" style="cursor:pointer">Artist ⇅</th>
+                                    <th data-sort="basic_title" style="cursor:pointer">Title ⇅</th>
+                                    <th data-sort="original_year" style="cursor:pointer">Orig ⇅</th>
+                                    <th data-sort="basic_year" style="cursor:pointer">Rel ⇅</th>
+                                    <th data-sort="country" style="cursor:pointer">Country ⇅</th>
+                                    <th data-sort="artist_subgenre" style="cursor:pointer">Subgenre ⇅</th>
+                                    <th data-sort="format_primary" style="cursor:pointer">Fmt ⇅</th>
+                                    <th data-sort="media_condition" style="cursor:pointer">Media ⇅</th>
+                                    <th data-sort="sleeve_condition" style="cursor:pointer">Sleeve ⇅</th>
+                                    <th data-sort="curation_type" style="cursor:pointer">Type ⇅</th>
+                                    <th data-sort="edition" style="cursor:pointer">Edition ⇅</th>
+                                    <th data-sort="pressing" style="cursor:pointer">Press ⇅</th>
+                                    <th data-sort="rating" style="cursor:pointer">Rating ⇅</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cfBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div><!-- /.dash-main -->
+
+        </div><!-- /.dash-layout -->
     </div>
 
     <!-- ════════════════════════════════════════════════════════════════════════ -->
@@ -1704,6 +1804,8 @@ async function loadNotes() {
             // Populate CF table filters
             const stats = data.stats;
             populateCFFilters(stats, data.items);
+            cfPopulateSidebar();
+            cfUpdateSidebarActive();
 
             // Load ratings
             try {
@@ -1768,6 +1870,82 @@ function renderCFTable(items) {
         </tr>`;
     }).join('');
     document.getElementById('cfCount').textContent = `${f.length} of ${items.length} items`;
+}
+
+// ── Collection sidebar functions ──────────────────────────────────────────
+
+// Populate sidebar chips from hidden <select> options (called after populateCFFilters)
+function cfPopulateSidebar() {
+    const map = [
+        { selectId: 'cfFilterFolder',    chipId: 'cf-sb-folder' },
+        { selectId: 'cfFilterFormat',    chipId: 'cf-sb-format' },
+        { selectId: 'cfFilterSubgenre',  chipId: 'cf-sb-subgenre' },
+        { selectId: 'cfFilterCuration',  chipId: 'cf-sb-curation' },
+        { selectId: 'cfFilterPressing',  chipId: 'cf-sb-pressing' },
+        { selectId: 'cfFilterCondition', chipId: 'cf-sb-condition' },
+    ];
+    map.forEach(({ selectId, chipId }) => {
+        const sel = document.getElementById(selectId);
+        const container = document.getElementById(chipId);
+        if (!sel || !container) return;
+        const options = Array.from(sel.options).slice(1); // skip "All" placeholder
+        container.innerHTML = options.map(opt => {
+            const m = opt.text.match(/^(.+?)\s+\((\d+)\)$/);
+            const label = m ? m[1] : opt.text;
+            const count = m ? m[2] : '';
+            return `<button class="sb-chip" data-select="${selectId}" data-val="${esc(opt.value)}"
+                onclick="cfSetFilter(this.dataset.select, this.dataset.val)">
+                ${esc(label)}<span class="sb-chip-count">${count}</span>
+            </button>`;
+        }).join('');
+    });
+}
+
+// Sync chip active states and active-filters bar with current select values
+function cfUpdateSidebarActive() {
+    document.querySelectorAll('#panel-collection .sb-chip').forEach(btn => {
+        const sel = document.getElementById(btn.dataset.select);
+        btn.classList.toggle('active', !!(sel && sel.value === btn.dataset.val));
+    });
+    const activeChips = document.getElementById('cfActiveChips');
+    if (!activeChips) return;
+    const labels = { cfFilterFolder:'Folder', cfFilterFormat:'Format', cfFilterSubgenre:'Subgenre',
+                     cfFilterCuration:'Type', cfFilterPressing:'Pressing', cfFilterCondition:'Condition' };
+    activeChips.innerHTML = Object.entries(labels).map(([id, label]) => {
+        const sel = document.getElementById(id);
+        if (!sel || !sel.value) return '';
+        return `<button class="cf-active-chip" data-select="${id}" data-val="${esc(sel.value)}"
+            onclick="cfSetFilter(this.dataset.select, this.dataset.val)">${esc(label)}: ${esc(sel.value)} ✕</button>`;
+    }).join('');
+}
+
+// Toggle a sidebar filter: set select value and fire change event
+function cfSetFilter(selectId, value) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    sel.value = (sel.value === value) ? '' : value;
+    sel.dispatchEvent(new Event('change'));
+    cfUpdateSidebarActive();
+}
+
+// Clear all Collection filters
+function cfClearAllFilters() {
+    ['cfFilterFolder','cfFilterSubgenre','cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFormat'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+    });
+    const vis = document.getElementById('cfSearchVisible');
+    if (vis) vis.value = '';
+    const h = document.getElementById('cfSearch'); if (h) h.value = '';
+    renderCFTable();
+    cfUpdateSidebarActive();
+}
+
+// Sync visible search box → hidden #cfSearch → triggers existing debounced listener
+function cfSyncSearch(value) {
+    const h = document.getElementById('cfSearch');
+    if (!h) return;
+    h.value = value;
+    h.dispatchEvent(new Event('input'));
 }
 
 // CF listeners
