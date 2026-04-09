@@ -419,6 +419,27 @@ tbody tr:hover { background: var(--bg-card-hover); }
     .charts-grid { grid-template-columns: 1fr; }
 }
 
+/* ── Manage tab ─────────────────────────────────────────────────────────── */
+.manage-subnav {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 4px;
+}
+.manage-nav-btn {
+    width: 100%; text-align: left; background: none;
+    border: 1px solid transparent; border-radius: var(--radius-sm);
+    padding: 8px 12px; font-size: 0.78rem; font-family: var(--font-body);
+    color: var(--text-secondary); cursor: pointer; transition: var(--transition);
+}
+.manage-nav-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.03); }
+.manage-nav-btn.active {
+    background: var(--accent-glow); border-color: var(--accent); color: var(--accent);
+}
+.manage-filters { display: none; }
+.manage-filters.active { display: block; }
+.manage-sub { display: none; }
+.manage-sub.active { display: block; }
+
 /* ── Collection tab ──────────────────────────────────────────────────────── */
 .cf-search-wrap {
     padding: 10px 12px;
@@ -495,10 +516,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
         <div class="nav-item active" data-tab="dashboard">Dashboard</div>
         <div class="nav-item" data-tab="collection">Collection</div>
         <div class="nav-item" data-tab="benchmark">Benchmark</div>
-        <div class="nav-item" data-tab="linking">Linking</div>
-        <div class="nav-item" data-tab="artists">Artists</div>
-        <div class="nav-item" data-tab="wishlist">Wishlist</div>
-        <div class="nav-item" data-tab="admin">Admin</div>
+        <div class="nav-item" data-tab="manage">Manage</div>
     </nav>
 
     <!-- ════════════════════════════════════════════════════════════════════════ -->
@@ -878,173 +896,223 @@ tbody tr:hover { background: var(--bg-card-hover); }
     <!-- ════════════════════════════════════════════════════════════════════════ -->
     <!-- LINKING (kept as-is with minor styling updates) -->
     <!-- ════════════════════════════════════════════════════════════════════════ -->
-    <div class="panel" id="panel-linking">
-        <div class="metrics">
-            <div class="metric"><div class="metric-label">Total Benchmarks</div><div class="metric-value" id="linkTotal">—</div></div>
-            <div class="metric"><div class="metric-label">Linked</div><div class="metric-value green" id="linkLinked">—</div></div>
-            <div class="metric"><div class="metric-label">Pending</div><div class="metric-value gold" id="linkPending">—</div></div>
-            <div class="metric"><div class="metric-label">Coverage</div><div class="metric-value" id="linkPct">—</div></div>
-        </div>
-        <div class="tbl-card">
-            <div class="tbl-header">
-                <h3>Benchmark → Discogs Linking</h3>
-                <div class="tbl-filters">
-                    <select class="sel" id="linkSourceFilter"><option value="">All Rankings</option></select>
-                    <select class="sel" id="linkMethodFilter">
-                        <option value="">All Methods</option>
-                        <option value="pending">Pending</option><option value="auto">Auto</option>
-                        <option value="manual">Manual</option><option value="skipped">Skipped</option>
-                    </select>
-                    <input type="text" class="inp" id="linkSearch" placeholder="Search...">
-                    <button class="btn btn-action" onclick="loadLinkingData()">Refresh</button>
-                </div>
-            </div>
-            <div class="tbl-scroll" style="max-height:55vh">
-                <table>
-                    <thead><tr>
-                        <th>#</th><th>Artist</th><th>Album</th><th>Year</th><th>Source</th>
-                        <th>Method</th><th>Master ID</th><th>Release ID</th><th>Discogs Title</th><th>Action</th>
-                    </tr></thead>
-                    <tbody id="linkBody"></tbody>
-                </table>
-            </div>
-            <div style="text-align:center;padding:10px">
-                <button class="btn btn-action" id="linkLoadMore" onclick="loadLinkingMore()" style="display:none">Load More</button>
-                <span id="linkCount" style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);margin-left:10px"></span>
-            </div>
-        </div>
-        <!-- Link dialog -->
-        <div class="dialog-overlay" id="linkDialog">
-            <div class="dialog">
-                <h3 style="font-family:var(--font-display);margin-bottom:14px;font-style:italic">Link: <span id="linkDialogTitle"></span></h3>
-                <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:14px">Select from your collection or enter IDs:</p>
-                <div id="linkDialogResults" style="max-height:220px;overflow-y:auto;margin-bottom:14px"></div>
-                <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-                    <input type="number" class="inp" id="linkManualMasterId" placeholder="master_id" style="flex:1">
-                    <span style="color:var(--text-muted);font-size:0.75rem">or</span>
-                    <input type="number" class="inp" id="linkManualReleaseId" placeholder="release_id (box sets)" style="flex:1">
-                    <button class="btn btn-action" onclick="submitManualLink()">Link</button>
-                </div>
-                <p style="font-size:0.7rem;color:var(--text-muted);margin-bottom:14px">Duplicates across rankings linked automatically.</p>
-                <div style="display:flex;gap:8px;justify-content:flex-end">
-                    <button class="btn btn-ghost" onclick="skipLink()" style="border:1px solid var(--border)">Skip</button>
-                    <button class="btn btn-ghost" onclick="closeLinkDialog()" style="border:1px solid var(--border)">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
+    <!-- MANAGE (Wishlist / Artists / Linking / Admin) -->
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
+    <div class="panel" id="panel-manage">
+        <div class="dash-layout">
 
-    <!-- ════════════════════════════════════════════════════════════════════════ -->
-    <!-- WISHLIST -->
-    <!-- ════════════════════════════════════════════════════════════════════════ -->
-    <div class="panel" id="panel-wishlist">
-        <div class="card" style="margin-bottom:20px">
-            <h3>Add to Wishlist</h3>
-            <!-- Step 1: search -->
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-                <input type="text" id="wlSearchQuery" placeholder="Artist, album or both…" class="inp" style="flex:1;min-width:200px"
-                    onkeydown="if(event.key==='Enter')searchWishlist()">
-                <button class="btn btn-sync" onclick="searchWishlist()" id="wlSearchBtn">Search Discogs</button>
-            </div>
-            <!-- Search results -->
-            <div id="wlSearchResults" style="display:none;margin-bottom:12px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden"></div>
-            <!-- Step 2: confirm selection -->
-            <div id="wlSelected" style="display:none;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:10px">
-                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-                    <div>
-                        <span style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em">Selected</span><br>
-                        <span id="wlSelectedLabel" style="font-weight:600;font-size:0.9rem"></span>
+            <!-- ── SIDEBAR ── -->
+            <aside class="dash-sidebar">
+                <div class="sidebar-header">
+                    <span class="sidebar-title">Manage</span>
+                </div>
+
+                <!-- Sub-nav -->
+                <div class="manage-subnav" id="manageSubNav">
+                    <button class="manage-nav-btn active" data-sub="wishlist">Wishlist</button>
+                    <button class="manage-nav-btn" data-sub="artists">Artists</button>
+                    <button class="manage-nav-btn" data-sub="linking">Linking</button>
+                    <button class="manage-nav-btn" data-sub="admin">Admin</button>
+                </div>
+
+                <!-- Wishlist filters -->
+                <div class="manage-filters active" data-for="wishlist">
+                    <div class="cf-search-wrap">
+                        <input type="text" class="inp" id="wlSearch" placeholder="Search wantlist…">
                     </div>
-                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                        <input type="text" id="wlAddNotes" placeholder="Notes (optional)" class="inp" style="min-width:150px">
-                        <select class="sel" id="wlAddRating">
-                            <option value="0">Rating</option>
-                            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-                            <option value="4">4</option><option value="5">5</option>
+                </div>
+
+                <!-- Artists filters -->
+                <div class="manage-filters" data-for="artists">
+                    <div class="section-body">
+                        <div class="section-dim-label" style="margin-top:4px">Status</div>
+                        <select class="sel" id="artFilterStatus" style="width:100%;margin-top:4px">
+                            <option value="">All</option>
+                            <option value="unclassified">Unclassified Only</option>
+                            <option value="classified">Classified Only</option>
                         </select>
-                        <button class="btn btn-action" onclick="confirmAddToWishlist()">Add to Wishlist</button>
-                        <button class="btn btn-ghost" onclick="wlClearSelection()" style="border:1px solid var(--border)">✕</button>
+                        <div class="section-dim-label">Genre</div>
+                        <select class="sel" id="artFilterGenre" style="width:100%;margin-top:4px"><option value="">All Genres</option></select>
+                    </div>
+                    <div class="cf-search-wrap">
+                        <input type="text" id="artSearch" placeholder="Search artist…">
                     </div>
                 </div>
-            </div>
-            <div id="wlAddResult" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted)"></div>
-        </div>
-        <div class="tbl-card">
-            <div class="tbl-header">
-                <h3>Discogs Wantlist</h3>
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                    <input type="text" class="inp" id="wlSearch" placeholder="Search...">
-                    <button class="btn btn-sync" onclick="loadWishlist()">Refresh</button>
-                </div>
-            </div>
-            <div class="tbl-scroll" style="max-height:600px">
-                <table>
-                    <thead>
-                        <tr id="wlHeaders">
-                            <th data-sort="artist" style="cursor:pointer">Artist ⇅</th>
-                            <th data-sort="title" style="cursor:pointer">Title ⇅</th>
-                            <th data-sort="year" style="cursor:pointer">Year ⇅</th>
-                            <th data-sort="format" style="cursor:pointer">Format ⇅</th>
-                            <th data-sort="rating" style="cursor:pointer">Rating ⇅</th>
-                            <th data-sort="date_added" style="cursor:pointer">Added ⇅</th>
-                            <th>Notes</th><th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="wlBody"></tbody>
-                </table>
-            </div>
-            <div style="text-align:center;padding:10px">
-                <button class="btn" id="wlLoadMore" onclick="loadWishlistMore()" style="display:none">Load More</button>
-                <span id="wlCount" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);margin-left:12px"></span>
-            </div>
-        </div>
-    </div>
 
-    <!-- ════════════════════════════════════════════════════════════════════════ -->
-    <!-- ADMIN (moved from Linking) -->
-    <!-- ════════════════════════════════════════════════════════════════════════ -->
-    <div class="panel" id="panel-admin">
-        <div class="card">
-            <h3>Data Management</h3>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-                <button class="btn btn-sync" onclick="runSync()" id="syncBtn">Sync Discogs Collection</button>
-                <button class="btn btn-snap" onclick="downloadSnapshot()" id="snapBtn">Download Curator Snapshot</button>
-            </div>
-            <div id="purgeResult" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);min-height:20px"></div>
-        </div>
-    </div>
-
-    <!-- ═══ ARTISTS PANEL ═══ -->
-    <div class="panel" id="panel-artists">
-        <div class="tbl-card">
-            <div class="tbl-header">
-                <h3>Artist → Subgenre Classification</h3>
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                    <select class="sel" id="artFilterStatus">
-                        <option value="">All</option>
-                        <option value="unclassified">Unclassified Only</option>
-                        <option value="classified">Classified Only</option>
-                    </select>
-                    <select class="sel" id="artFilterGenre"><option value="">All Genres</option></select>
-                    <input type="text" class="inp" id="artSearch" placeholder="Search artist...">
-                    <button class="btn btn-sync" onclick="autoPopulateSubgenres()">Auto-Populate from Benchmarks</button>
+                <!-- Linking filters -->
+                <div class="manage-filters" data-for="linking">
+                    <div class="section-body">
+                        <div class="section-dim-label" style="margin-top:4px">Ranking</div>
+                        <select class="sel" id="linkSourceFilter" style="width:100%;margin-top:4px"><option value="">All Rankings</option></select>
+                        <div class="section-dim-label">Method</div>
+                        <select class="sel" id="linkMethodFilter" style="width:100%;margin-top:4px">
+                            <option value="">All Methods</option>
+                            <option value="pending">Pending</option>
+                            <option value="auto">Auto</option>
+                            <option value="manual">Manual</option>
+                            <option value="skipped">Skipped</option>
+                        </select>
+                    </div>
+                    <div class="cf-search-wrap">
+                        <input type="text" class="inp" id="linkSearch" placeholder="Search artist, album…">
+                    </div>
                 </div>
-            </div>
-            <div class="tbl-scroll" style="max-height:600px">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Artist</th><th>Albums</th><th>Current Subgenre</th>
-                            <th>Genre</th><th>Subgenre</th><th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="artBody"></tbody>
-                </table>
-            </div>
-            <div style="text-align:center;padding:10px">
-                <span id="artCount" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted)"></span>
-            </div>
-        </div>
+
+                <!-- Admin filters (none) -->
+                <div class="manage-filters" data-for="admin"></div>
+            </aside>
+
+            <!-- ── MAIN ── -->
+            <div class="dash-main">
+
+                <!-- WISHLIST sub-section -->
+                <div class="manage-sub active" data-sub="wishlist">
+                    <div class="card" style="margin-bottom:20px">
+                        <h3>Add to Wishlist</h3>
+                        <!-- Step 1: search -->
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+                            <input type="text" id="wlSearchQuery" placeholder="Artist, album or both…" class="inp" style="flex:1;min-width:200px"
+                                onkeydown="if(event.key==='Enter')searchWishlist()">
+                            <button class="btn btn-sync" onclick="searchWishlist()" id="wlSearchBtn">Search Discogs</button>
+                        </div>
+                        <!-- Search results -->
+                        <div id="wlSearchResults" style="display:none;margin-bottom:12px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden"></div>
+                        <!-- Step 2: confirm selection -->
+                        <div id="wlSelected" style="display:none;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:10px">
+                            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                                <div>
+                                    <span style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em">Selected</span><br>
+                                    <span id="wlSelectedLabel" style="font-weight:600;font-size:0.9rem"></span>
+                                </div>
+                                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                                    <input type="text" id="wlAddNotes" placeholder="Notes (optional)" class="inp" style="min-width:150px">
+                                    <select class="sel" id="wlAddRating">
+                                        <option value="0">Rating</option>
+                                        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                                        <option value="4">4</option><option value="5">5</option>
+                                    </select>
+                                    <button class="btn btn-action" onclick="confirmAddToWishlist()">Add to Wishlist</button>
+                                    <button class="btn btn-ghost" onclick="wlClearSelection()" style="border:1px solid var(--border)">✕</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="wlAddResult" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted)"></div>
+                    </div>
+                    <div class="tbl-card">
+                        <div class="tbl-header">
+                            <h3>Discogs Wantlist</h3>
+                            <button class="btn btn-sync" onclick="loadWishlist()">Refresh</button>
+                        </div>
+                        <div class="tbl-scroll" style="max-height:calc(100vh - 260px)">
+                            <table>
+                                <thead>
+                                    <tr id="wlHeaders">
+                                        <th data-sort="artist" style="cursor:pointer">Artist ⇅</th>
+                                        <th data-sort="title" style="cursor:pointer">Title ⇅</th>
+                                        <th data-sort="year" style="cursor:pointer">Year ⇅</th>
+                                        <th data-sort="format" style="cursor:pointer">Format ⇅</th>
+                                        <th data-sort="rating" style="cursor:pointer">Rating ⇅</th>
+                                        <th data-sort="date_added" style="cursor:pointer">Added ⇅</th>
+                                        <th>Notes</th><th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="wlBody"></tbody>
+                            </table>
+                        </div>
+                        <div style="text-align:center;padding:10px">
+                            <button class="btn" id="wlLoadMore" onclick="loadWishlistMore()" style="display:none">Load More</button>
+                            <span id="wlCount" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);margin-left:12px"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ARTISTS sub-section -->
+                <div class="manage-sub" data-sub="artists">
+                    <div class="tbl-card">
+                        <div class="tbl-header">
+                            <h3>Artist → Subgenre Classification</h3>
+                            <button class="btn btn-sync" onclick="autoPopulateSubgenres()">Auto-Populate from Benchmarks</button>
+                        </div>
+                        <div class="tbl-scroll" style="max-height:calc(100vh - 160px)">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Artist</th><th>Albums</th><th>Current Subgenre</th>
+                                        <th>Genre</th><th>Subgenre</th><th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="artBody"></tbody>
+                            </table>
+                        </div>
+                        <div style="text-align:center;padding:10px">
+                            <span id="artCount" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted)"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LINKING sub-section -->
+                <div class="manage-sub" data-sub="linking">
+                    <div class="metrics" style="margin-bottom:12px">
+                        <div class="metric"><div class="metric-label">Total Benchmarks</div><div class="metric-value" id="linkTotal">—</div></div>
+                        <div class="metric"><div class="metric-label">Linked</div><div class="metric-value green" id="linkLinked">—</div></div>
+                        <div class="metric"><div class="metric-label">Pending</div><div class="metric-value gold" id="linkPending">—</div></div>
+                        <div class="metric"><div class="metric-label">Coverage</div><div class="metric-value" id="linkPct">—</div></div>
+                    </div>
+                    <div class="tbl-card">
+                        <div class="tbl-header">
+                            <h3>Benchmark → Discogs Linking</h3>
+                            <button class="btn btn-action" onclick="loadLinkingData()">Refresh</button>
+                        </div>
+                        <div class="tbl-scroll" style="max-height:calc(100vh - 220px)">
+                            <table>
+                                <thead><tr>
+                                    <th>#</th><th>Artist</th><th>Album</th><th>Year</th><th>Source</th>
+                                    <th>Method</th><th>Master ID</th><th>Release ID</th><th>Discogs Title</th><th>Action</th>
+                                </tr></thead>
+                                <tbody id="linkBody"></tbody>
+                            </table>
+                        </div>
+                        <div style="text-align:center;padding:10px">
+                            <button class="btn btn-action" id="linkLoadMore" onclick="loadLinkingMore()" style="display:none">Load More</button>
+                            <span id="linkCount" style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);margin-left:10px"></span>
+                        </div>
+                    </div>
+                    <!-- Link dialog -->
+                    <div class="dialog-overlay" id="linkDialog">
+                        <div class="dialog">
+                            <h3 style="font-family:var(--font-display);margin-bottom:14px;font-style:italic">Link: <span id="linkDialogTitle"></span></h3>
+                            <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:14px">Select from your collection or enter IDs:</p>
+                            <div id="linkDialogResults" style="max-height:220px;overflow-y:auto;margin-bottom:14px"></div>
+                            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+                                <input type="number" class="inp" id="linkManualMasterId" placeholder="master_id" style="flex:1">
+                                <span style="color:var(--text-muted);font-size:0.75rem">or</span>
+                                <input type="number" class="inp" id="linkManualReleaseId" placeholder="release_id (box sets)" style="flex:1">
+                                <button class="btn btn-action" onclick="submitManualLink()">Link</button>
+                            </div>
+                            <p style="font-size:0.7rem;color:var(--text-muted);margin-bottom:14px">Duplicates across rankings linked automatically.</p>
+                            <div style="display:flex;gap:8px;justify-content:flex-end">
+                                <button class="btn btn-ghost" onclick="skipLink()" style="border:1px solid var(--border)">Skip</button>
+                                <button class="btn btn-ghost" onclick="closeLinkDialog()" style="border:1px solid var(--border)">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADMIN sub-section -->
+                <div class="manage-sub" data-sub="admin">
+                    <div class="card">
+                        <h3>Data Management</h3>
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+                            <button class="btn btn-sync" onclick="runSync()" id="syncBtn">Sync Discogs Collection</button>
+                            <button class="btn btn-snap" onclick="downloadSnapshot()" id="snapBtn">Download Curator Snapshot</button>
+                        </div>
+                        <div id="purgeResult" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);min-height:20px"></div>
+                    </div>
+                </div>
+
+            </div><!-- /.dash-main -->
+        </div><!-- /.dash-layout -->
     </div>
 
 </div>
@@ -2020,9 +2088,25 @@ document.getElementById('tabBar').addEventListener('click', e => {
     document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
     e.target.classList.add('active');
     document.getElementById('panel-'+e.target.dataset.tab).classList.add('active');
-    if (e.target.dataset.tab==='linking'&&linkingState.items.length===0) loadLinkingData();
-    if (e.target.dataset.tab==='artists'&&artistsState.items.length===0) loadArtists();
-    if (e.target.dataset.tab==='wishlist'&&wlState.items.length===0) loadWishlist();
+    if (e.target.dataset.tab==='manage') switchManageSub('wishlist');
+});
+
+function switchManageSub(sub) {
+    document.querySelectorAll('.manage-nav-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.sub === sub));
+    document.querySelectorAll('.manage-filters').forEach(f =>
+        f.classList.toggle('active', f.dataset.for === sub));
+    document.querySelectorAll('.manage-sub').forEach(s =>
+        s.classList.toggle('active', s.dataset.sub === sub));
+    if (sub === 'linking' && linkingState.items.length === 0) loadLinkingData();
+    if (sub === 'artists' && artistsState.items.length === 0) loadArtists();
+    if (sub === 'wishlist' && wlState.items.length === 0) loadWishlist();
+}
+
+document.getElementById('manageSubNav').addEventListener('click', e => {
+    const btn = e.target.closest('.manage-nav-btn');
+    if (!btn) return;
+    switchManageSub(btn.dataset.sub);
 });
 // ── Benchmark sidebar functions ───────────────────────────────────────────
 
