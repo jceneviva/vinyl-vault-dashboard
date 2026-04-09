@@ -1699,10 +1699,73 @@ async function downloadSnapshot() {
     try { const data=await api('/api/curator/snapshot'); const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`vinyl-vault-snapshot-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); res.textContent=`Downloaded! ${data.total_items} items, ${data.top_gaps.length} gaps`; res.style.color='var(--green)';
     } catch(e){res.textContent='Error: '+e.message;res.style.color='var(--red)';} btn.disabled=false;btn.textContent='Download Curator Snapshot';
 }
+let _syncPollTimer = null;
+const _SYNC_STEP_LABELS = {
+    folders: '1/5 — Folders', collection: '2/5 — Collection',
+    releases: '3/5 — Releases', masters: '4/5 — Masters', artists: '5/5 — Artists',
+    done: 'Complete', error: 'Error',
+};
+
 async function runSync() {
-    const btn=document.getElementById('syncBtn'),res=document.getElementById('purgeResult');
-    btn.disabled=true;btn.textContent='Syncing...';res.textContent='This may take 30-60s...';res.style.color='var(--text-muted)';
-    try { const d=await api('/api/admin/sync-discogs'); if(d.status==='ok'){res.textContent=`Synced! ${JSON.stringify(d.results||{})}`;res.style.color='var(--green)';loadAll();}else{res.textContent='Error: '+d.message;res.style.color='var(--red)';} } catch(e){res.textContent='Error: '+e.message;res.style.color='var(--red)';} btn.disabled=false;btn.textContent='Sync Discogs Collection';
+    const btn = document.getElementById('syncBtn');
+    const res = document.getElementById('purgeResult');
+    btn.disabled = true; btn.textContent = 'Starting…'; res.textContent = ''; res.style.color = 'var(--text-muted)';
+    try {
+        const resp = await fetch(`${API}/api/admin/sync-discogs`, {
+            method: 'POST',
+            headers: API_KEY ? { 'X-API-Key': API_KEY } : {},
+        });
+        if (resp.status === 401) { logout(); return; }
+        const d = await resp.json();
+        if (d.status !== 'started') {
+            res.textContent = 'Error: ' + (d.message || 'Unknown'); res.style.color = 'var(--red)';
+            btn.disabled = false; btn.textContent = 'Sync Discogs Collection';
+            return;
+        }
+        btn.textContent = 'Syncing…';
+        _syncPollTimer = setInterval(_pollSync, 3000);
+        _pollSync();
+    } catch(e) {
+        res.textContent = 'Error: ' + e.message; res.style.color = 'var(--red)';
+        btn.disabled = false; btn.textContent = 'Sync Discogs Collection';
+    }
+}
+
+async function _pollSync() {
+    const btn = document.getElementById('syncBtn');
+    const res = document.getElementById('purgeResult');
+    try {
+        const s = await api('/api/admin/sync-status');
+        const label = _SYNC_STEP_LABELS[s.step] || s.step || '…';
+        const p = s.progress || {};
+        const prog = p.total > 0 ? ` (${p.done} / ${p.total})` : p.done > 0 ? ` (${p.done})` : '';
+
+        if (s.running) {
+            res.textContent = `⟳ ${label}${prog}`;
+        } else {
+            clearInterval(_syncPollTimer); _syncPollTimer = null;
+            btn.disabled = false; btn.textContent = 'Sync Discogs Collection';
+            if (s.step === 'done') {
+                const r = s.results || {};
+                const parts = [
+                    `Folders: ${r.folders ?? '—'}`,
+                    `Items: ${r.collection ?? '—'}`,
+                    r.purged > 0 ? `Purged: ${r.purged}` : null,
+                    `New releases: ${r.releases ?? '—'}`,
+                    `New masters: ${r.masters ?? '—'}`,
+                    `Artists: ${r.artists ?? '—'}`,
+                ].filter(Boolean);
+                res.textContent = '✓ ' + parts.join(' · ');
+                res.style.color = 'var(--green)';
+                loadAll();
+            } else {
+                res.textContent = '✗ Sync error: ' + (s.error || 'Unknown');
+                res.style.color = 'var(--red)';
+            }
+        }
+    } catch(e) {
+        // transient network error — keep polling
+    }
 }
 async function runPurge() {
     const btn=document.getElementById('purgeBtn'),res=document.getElementById('purgeResult');
