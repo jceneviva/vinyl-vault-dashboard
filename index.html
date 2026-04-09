@@ -506,11 +506,9 @@ tbody tr:hover { background: var(--bg-card-hover); }
                         Formato <span class="section-toggle-arrow">▾</span>
                     </button>
                     <div class="section-body">
-                        <div class="section-dim-label">Format</div>
-                        <div class="sb-chips" id="sb-format"></div>
                         <div class="section-dim-label">Curatorial</div>
                         <div class="sb-chips" id="sb-folder_type"></div>
-                        <div class="section-dim-label">Media</div>
+                        <div class="section-dim-label">Format</div>
                         <div class="sb-chips" id="sb-folder_format"></div>
                     </div>
                 </div>
@@ -569,16 +567,12 @@ tbody tr:hover { background: var(--bg-card-hover); }
                         <h3>By Country (Top 15) <span class="chart-filter-hint">click to filter</span></h3>
                         <div class="chart-wrap"><canvas id="chartCountry"></canvas></div>
                     </div>
-                    <div class="card dash-chart-card" data-dim="format">
-                        <h3>By Format <span class="chart-filter-hint">click to filter</span></h3>
-                        <div class="chart-wrap"><canvas id="chartFormat"></canvas></div>
-                    </div>
                     <div class="card dash-chart-card" data-dim="folder_type">
                         <h3>Curatorial Type <span class="chart-filter-hint">click to filter</span></h3>
                         <div class="chart-wrap"><canvas id="chartFolderType"></canvas></div>
                     </div>
                     <div class="card dash-chart-card" data-dim="folder_format">
-                        <h3>Folder Format <span class="chart-filter-hint">click to filter</span></h3>
+                        <h3>By Format <span class="chart-filter-hint">click to filter</span></h3>
                         <div class="chart-wrap"><canvas id="chartFolderFormat"></canvas></div>
                     </div>
                     <div class="card dash-chart-card" data-dim="curation">
@@ -1068,8 +1062,8 @@ function dashRenderFilterBar() {
     }
     bar.style.display = '';
     const dimLabels = {
-        decade: 'Decade', subgenre: 'Subgenre', country: 'Country', format: 'Format',
-        folder_type: 'Curatorial', folder_format: 'Media', 
+        decade: 'Decade', subgenre: 'Subgenre', country: 'Country',
+        folder_type: 'Curatorial', folder_format: 'Format',
         curation: 'Curation', condition: 'Condition', pressing: 'Pressing', edition: 'Edition'
     };
     chips.innerHTML = keys.map(dim => `
@@ -1168,7 +1162,7 @@ function dashUpdateRanking(filtered) {
 function dashRebuildCharts(filtered) {
     // For each chart dimension, we aggregate the filtered items
     // but we exclude the current dimension's own filter to allow toggling
-    const dims = ['decade','subgenre','country','format','folder_type','folder_format','curation','condition','pressing','edition'];
+    const dims = ['decade','subgenre','country','folder_type','folder_format','curation','condition','pressing','edition'];
     dims.forEach(dim => {
         // Get items filtered by ALL OTHER dimensions (not this one)
         let items = dashAllItems;
@@ -1307,7 +1301,7 @@ function hexToRGBA(hex, alpha) {
 
 // ── Sidebar: populate chips from dashAllItems ─────────────────────────────
 function dashPopulateSidebar() {
-    const dims = ['decade','subgenre','country','format','folder_type','folder_format','curation','condition','pressing','edition'];
+    const dims = ['decade','subgenre','country','folder_type','folder_format','curation','condition','pressing','edition'];
     const limits = { country: 15, subgenre: 15 };
     dims.forEach(dim => {
         const el = document.getElementById('sb-' + dim);
