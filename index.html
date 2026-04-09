@@ -648,17 +648,34 @@ tbody tr:hover { background: var(--bg-card-hover); }
     <div class="panel" id="panel-wishlist">
         <div class="card" style="margin-bottom:20px">
             <h3>Add to Wishlist</h3>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <input type="number" id="wlAddReleaseId" placeholder="Discogs Release ID" class="inp" style="width:180px">
-                <input type="text" id="wlAddNotes" placeholder="Notes (optional)" class="inp" style="flex:1;min-width:150px">
-                <select class="sel" id="wlAddRating" style="width:80px">
-                    <option value="0">Rating</option>
-                    <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-                    <option value="4">4</option><option value="5">5</option>
-                </select>
-                <button class="btn btn-sync" onclick="addToWishlist()">Add</button>
+            <!-- Step 1: search -->
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+                <input type="text" id="wlSearchQuery" placeholder="Artist, album or both…" class="inp" style="flex:1;min-width:200px"
+                    onkeydown="if(event.key==='Enter')searchWishlist()">
+                <button class="btn btn-sync" onclick="searchWishlist()" id="wlSearchBtn">Search Discogs</button>
             </div>
-            <div id="wlAddResult" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);margin-top:8px"></div>
+            <!-- Search results -->
+            <div id="wlSearchResults" style="display:none;margin-bottom:12px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden"></div>
+            <!-- Step 2: confirm selection -->
+            <div id="wlSelected" style="display:none;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:10px">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                    <div>
+                        <span style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em">Selected</span><br>
+                        <span id="wlSelectedLabel" style="font-weight:600;font-size:0.9rem"></span>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                        <input type="text" id="wlAddNotes" placeholder="Notes (optional)" class="inp" style="min-width:150px">
+                        <select class="sel" id="wlAddRating">
+                            <option value="0">Rating</option>
+                            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                            <option value="4">4</option><option value="5">5</option>
+                        </select>
+                        <button class="btn btn-action" onclick="confirmAddToWishlist()">Add to Wishlist</button>
+                        <button class="btn btn-ghost" onclick="wlClearSelection()" style="border:1px solid var(--border)">✕</button>
+                    </div>
+                </div>
+            </div>
+            <div id="wlAddResult" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted)"></div>
         </div>
         <div class="tbl-card">
             <div class="tbl-header">
@@ -701,6 +718,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
                 <button class="btn btn-sync" onclick="runSync()" id="syncBtn">Sync Discogs Collection</button>
                 <button class="btn btn-purge" onclick="runPurge()" id="purgeBtn">Purge Deleted</button>
                 <button class="btn btn-snap" onclick="downloadSnapshot()" id="snapBtn">Download Curator Snapshot</button>
+                <button class="btn btn-action" onclick="runMigration('create-wishlist-table', this)">Create Wishlist Table</button>
             </div>
             <div id="purgeResult" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);min-height:20px"></div>
         </div>
@@ -1692,6 +1710,18 @@ async function runPurge() {
     try { const d=await api('/api/admin/purge-deleted'); if(d.status==='ok'){res.textContent=`Done! Discogs:${d.discogs_count}, DB:${d.db_count}, Purged:${d.deleted}`;res.style.color=d.deleted>0?'var(--green)':'var(--text-muted)';} else{res.textContent='Error: '+d.message;res.style.color='var(--red)';} } catch(e){res.textContent='Error: '+e.message;res.style.color='var(--red)';} btn.disabled=false;btn.textContent='Purge Deleted';
 }
 
+async function runMigration(endpoint, btn) {
+    const res = document.getElementById('purgeResult');
+    const origText = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Running…'; res.textContent = '';
+    try {
+        const d = await api(`/api/admin/${endpoint}`);
+        res.textContent = d.message || (d.status === 'ok' ? 'Done!' : 'Error: ' + d.message);
+        res.style.color = d.status === 'ok' ? 'var(--green)' : 'var(--red)';
+    } catch(e) { res.textContent = 'Error: ' + e.message; res.style.color = 'var(--red)'; }
+    btn.disabled = false; btn.textContent = origText;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1900,26 +1930,84 @@ function renderWishlistTable() {
     document.getElementById('wlCount').textContent = `${items.length} of ${wlState.total} items`;
 }
 
-async function addToWishlist() {
-    const rid = document.getElementById('wlAddReleaseId').value;
+let wlPendingReleaseId = null;
+
+async function searchWishlist() {
+    const q = document.getElementById('wlSearchQuery').value.trim();
+    const resultsEl = document.getElementById('wlSearchResults');
+    const btn = document.getElementById('wlSearchBtn');
+    const resultEl = document.getElementById('wlAddResult');
+    if (!q) return;
+    btn.disabled = true; btn.textContent = 'Searching…';
+    resultsEl.style.display = 'none'; resultsEl.innerHTML = '';
+    resultEl.textContent = '';
+    try {
+        const d = await api(`/api/wishlist/search?q=${encodeURIComponent(q)}`);
+        if (!Array.isArray(d) || d.length === 0) {
+            resultEl.textContent = 'No results found.'; resultEl.style.color = 'var(--text-muted)';
+            return;
+        }
+        resultsEl.innerHTML = d.map((r, i) => `
+            <div onclick="wlSelectResult(${r.release_id}, ${JSON.stringify(esc(r.title))}, ${JSON.stringify(esc(r.artist))}, ${r.year || 'null'}, ${JSON.stringify(esc(r.format || ''))})"
+                style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;
+                    cursor:pointer;border-bottom:${i < d.length-1 ? '1px solid var(--border)' : 'none'};
+                    transition:background 0.15s"
+                onmouseover="this.style.background='var(--bg-card-hover)'"
+                onmouseout="this.style.background=''">
+                <div>
+                    <span style="font-weight:600;font-size:0.85rem">${esc(r.artist)}</span>
+                    <span style="color:var(--text-muted);margin:0 5px">—</span>
+                    <span style="font-size:0.85rem">${esc(r.title)}</span>
+                    ${r.year ? `<span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);margin-left:8px">${r.year}</span>` : ''}
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+                    ${r.format ? `<span class="badge b-format">${esc(r.format)}</span>` : ''}
+                    ${r.country ? `<span style="font-size:0.72rem;color:var(--text-muted)">${esc(r.country)}</span>` : ''}
+                    <span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted)">#${r.release_id}</span>
+                </div>
+            </div>
+        `).join('');
+        resultsEl.style.display = '';
+    } catch(e) { resultEl.textContent = 'Error: ' + e.message; resultEl.style.color = 'var(--red)'; }
+    finally { btn.disabled = false; btn.textContent = 'Search Discogs'; }
+}
+
+function wlSelectResult(releaseId, title, artist, year, format) {
+    wlPendingReleaseId = releaseId;
+    document.getElementById('wlSearchResults').style.display = 'none';
+    const label = `${artist} — ${title}${year ? ' (' + year + ')' : ''}${format ? ' · ' + format : ''}`;
+    document.getElementById('wlSelectedLabel').textContent = label;
+    document.getElementById('wlSelected').style.display = '';
+    document.getElementById('wlAddNotes').value = '';
+    document.getElementById('wlAddRating').value = '0';
+    document.getElementById('wlAddResult').textContent = '';
+}
+
+function wlClearSelection() {
+    wlPendingReleaseId = null;
+    document.getElementById('wlSelected').style.display = 'none';
+    document.getElementById('wlSearchQuery').value = '';
+    document.getElementById('wlAddResult').textContent = '';
+}
+
+async function confirmAddToWishlist() {
+    if (!wlPendingReleaseId) return;
     const notes = document.getElementById('wlAddNotes').value;
     const rating = document.getElementById('wlAddRating').value;
     const resultEl = document.getElementById('wlAddResult');
-    if (!rid) { resultEl.textContent = 'Enter a Release ID'; resultEl.style.color = 'var(--red)'; return; }
     try {
-        const params = new URLSearchParams({ release_id: rid });
+        const params = new URLSearchParams({ release_id: wlPendingReleaseId });
         if (notes) params.set('notes', notes);
         if (rating && rating !== '0') params.set('rating', rating);
         const d = await api(`/api/wishlist/add?${params}`);
         if (d.status === 'ok') {
-            resultEl.textContent = `Added: ${d.artist} — ${d.title}`;
+            resultEl.textContent = `✓ Added: ${d.artist} — ${d.title}`;
             resultEl.style.color = 'var(--green)';
-            document.getElementById('wlAddReleaseId').value = '';
-            document.getElementById('wlAddNotes').value = '';
-            document.getElementById('wlAddRating').value = '0';
+            wlClearSelection();
             loadWishlist();
         } else {
-            resultEl.textContent = 'Error: ' + (d.message || 'Unknown'); resultEl.style.color = 'var(--red)';
+            resultEl.textContent = 'Error: ' + (d.message || 'Unknown');
+            resultEl.style.color = 'var(--red)';
         }
     } catch(e) { resultEl.textContent = 'Error: ' + e.message; resultEl.style.color = 'var(--red)'; }
 }
