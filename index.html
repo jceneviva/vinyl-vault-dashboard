@@ -11,19 +11,22 @@
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
 :root {
-    --bg-base: #08080c;
-    --bg-surface: #101018;
-    --bg-card: #16161f;
-    --bg-card-hover: #1e1e2a;
-    --bg-elevated: #1c1c28;
-    --border: #232333;
-    --border-hover: #33334a;
+    --bg-base: #0f1117;
+    --bg-surface: #13161f;
+    --bg-card: #1a1d27;
+    --bg-card-hover: #21253a;
+    --bg-elevated: #1f2333;
+    --border: #252836;
+    --border-hover: #363a52;
     --text-primary: #e8e6ef;
     --text-secondary: #9896a8;
     --text-muted: #56546a;
     --gold: #c9a84c;
     --gold-dim: #8a6e30;
     --gold-glow: rgba(201,168,76,0.12);
+    --accent: #7c6af7;
+    --accent-dim: #5a4bd4;
+    --accent-glow: rgba(124,106,247,0.12);
     --blue: #5b8cf7;
     --green: #4ade80;
     --red: #f87171;
@@ -31,7 +34,7 @@
     --cyan: #22d3ee;
     --orange: #fb923c;
     --font-display: 'Playfair Display', serif;
-    --font-body: 'DM Sans', sans-serif;
+    --font-body: system-ui, 'DM Sans', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
     --radius: 14px;
     --radius-sm: 8px;
@@ -323,6 +326,98 @@ tbody tr:hover { background: var(--bg-card-hover); }
 .ranking-count {
     font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted);
 }
+
+/* ═══ DASHBOARD BI LAYOUT ═══ */
+.dash-layout {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+}
+.dash-sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.dash-main { flex: 1; min-width: 0; }
+
+.sidebar-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 14px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg-surface); z-index: 2;
+}
+.sidebar-title {
+    font-family: var(--font-mono); font-size: 0.63rem;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted);
+}
+.sidebar-section { border-bottom: 1px solid var(--border); }
+.sidebar-section:last-child { border-bottom: none; }
+.section-toggle {
+    width: 100%; background: none; border: none; padding: 9px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; color: var(--text-secondary); font-size: 0.72rem; font-weight: 600;
+    font-family: var(--font-body); text-transform: uppercase; letter-spacing: 0.07em;
+    transition: var(--transition);
+}
+.section-toggle:hover { color: var(--text-primary); background: rgba(255,255,255,0.03); }
+.section-toggle-arrow {
+    font-size: 0.6rem; transition: transform 0.2s ease; display: inline-block;
+}
+.sidebar-section.collapsed .section-toggle-arrow { transform: rotate(-90deg); }
+.section-body { padding: 4px 12px 10px; }
+.sidebar-section.collapsed .section-body { display: none; }
+.section-dim-label {
+    font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.08em; margin: 8px 0 4px;
+}
+.section-dim-label:first-child { margin-top: 4px; }
+.sb-chips { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 2px; }
+.sb-chip {
+    background: transparent; border: 1px solid var(--border); border-radius: 20px;
+    padding: 2px 9px; font-size: 0.67rem; color: var(--text-secondary);
+    cursor: pointer; transition: var(--transition); display: inline-flex;
+    align-items: center; gap: 4px; white-space: nowrap; font-family: var(--font-body);
+}
+.sb-chip:hover { border-color: var(--accent); color: var(--text-primary); }
+.sb-chip.active {
+    background: var(--accent-glow); border-color: var(--accent); color: var(--accent);
+}
+.sb-chip-count {
+    font-family: var(--font-mono); font-size: 0.58rem; color: var(--text-muted); opacity: 0.8;
+}
+.sb-chip.active .sb-chip-count { color: var(--accent); }
+
+/* KPI grid */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px; margin-bottom: 12px;
+}
+
+/* Charts grid */
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 12px; margin-bottom: 12px;
+}
+
+/* Responsive sidebar */
+@media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 900px) {
+    .dash-layout { flex-direction: column; }
+    .dash-sidebar { width: 100%; position: static; max-height: none; }
+}
+@media (max-width: 600px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .charts-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
@@ -372,93 +467,149 @@ tbody tr:hover { background: var(--bg-card-hover); }
     <!-- DASHBOARD (Interactive Cross-Filtered) -->
     <!-- ════════════════════════════════════════════════════════════════════════ -->
     <div class="panel active" id="panel-dashboard">
-        <!-- Hero metrics — dynamically updated by filters -->
-        <div class="metrics">
-            <div class="metric"><div class="metric-label">Showing</div><div class="metric-value" id="statTotal">—</div><div class="metric-sub" id="statTotalSub"></div></div>
-            <div class="metric"><div class="metric-label">Definitive</div><div class="metric-value green" id="statDef">—</div><div class="metric-sub" id="statDefSub"></div></div>
-            <div class="metric"><div class="metric-label">Avg Rating</div><div class="metric-value gold" id="collRatingAvg">—</div><div class="metric-sub" id="collRatingSub"></div></div>
-            <div class="metric"><div class="metric-label">Benchmark</div><div class="metric-value" id="statBenchmark">—</div></div>
-            <div class="metric"><div class="metric-label">Owned</div><div class="metric-value green" id="statOwned">—</div></div>
-            <div class="metric"><div class="metric-label">Coverage</div><div class="metric-value gold" id="statCoverage">—</div><div class="metric-sub" id="statCoverageSub"></div></div>
-        </div>
+        <div class="dash-layout">
 
-        <!-- Active Filters Bar -->
-        <div class="dash-filter-bar" id="dashFilterBar" style="display:none">
-            <div class="filter-bar-inner">
-                <span class="filter-bar-label">Filters:</span>
-                <div class="filter-chips" id="dashFilterChips"></div>
-                <button class="filter-clear-all" id="dashClearAll" onclick="dashClearAllFilters()">Clear All ✕</button>
-            </div>
-        </div>
+            <!-- ── SIDEBAR ───────────────────────────────── -->
+            <aside class="dash-sidebar">
+                <div class="sidebar-header">
+                    <span class="sidebar-title">Filters</span>
+                    <button class="filter-clear-all" onclick="dashClearAllFilters()" style="font-size:0.62rem;padding:2px 9px">Clear ✕</button>
+                </div>
 
-        <!-- Charts row 1: Decade + Subgenre -->
-        <div class="card-row">
-            <div class="card dash-chart-card" data-dim="decade">
-                <h3>By Original Decade <span class="chart-filter-hint">click to filter</span></h3>
-                <div class="chart-wrap"><canvas id="chartDecade"></canvas></div>
-            </div>
-            <div class="card dash-chart-card" data-dim="subgenre">
-                <h3>By Subgenre <span class="chart-filter-hint">click to filter</span></h3>
-                <div class="chart-wrap"><canvas id="chartSubgenre"></canvas></div>
-            </div>
-        </div>
+                <!-- TEMPO -->
+                <div class="sidebar-section">
+                    <button class="section-toggle" onclick="toggleSection(this)">
+                        Tempo <span class="section-toggle-arrow">▾</span>
+                    </button>
+                    <div class="section-body">
+                        <div class="section-dim-label">Decade</div>
+                        <div class="sb-chips" id="sb-decade"></div>
+                    </div>
+                </div>
 
-        <!-- Charts row 2: Country + Format -->
-        <div class="card-row">
-            <div class="card dash-chart-card" data-dim="country">
-                <h3>By Country (Top 15) <span class="chart-filter-hint">click to filter</span></h3>
-                <div class="chart-wrap"><canvas id="chartCountry"></canvas></div>
-            </div>
-            <div class="card dash-chart-card" data-dim="format">
-                <h3>By Format <span class="chart-filter-hint">click to filter</span></h3>
-                <div class="chart-wrap"><canvas id="chartFormat"></canvas></div>
-            </div>
-        </div>
+                <!-- MÚSICA -->
+                <div class="sidebar-section">
+                    <button class="section-toggle" onclick="toggleSection(this)">
+                        Música <span class="section-toggle-arrow">▾</span>
+                    </button>
+                    <div class="section-body">
+                        <div class="section-dim-label">Subgenre</div>
+                        <div class="sb-chips" id="sb-subgenre"></div>
+                        <div class="section-dim-label">Country</div>
+                        <div class="sb-chips" id="sb-country"></div>
+                    </div>
+                </div>
 
-        <!-- Charts row 3: Folder Type (Curatorial) + Folder Format (Media) -->
-        <div class="card-row">
-            <div class="card dash-chart-card" data-dim="folder_type">
-                <h3>Curatorial Type <span class="chart-filter-hint">click to filter</span></h3>
-                <div class="chart-wrap"><canvas id="chartFolderType"></canvas></div>
-            </div>
-            <div class="card dash-chart-card" data-dim="folder_format">
-                <h3>Folder Format <span class="chart-filter-hint">click to filter</span></h3>
-                <div class="chart-wrap"><canvas id="chartFolderFormat"></canvas></div>
-            </div>
-        </div>
+                <!-- FORMATO -->
+                <div class="sidebar-section">
+                    <button class="section-toggle" onclick="toggleSection(this)">
+                        Formato <span class="section-toggle-arrow">▾</span>
+                    </button>
+                    <div class="section-body">
+                        <div class="section-dim-label">Format</div>
+                        <div class="sb-chips" id="sb-format"></div>
+                        <div class="section-dim-label">Curatorial</div>
+                        <div class="sb-chips" id="sb-folder_type"></div>
+                        <div class="section-dim-label">Media</div>
+                        <div class="sb-chips" id="sb-folder_format"></div>
+                    </div>
+                </div>
 
-        <!-- Charts row 4: Curation + Media Condition -->
-        <div class="card-row">
-            <div class="card dash-chart-card" data-dim="curation">
-                <h3>Curation Type <span class="chart-filter-hint">click to filter</span></h3>
-                <div class="chart-wrap"><canvas id="chartCuration"></canvas></div>
-            </div>
-            <div class="card dash-chart-card" data-dim="condition">
-                <h3>Media Condition <span class="chart-filter-hint">click to filter</span></h3>
-                <div class="chart-wrap"><canvas id="chartMediaCond"></canvas></div>
-            </div>
-        </div>
+                <!-- CURADORIA (collapsed by default) -->
+                <div class="sidebar-section collapsed">
+                    <button class="section-toggle" onclick="toggleSection(this)">
+                        Curadoria <span class="section-toggle-arrow">▾</span>
+                    </button>
+                    <div class="section-body">
+                        <div class="section-dim-label">Curation</div>
+                        <div class="sb-chips" id="sb-curation"></div>
+                        <div class="section-dim-label">Condition</div>
+                        <div class="sb-chips" id="sb-condition"></div>
+                        <div class="section-dim-label">Pressing</div>
+                        <div class="sb-chips" id="sb-pressing"></div>
+                        <div class="section-dim-label">Edition</div>
+                        <div class="sb-chips" id="sb-edition"></div>
+                    </div>
+                </div>
+            </aside>
 
-        <!-- Charts row 4: Pressing + Edition -->
-        <div class="card-row">
-            <div class="card dash-chart-card" data-dim="pressing">
-                <h3>Pressing <span class="chart-filter-hint">click to filter</span></h3>
-                <div class="chart-wrap"><canvas id="chartPressing"></canvas></div>
-            </div>
-            <div class="card dash-chart-card" data-dim="edition">
-                <h3>Edition <span class="chart-filter-hint">click to filter</span></h3>
-                <div class="chart-wrap"><canvas id="chartEdition"></canvas></div>
-            </div>
-        </div>
+            <!-- ── MAIN ──────────────────────────────────── -->
+            <div class="dash-main">
 
-        <!-- Full Collection Ranking — filtered dynamically -->
-        <div class="card" id="dashRankingCard">
-            <div class="ranking-header">
-                <h3>Collection Ranking</h3>
-                <span class="ranking-count" id="rankingCount"></span>
-            </div>
-            <div id="ratingTopAlbums" style="max-height:520px;overflow-y:auto"></div>
-        </div>
+                <!-- Active Filters Bar -->
+                <div class="dash-filter-bar" id="dashFilterBar" style="display:none">
+                    <div class="filter-bar-inner">
+                        <span class="filter-bar-label">Filters:</span>
+                        <div class="filter-chips" id="dashFilterChips"></div>
+                        <button class="filter-clear-all" id="dashClearAll" onclick="dashClearAllFilters()">Clear All ✕</button>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="kpi-grid">
+                    <div class="metric"><div class="metric-label">Showing</div><div class="metric-value" id="statTotal">—</div><div class="metric-sub" id="statTotalSub"></div></div>
+                    <div class="metric"><div class="metric-label">Definitive</div><div class="metric-value green" id="statDef">—</div><div class="metric-sub" id="statDefSub"></div></div>
+                    <div class="metric"><div class="metric-label">Avg Rating</div><div class="metric-value gold" id="collRatingAvg">—</div><div class="metric-sub" id="collRatingSub"></div></div>
+                    <div class="metric"><div class="metric-label">Benchmark</div><div class="metric-value" id="statBenchmark">—</div></div>
+                    <div class="metric"><div class="metric-label">Owned</div><div class="metric-value green" id="statOwned">—</div></div>
+                    <div class="metric"><div class="metric-label">Coverage</div><div class="metric-value gold" id="statCoverage">—</div><div class="metric-sub" id="statCoverageSub"></div></div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="charts-grid">
+                    <div class="card dash-chart-card" data-dim="decade">
+                        <h3>By Original Decade <span class="chart-filter-hint">click to filter</span></h3>
+                        <div class="chart-wrap"><canvas id="chartDecade"></canvas></div>
+                    </div>
+                    <div class="card dash-chart-card" data-dim="subgenre">
+                        <h3>By Subgenre <span class="chart-filter-hint">click to filter</span></h3>
+                        <div class="chart-wrap"><canvas id="chartSubgenre"></canvas></div>
+                    </div>
+                    <div class="card dash-chart-card" data-dim="country">
+                        <h3>By Country (Top 15) <span class="chart-filter-hint">click to filter</span></h3>
+                        <div class="chart-wrap"><canvas id="chartCountry"></canvas></div>
+                    </div>
+                    <div class="card dash-chart-card" data-dim="format">
+                        <h3>By Format <span class="chart-filter-hint">click to filter</span></h3>
+                        <div class="chart-wrap"><canvas id="chartFormat"></canvas></div>
+                    </div>
+                    <div class="card dash-chart-card" data-dim="folder_type">
+                        <h3>Curatorial Type <span class="chart-filter-hint">click to filter</span></h3>
+                        <div class="chart-wrap"><canvas id="chartFolderType"></canvas></div>
+                    </div>
+                    <div class="card dash-chart-card" data-dim="folder_format">
+                        <h3>Folder Format <span class="chart-filter-hint">click to filter</span></h3>
+                        <div class="chart-wrap"><canvas id="chartFolderFormat"></canvas></div>
+                    </div>
+                    <div class="card dash-chart-card" data-dim="curation">
+                        <h3>Curation Type <span class="chart-filter-hint">click to filter</span></h3>
+                        <div class="chart-wrap"><canvas id="chartCuration"></canvas></div>
+                    </div>
+                    <div class="card dash-chart-card" data-dim="condition">
+                        <h3>Media Condition <span class="chart-filter-hint">click to filter</span></h3>
+                        <div class="chart-wrap"><canvas id="chartMediaCond"></canvas></div>
+                    </div>
+                    <div class="card dash-chart-card" data-dim="pressing">
+                        <h3>Pressing <span class="chart-filter-hint">click to filter</span></h3>
+                        <div class="chart-wrap"><canvas id="chartPressing"></canvas></div>
+                    </div>
+                    <div class="card dash-chart-card" data-dim="edition">
+                        <h3>Edition <span class="chart-filter-hint">click to filter</span></h3>
+                        <div class="chart-wrap"><canvas id="chartEdition"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Collection Ranking -->
+                <div class="card" id="dashRankingCard">
+                    <div class="ranking-header">
+                        <h3>Collection Ranking</h3>
+                        <span class="ranking-count" id="rankingCount"></span>
+                    </div>
+                    <div id="ratingTopAlbums" style="max-height:520px;overflow-y:auto"></div>
+                </div>
+
+            </div><!-- /.dash-main -->
+        </div><!-- /.dash-layout -->
     </div>
 
     <!-- ════════════════════════════════════════════════════════════════════════ -->
@@ -903,6 +1054,8 @@ function dashApplyFilters() {
     dashRebuildCharts(filtered);
     // Update ranking
     dashUpdateRanking(filtered);
+    // Sync sidebar active states
+    dashUpdateSidebarActive();
 }
 
 function dashRenderFilterBar() {
@@ -1150,6 +1303,57 @@ function hexToRGBA(hex, alpha) {
         r = parseInt(hex.slice(1, 3), 16); g = parseInt(hex.slice(3, 5), 16); b = parseInt(hex.slice(5, 7), 16);
     }
     return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// ── Sidebar: populate chips from dashAllItems ─────────────────────────────
+function dashPopulateSidebar() {
+    const dims = ['decade','subgenre','country','format','folder_type','folder_format','curation','condition','pressing','edition'];
+    const limits = { country: 15, subgenre: 15 };
+    dims.forEach(dim => {
+        const el = document.getElementById('sb-' + dim);
+        if (!el) return;
+        const counts = {};
+        dashAllItems.forEach(i => {
+            const val = dashGetDimValue(i, dim);
+            counts[val] = (counts[val] || 0) + 1;
+        });
+        let entries = Object.entries(counts);
+        if (dim === 'decade') {
+            entries.sort((a, b) => {
+                if (a[0] === 'Unknown') return 1;
+                if (b[0] === 'Unknown') return -1;
+                return parseInt(a[0]) - parseInt(b[0]);
+            });
+        } else {
+            entries.sort((a, b) => b[1] - a[1]);
+        }
+        const lim = limits[dim];
+        if (lim) {
+            if (dim === 'subgenre') {
+                const uncl = entries.find(e => e[0] === 'Unclassified');
+                entries = entries.filter(e => e[0] !== 'Unclassified').slice(0, lim);
+                if (uncl) entries.push(uncl);
+            } else {
+                entries = entries.slice(0, lim);
+            }
+        }
+        el.innerHTML = entries.map(([val, count]) =>
+            `<button class="sb-chip" data-dim="${dim}" data-val="${esc(val)}"
+                onclick="dashSetFilter(this.dataset.dim, this.dataset.val)">
+                ${esc(val)}<span class="sb-chip-count">${count}</span>
+            </button>`
+        ).join('');
+    });
+}
+
+function dashUpdateSidebarActive() {
+    document.querySelectorAll('.sb-chip').forEach(btn => {
+        btn.classList.toggle('active', dashFilters[btn.dataset.dim] === btn.dataset.val);
+    });
+}
+
+function toggleSection(btn) {
+    btn.closest('.sidebar-section').classList.toggle('collapsed');
 }
 
 // Click on card's X button to clear that dimension's filter
@@ -1501,6 +1705,7 @@ async function loadNotes() {
             state.customFields = data;
             // Store all items for cross-filtering
             dashAllItems = data.items || [];
+            dashPopulateSidebar();
 
             // Populate CF table filters
             const stats = data.stats;
