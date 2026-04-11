@@ -419,6 +419,36 @@ tbody tr:hover { background: var(--bg-card-hover); }
     .charts-grid { grid-template-columns: 1fr; }
 }
 
+/* ── Explorer tab ───────────────────────────────────────────────────────── */
+.explorer-masters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px; margin-bottom: 14px;
+}
+.explorer-master-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px; cursor: pointer;
+    transition: var(--transition); text-align: center;
+}
+.explorer-master-card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+.explorer-master-card.selected { border-color: var(--accent); background: var(--accent-glow); }
+.explorer-master-card img {
+    width: 100%; aspect-ratio: 1; object-fit: cover;
+    border-radius: 6px; margin-bottom: 6px; background: var(--bg-elevated);
+}
+.explorer-master-card .emc-title {
+    font-size: 0.72rem; font-weight: 600; color: var(--text-primary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    display: block; margin-bottom: 2px;
+}
+.explorer-master-card .emc-year {
+    font-family: var(--font-mono); font-size: 0.62rem; color: var(--text-muted);
+}
+.explorer-master-card .emc-owned {
+    font-family: var(--font-mono); font-size: 0.62rem; color: var(--green);
+    margin-top: 4px; display: block;
+}
+
 /* ── Manage tab ─────────────────────────────────────────────────────────── */
 .manage-subnav {
     padding: 10px 12px;
@@ -516,6 +546,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
         <div class="nav-item active" data-tab="dashboard">Dashboard</div>
         <div class="nav-item" data-tab="collection">Collection</div>
         <div class="nav-item" data-tab="benchmark">Benchmark</div>
+        <div class="nav-item" data-tab="explorer">Explorer</div>
         <div class="nav-item" data-tab="manage">Manage</div>
     </nav>
 
@@ -894,8 +925,92 @@ tbody tr:hover { background: var(--bg-card-hover); }
 
 
     <!-- ════════════════════════════════════════════════════════════════════════ -->
-    <!-- LINKING (kept as-is with minor styling updates) -->
+    <!-- EXPLORER (Artist version mapper) -->
     <!-- ════════════════════════════════════════════════════════════════════════ -->
+    <div class="panel" id="panel-explorer">
+        <div class="dash-layout">
+
+            <!-- ── SIDEBAR ── -->
+            <aside class="dash-sidebar">
+                <div class="sidebar-header">
+                    <span class="sidebar-title">Explorer</span>
+                </div>
+
+                <!-- Artist search -->
+                <div class="cf-search-wrap" style="display:flex;flex-direction:column;gap:6px;top:45px">
+                    <input type="text" id="explorerArtistInput" value="Iron Maiden" placeholder="Artist name…">
+                    <button class="btn btn-action" style="width:100%;font-size:0.75rem" onclick="loadExplorerMasters()">Load</button>
+                </div>
+
+                <!-- Format filter -->
+                <div class="sidebar-section">
+                    <button class="section-toggle" onclick="toggleSection(this)">
+                        Format <span class="section-toggle-arrow">▾</span>
+                    </button>
+                    <div class="section-body">
+                        <div class="sb-chips" id="explorer-sb-format">
+                            <button class="sb-chip active" data-fmt="" onclick="explorerSetFormat('')">All</button>
+                            <button class="sb-chip" data-fmt="Vinyl" onclick="explorerSetFormat('Vinyl')">Vinyl</button>
+                            <button class="sb-chip" data-fmt='7"' onclick="explorerSetFormat('7&quot;')">7"</button>
+                            <button class="sb-chip" data-fmt='12"' onclick="explorerSetFormat('12&quot;')">12"</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Country filter (populated from filter_facets) -->
+                <div class="sidebar-section collapsed">
+                    <button class="section-toggle" onclick="toggleSection(this)">
+                        Country <span class="section-toggle-arrow">▾</span>
+                    </button>
+                    <div class="section-body">
+                        <div class="sb-chips" id="explorer-sb-country"></div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- ── MAIN ── -->
+            <div class="dash-main">
+                <div class="cf-topbar">
+                    <span class="cf-count-label" id="explorerMasterCount"></span>
+                </div>
+
+                <!-- Masters grid -->
+                <div class="explorer-masters-grid" id="explorerMastersGrid">
+                    <div style="color:var(--text-muted);font-size:0.82rem;padding:20px 0">
+                        Enter an artist name and click Load.
+                    </div>
+                </div>
+
+                <!-- Versions card (hidden until master selected) -->
+                <div class="card" id="explorerVersionsCard" style="display:none;padding:0;overflow:hidden">
+                    <div class="tbl-header" style="padding:12px 16px">
+                        <h3 id="explorerVersionsTitle">Versions</h3>
+                        <span class="cf-count-label" id="explorerVersionCount"></span>
+                    </div>
+                    <div class="tbl-scroll" style="max-height:calc(100vh - 320px)">
+                        <table>
+                            <thead>
+                                <tr id="explorerVersionHeaders">
+                                    <th style="width:80px">Owned</th>
+                                    <th data-esort="released" style="cursor:pointer">Year ⇅</th>
+                                    <th data-esort="country" style="cursor:pointer">Country ⇅</th>
+                                    <th data-esort="format" style="cursor:pointer">Format ⇅</th>
+                                    <th data-esort="label" style="cursor:pointer">Label ⇅</th>
+                                    <th data-esort="catno" style="cursor:pointer">Catno ⇅</th>
+                                    <th data-esort="in_collection" style="cursor:pointer">In Collection ⇅</th>
+                                    <th data-esort="in_wantlist" style="cursor:pointer">Want ⇅</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="explorerVersionsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div><!-- /.dash-main -->
+
+        </div><!-- /.dash-layout -->
+    </div>
+
     <!-- ════════════════════════════════════════════════════════════════════════ -->
     <!-- MANAGE (Wishlist / Artists / Linking / Admin) -->
     <!-- ════════════════════════════════════════════════════════════════════════ -->
@@ -2089,6 +2204,7 @@ document.getElementById('tabBar').addEventListener('click', e => {
     e.target.classList.add('active');
     document.getElementById('panel-'+e.target.dataset.tab).classList.add('active');
     if (e.target.dataset.tab==='manage') switchManageSub('wishlist');
+    if (e.target.dataset.tab==='explorer' && explorerState.ownedMasters.length === 0) loadExplorerMasters();
 });
 
 function switchManageSub(sub) {
@@ -2647,6 +2763,185 @@ document.getElementById('wlHeaders').addEventListener('click', e => {
         h.textContent = h.textContent.replace(/ [⇅▲▼]$/, '') + arrow;
     });
     renderWishlistTable();
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXPLORER — Artist Version Mapper
+// ═══════════════════════════════════════════════════════════════════════════════
+let explorerState = {
+    ownedMasters: [],
+    selectedMasterId: null,
+    versions: [],
+    filterFacets: [],
+    formatFilter: '',
+    countryFilter: '',
+    sort: { col: 'released', dir: 'asc' },
+};
+
+async function loadExplorerMasters() {
+    const artist = document.getElementById('explorerArtistInput').value.trim();
+    if (!artist) return;
+    const grid = document.getElementById('explorerMastersGrid');
+    const countEl = document.getElementById('explorerMasterCount');
+    grid.innerHTML = '<div style="color:var(--text-muted);font-size:0.82rem;padding:20px 0">Loading…</div>';
+    countEl.textContent = '';
+    document.getElementById('explorerVersionsCard').style.display = 'none';
+    explorerState.selectedMasterId = null;
+    explorerState.versions = [];
+    try {
+        const data = await api(`/api/artist-explorer/owned-masters?artist_name=${encodeURIComponent(artist)}`);
+        explorerState.ownedMasters = data;
+        renderExplorerMastersGrid();
+    } catch(e) {
+        grid.innerHTML = `<div style="color:var(--red);font-size:0.82rem">${esc(e.message)}</div>`;
+    }
+}
+
+function renderExplorerMastersGrid() {
+    const grid = document.getElementById('explorerMastersGrid');
+    const masters = explorerState.ownedMasters;
+    document.getElementById('explorerMasterCount').textContent =
+        masters.length ? `${masters.length} masters` : 'No masters found';
+    if (!masters.length) {
+        grid.innerHTML = '<div style="color:var(--text-muted);font-size:0.82rem;padding:20px 0">No results.</div>';
+        return;
+    }
+    grid.innerHTML = masters.map(m => `
+        <div class="explorer-master-card${m.master_id === explorerState.selectedMasterId ? ' selected' : ''}"
+            data-mid="${m.master_id}" onclick="loadMasterVersions(+this.dataset.mid)">
+            <span class="emc-title" title="${esc(m.title)}">${esc(m.title)}</span>
+            <span class="emc-year">${m.year || '—'}</span>
+            ${m.owned_count > 0 ? `<span class="emc-owned">✓ ${m.owned_count} owned</span>` : ''}
+        </div>
+    `).join('');
+}
+
+async function loadMasterVersions(master_id) {
+    explorerState.selectedMasterId = master_id;
+    explorerState.countryFilter = '';
+    renderExplorerMastersGrid(); // update selected state
+
+    const card = document.getElementById('explorerVersionsCard');
+    const tbody = document.getElementById('explorerVersionsBody');
+    const countEl = document.getElementById('explorerVersionCount');
+    card.style.display = '';
+    tbody.innerHTML = '<tr><td colspan="9" style="color:var(--text-muted);padding:16px">Loading…</td></tr>';
+    countEl.textContent = '';
+
+    try {
+        const params = new URLSearchParams({ page: 1, per_page: 500 });
+        if (explorerState.formatFilter) params.set('format_filter', explorerState.formatFilter);
+        const data = await api(`/api/artist-explorer/master-versions/${master_id}?${params}`);
+        explorerState.versions = data.versions || [];
+        explorerState.filterFacets = data.filter_facets || [];
+
+        const master = explorerState.ownedMasters.find(m => m.master_id === master_id);
+        document.getElementById('explorerVersionsTitle').textContent =
+            master ? esc(master.title) : `Master ${master_id}`;
+
+        explorerPopulateCountryChips();
+        renderExplorerVersionsTable();
+    } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="9" style="color:var(--red);padding:16px">${esc(e.message)}</td></tr>`;
+    }
+}
+
+function explorerPopulateCountryChips() {
+    const container = document.getElementById('explorer-sb-country');
+    if (!container) return;
+    // Build country counts from versions
+    const counts = {};
+    explorerState.versions.forEach(v => {
+        const c = v.country || 'Unknown';
+        counts[c] = (counts[c] || 0) + 1;
+    });
+    container.innerHTML = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([country, n]) => `<button class="sb-chip${explorerState.countryFilter === country ? ' active' : ''}"
+            data-country="${esc(country)}" onclick="explorerSetCountry(this.dataset.country)">
+            ${esc(country)}<span class="sb-chip-count">${n}</span>
+        </button>`).join('');
+}
+
+function explorerSetFormat(fmt) {
+    explorerState.formatFilter = fmt;
+    // Update format chip active state
+    document.querySelectorAll('#explorer-sb-format .sb-chip').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.fmt === fmt);
+    });
+    if (explorerState.selectedMasterId) loadMasterVersions(explorerState.selectedMasterId);
+}
+
+function explorerSetCountry(country) {
+    explorerState.countryFilter = explorerState.countryFilter === country ? '' : country;
+    explorerPopulateCountryChips();
+    renderExplorerVersionsTable();
+}
+
+function renderExplorerVersionsTable() {
+    let items = [...explorerState.versions];
+    if (explorerState.countryFilter)
+        items = items.filter(v => (v.country || 'Unknown') === explorerState.countryFilter);
+
+    const { col, dir } = explorerState.sort;
+    const m = dir === 'asc' ? 1 : -1;
+    items.sort((a, b) => {
+        let va, vb;
+        if (col === 'released' || col === 'in_collection' || col === 'in_wantlist') {
+            const getNum = (v) => {
+                if (col === 'released') return Number(v.released) || 9999;
+                return Number(v.stats?.community?.[col === 'in_collection' ? 'in_collection' : 'in_wantlist']) || 0;
+            };
+            va = getNum(a); vb = getNum(b);
+        } else {
+            va = (a[col] || '').toLowerCase(); vb = (b[col] || '').toLowerCase();
+        }
+        if (va < vb) return -1 * m; if (va > vb) return 1 * m; return 0;
+    });
+
+    document.getElementById('explorerVersionCount').textContent = `${items.length} versions`;
+
+    document.getElementById('explorerVersionsBody').innerHTML = items.map(v => {
+        const owned = v.owned;
+        const inColl = v.stats?.community?.in_collection ?? '—';
+        const inWant = v.stats?.community?.in_wantlist ?? '—';
+        const action = !owned && v.id
+            ? `<button class="btn btn-sync" style="font-size:0.68rem;padding:3px 7px;margin-right:4px"
+                data-mid="${v.id}" onclick="wantByMaster(+this.dataset.mid,'',this)">Want</button>
+               <a href="https://www.discogs.com/release/${v.id}" target="_blank"
+                class="btn" style="font-size:0.68rem;padding:3px 7px;text-decoration:none;color:var(--cyan)">View</a>`
+            : owned
+                ? `<a href="https://www.discogs.com/release/${v.id}" target="_blank"
+                    class="btn" style="font-size:0.68rem;padding:3px 7px;text-decoration:none;color:var(--cyan)">View</a>`
+                : '';
+        const folder = v.owned_folder ? `<br><span style="font-size:0.6rem;color:var(--text-muted)">${esc(v.owned_folder)}</span>` : '';
+        return `<tr style="${owned ? 'background:rgba(74,222,128,0.04)' : ''}">
+            <td>${owned ? `<span class="badge b-owned">OWNED</span>${folder}` : '<span style="color:var(--text-muted)">—</span>'}</td>
+            <td style="font-family:var(--font-mono)">${esc(v.released || '—')}</td>
+            <td>${esc(v.country || '—')}</td>
+            <td style="font-size:0.75rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(v.format || '—')}</td>
+            <td style="font-size:0.75rem;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(v.label || '—')}</td>
+            <td style="font-family:var(--font-mono);font-size:0.72rem">${esc(v.catno || '—')}</td>
+            <td style="font-family:var(--font-mono);text-align:right">${inColl}</td>
+            <td style="font-family:var(--font-mono);text-align:right">${inWant}</td>
+            <td style="white-space:nowrap">${action}</td>
+        </tr>`;
+    }).join('');
+}
+
+// Explorer version table sort
+document.getElementById('explorerVersionHeaders').addEventListener('click', e => {
+    const th = e.target.closest('th[data-esort]');
+    if (!th) return;
+    const c = th.dataset.esort;
+    if (explorerState.sort.col === c) explorerState.sort.dir = explorerState.sort.dir === 'asc' ? 'desc' : 'asc';
+    else { explorerState.sort.col = c; explorerState.sort.dir = 'asc'; }
+    document.querySelectorAll('#explorerVersionHeaders th[data-esort]').forEach(h => {
+        const a = h.dataset.esort === explorerState.sort.col
+            ? (explorerState.sort.dir === 'asc' ? ' ▲' : ' ▼') : ' ⇅';
+        h.textContent = h.textContent.replace(/ [⇅▲▼]$/, '') + a;
+    });
+    renderExplorerVersionsTable();
 });
 
 function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
