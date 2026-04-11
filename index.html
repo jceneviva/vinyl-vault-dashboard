@@ -2919,7 +2919,7 @@ function renderExplorerVersionsTable() {
             <td>${owned ? `<span class="badge b-owned">OWNED</span>${folder}` : '<span style="color:var(--text-muted)">—</span>'}</td>
             <td style="font-family:var(--font-mono)">${esc(v.released || '—')}</td>
             <td>${esc(v.country || '—')}</td>
-            <td style="font-size:0.75rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(v.format || '—')}</td>
+            <td style="font-size:0.75rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc([...(v.major_formats||[]), v.format].filter(Boolean).join(', '))}">${esc([...(v.major_formats||[]), v.format].filter(Boolean).join(', ') || '—')}</td>
             <td style="font-size:0.75rem;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(v.label || '—')}</td>
             <td style="font-family:var(--font-mono);font-size:0.72rem">${esc(v.catno || '—')}</td>
             <td style="font-family:var(--font-mono);text-align:right">${inColl}</td>
