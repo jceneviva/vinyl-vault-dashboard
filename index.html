@@ -997,8 +997,6 @@ tbody tr:hover { background: var(--bg-card-hover); }
                                     <th data-esort="format" style="cursor:pointer">Format ⇅</th>
                                     <th data-esort="label" style="cursor:pointer">Label ⇅</th>
                                     <th data-esort="catno" style="cursor:pointer">Catno ⇅</th>
-                                    <th data-esort="in_collection" style="cursor:pointer">In Collection ⇅</th>
-                                    <th data-esort="in_wantlist" style="cursor:pointer">Want ⇅</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -2825,7 +2823,7 @@ async function loadMasterVersions(master_id) {
     const tbody = document.getElementById('explorerVersionsBody');
     const countEl = document.getElementById('explorerVersionCount');
     card.style.display = '';
-    tbody.innerHTML = '<tr><td colspan="9" style="color:var(--text-muted);padding:16px">Loading…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--text-muted);padding:16px">Loading…</td></tr>';
     countEl.textContent = '';
 
     try {
@@ -2842,7 +2840,7 @@ async function loadMasterVersions(master_id) {
         explorerPopulateCountryChips();
         renderExplorerVersionsTable();
     } catch(e) {
-        tbody.innerHTML = `<tr><td colspan="9" style="color:var(--red);padding:16px">${esc(e.message)}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="color:var(--red);padding:16px">${esc(e.message)}</td></tr>`;
     }
 }
 
@@ -2887,12 +2885,8 @@ function renderExplorerVersionsTable() {
     const m = dir === 'asc' ? 1 : -1;
     items.sort((a, b) => {
         let va, vb;
-        if (col === 'released' || col === 'in_collection' || col === 'in_wantlist') {
-            const getNum = (v) => {
-                if (col === 'released') return Number(v.released) || 9999;
-                return Number(v.stats?.community?.[col === 'in_collection' ? 'in_collection' : 'in_wantlist']) || 0;
-            };
-            va = getNum(a); vb = getNum(b);
+        if (col === 'released') {
+            va = Number(a.released) || 9999; vb = Number(b.released) || 9999;
         } else {
             va = (a[col] || '').toLowerCase(); vb = (b[col] || '').toLowerCase();
         }
@@ -2903,8 +2897,6 @@ function renderExplorerVersionsTable() {
 
     document.getElementById('explorerVersionsBody').innerHTML = items.map(v => {
         const owned = v.owned;
-        const inColl = v.stats?.community?.in_collection ?? '—';
-        const inWant = v.stats?.community?.in_wantlist ?? '—';
         const action = !owned && v.id
             ? `<button class="btn btn-sync" style="font-size:0.68rem;padding:3px 7px;margin-right:4px"
                 data-mid="${v.id}" onclick="wantByMaster(+this.dataset.mid,'',this)">Want</button>
@@ -2922,8 +2914,6 @@ function renderExplorerVersionsTable() {
             <td style="font-size:0.75rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc([...(v.major_formats||[]), v.format].filter(Boolean).join(', '))}">${esc([...(v.major_formats||[]), v.format].filter(Boolean).join(', ') || '—')}</td>
             <td style="font-size:0.75rem;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(v.label || '—')}</td>
             <td style="font-family:var(--font-mono);font-size:0.72rem">${esc(v.catno || '—')}</td>
-            <td style="font-family:var(--font-mono);text-align:right">${inColl}</td>
-            <td style="font-family:var(--font-mono);text-align:right">${inWant}</td>
             <td style="white-space:nowrap">${action}</td>
         </tr>`;
     }).join('');
