@@ -1283,7 +1283,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
                             <div id="editorOwnedStatus" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px"></div>
                             <div class="tbl-scroll">
                                 <table class="data-table">
-                                    <thead><tr><th>Artist</th><th>Title</th><th>Format</th><th>Folder</th><th>Media</th><th>Sleeve</th><th></th></tr></thead>
+                                    <thead><tr><th style="width:48px"></th><th>Artist</th><th>Title</th><th>Format</th><th>Folder</th><th>Media</th><th>Sleeve</th><th></th></tr></thead>
                                     <tbody id="editorOwnedBody"></tbody>
                                 </table>
                             </div>
@@ -3199,7 +3199,11 @@ function renderOwnedEditResults() {
     tbody.innerHTML = editorState.ownedResults.map((r, idx) => {
         const media  = _noteVal(r.notes_raw, mediaDef.id);
         const sleeve = _noteVal(r.notes_raw, sleeveDef.id);
+        const thumb = r.thumb
+            ? `<img src="${esc(r.thumb)}" style="width:40px;height:40px;object-fit:cover;border-radius:3px;display:block" loading="lazy" alt="">`
+            : `<div style="width:40px;height:40px;background:var(--bg-surface);border-radius:3px"></div>`;
         return `<tr>
+            <td style="padding:4px">${thumb}</td>
             <td>${esc(r.artist_name)}</td>
             <td>${esc(r.basic_title)}</td>
             <td>${esc(r.format_primary)}</td>
