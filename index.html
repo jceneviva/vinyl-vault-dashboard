@@ -192,6 +192,18 @@ tbody tr:hover { background: var(--bg-card-hover); }
 .btn-action { background: var(--gold-glow); color: var(--gold); border-color: rgba(201,168,76,0.25); }
 .btn:hover { filter: brightness(1.15); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: rgba(91,140,247,0.15); color: var(--blue); border-color: rgba(91,140,247,0.35); border-radius: var(--radius-sm); padding: 7px 16px; font-size: 0.82rem; cursor: pointer; border-width: 1px; border-style: solid; transition: var(--transition); }
+.btn-primary:hover { background: rgba(91,140,247,0.25); }
+.btn-secondary { background: none; color: var(--text-muted); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 7px 14px; font-size: 0.82rem; cursor: pointer; transition: var(--transition); }
+.btn-secondary:hover { border-color: var(--border-hover); color: var(--text-secondary); }
+.btn-danger { background: rgba(220,50,50,0.12); color: #e05555; border: 1px solid rgba(220,50,50,0.35); border-radius: var(--radius-sm); padding: 7px 14px; font-size: 0.82rem; cursor: pointer; transition: var(--transition); }
+.btn-danger:hover { background: rgba(220,50,50,0.22); }
+.editor-mode-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.editor-mode-btn { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 18px; color: var(--text-muted); cursor: pointer; font-size: 0.82rem; transition: var(--transition); }
+.editor-mode-btn.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+.editor-fields-grid { display: grid; grid-template-columns: 140px 1fr; gap: 8px 12px; align-items: center; }
+.form-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+.editor-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 3px; background: var(--bg-surface); flex-shrink: 0; }
 
 /* ═══ TOP RATED LIST ═══ */
 .top-item {
@@ -1028,6 +1040,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
                     <button class="manage-nav-btn" data-sub="artists">Artists</button>
                     <button class="manage-nav-btn" data-sub="linking">Linking</button>
                     <button class="manage-nav-btn" data-sub="admin">Admin</button>
+                    <button class="manage-nav-btn" data-sub="editor">Editor</button>
                 </div>
 
                 <!-- Wishlist filters -->
@@ -1222,6 +1235,99 @@ tbody tr:hover { background: var(--bg-card-hover); }
                             <button class="btn btn-snap" onclick="downloadSnapshot()" id="snapBtn">Download Curator Snapshot</button>
                         </div>
                         <div id="purgeResult" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);min-height:20px"></div>
+                    </div>
+                </div>
+
+                <!-- ── EDITOR ── -->
+                <div class="manage-sub" data-sub="editor">
+                    <div class="card">
+                        <!-- Mode toggle -->
+                        <div class="editor-mode-bar">
+                            <button class="editor-mode-btn active" data-mode="add" onclick="editorSetMode('add')">Search &amp; Add</button>
+                            <button class="editor-mode-btn" data-mode="edit" onclick="editorSetMode('edit')">Edit Owned</button>
+                        </div>
+
+                        <!-- ADD PANEL -->
+                        <div id="editorAddPanel">
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
+                                <input id="editorQ" class="inp" placeholder="Title or artist…" style="flex:2;min-width:160px"
+                                    onkeydown="if(event.key==='Enter')searchDiscogsReleases(1)">
+                                <select id="editorFormat" class="sel" style="min-width:100px">
+                                    <option value="">Any format</option>
+                                    <option value="Vinyl">Vinyl</option>
+                                    <option value="CD">CD</option>
+                                    <option value="Cassette">Cassette</option>
+                                    <option value="Blu-ray">Blu-ray</option>
+                                </select>
+                                <input id="editorYear" class="inp" placeholder="Year" style="width:70px"
+                                    onkeydown="if(event.key==='Enter')searchDiscogsReleases(1)">
+                                <button class="btn-primary" onclick="searchDiscogsReleases(1)">Search</button>
+                            </div>
+                            <div id="editorSearchStatus" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px"></div>
+                            <div class="tbl-scroll">
+                                <table class="data-table">
+                                    <thead><tr><th style="width:48px"></th><th>Artist / Title</th><th>Format</th><th>Year</th><th>Country</th><th>Label</th><th>Cat#</th><th></th></tr></thead>
+                                    <tbody id="editorSearchBody"></tbody>
+                                </table>
+                            </div>
+                            <div id="editorSearchPager" style="display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap"></div>
+                        </div>
+
+                        <!-- EDIT PANEL -->
+                        <div id="editorEditPanel" style="display:none">
+                            <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+                                <input id="editorOwnedQ" class="inp" placeholder="Search owned releases…" style="flex:1"
+                                    onkeydown="if(event.key==='Enter')searchOwnedForEdit()">
+                                <button class="btn-primary" onclick="searchOwnedForEdit()">Search</button>
+                            </div>
+                            <div id="editorOwnedStatus" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px"></div>
+                            <div class="tbl-scroll">
+                                <table class="data-table">
+                                    <thead><tr><th>Artist</th><th>Title</th><th>Format</th><th>Folder</th><th>Media</th><th>Sleeve</th><th></th></tr></thead>
+                                    <tbody id="editorOwnedBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Editor dialog (shared Add / Edit) -->
+                <div class="dialog-overlay" id="editorDialog">
+                    <div class="dialog" style="max-width:520px;width:95%">
+                        <h3 id="editorDialogTitle" style="font-family:var(--font-display);font-style:italic;margin-bottom:8px">Add to Collection</h3>
+                        <div id="editorDialogInfo" style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:14px"></div>
+                        <div class="editor-fields-grid">
+                            <span class="form-label">Folder</span>
+                            <select id="editorDialogFolder" class="sel" style="width:100%"></select>
+                            <span class="form-label">Media Condition</span>
+                            <select id="edField1" class="sel">
+                                <option value="">—</option>
+                                <option>Mint (M)</option><option>Near Mint (NM or M-)</option>
+                                <option>Very Good Plus (VG+)</option><option>Very Good (VG)</option>
+                                <option>Good Plus (G+)</option><option>Good (G)</option>
+                                <option>Fair (F)</option><option>Poor (P)</option>
+                            </select>
+                            <span class="form-label">Sleeve Condition</span>
+                            <select id="edField2" class="sel">
+                                <option value="">—</option>
+                                <option>Mint (M)</option><option>Near Mint (NM or M-)</option>
+                                <option>Very Good Plus (VG+)</option><option>Very Good (VG)</option>
+                                <option>Good Plus (G+)</option><option>Good (G)</option>
+                                <option>Fair (F)</option><option>Poor (P)</option>
+                            </select>
+                            <span class="form-label">Edition</span>
+                            <input id="edField8" class="inp" placeholder="Original, Reissue, Remaster…">
+                            <span class="form-label">Pressing</span>
+                            <input id="edField10" class="inp" placeholder="FirstEdition, JP, BR…">
+                            <span class="form-label">Notes</span>
+                            <input id="edField11" class="inp" placeholder="Free text…">
+                        </div>
+                        <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end;align-items:center">
+                            <button class="btn-secondary" onclick="closeEditorDialog()">Cancel</button>
+                            <button class="btn-danger" id="editorDeleteBtn" style="display:none" onclick="confirmRemoveItem()">Delete</button>
+                            <button class="btn-primary" id="editorConfirmBtn" onclick="confirmEditorDialog()">Add to Collection</button>
+                        </div>
+                        <div id="editorDialogMsg" style="font-size:0.78rem;color:var(--red);margin-top:8px;min-height:16px"></div>
                     </div>
                 </div>
 
@@ -2224,6 +2330,7 @@ function switchManageSub(sub) {
     if (sub === 'linking' && linkingState.items.length === 0) loadLinkingData();
     if (sub === 'artists' && artistsState.items.length === 0) loadArtists();
     if (sub === 'wishlist' && wlState.items.length === 0) loadWishlist();
+    if (sub === 'editor' && editorState.folders.length === 0) loadEditorFolders();
 }
 
 document.getElementById('manageSubNav').addEventListener('click', e => {
@@ -2942,6 +3049,323 @@ document.getElementById('explorerVersionHeaders').addEventListener('click', e =>
     });
     renderExplorerVersionsTable();
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COLLECTION EDITOR
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let editorState = {
+    mode: 'add',
+    folders: [],
+    searchResults: [],
+    searchPage: 1,
+    searchPages: 1,
+    selectedRelease: null,   // release chosen from Discogs search
+    ownedResults: [],
+    editingItem: null,       // item being edited (has instance_id, folder_id, etc.)
+    dialogMode: 'add',       // 'add' | 'edit'
+};
+
+async function loadEditorFolders() {
+    try {
+        const data = await api('/api/collection/folders');
+        editorState.folders = Array.isArray(data) ? data : [];
+    } catch(e) { editorState.folders = []; }
+}
+
+function editorSetMode(mode) {
+    editorState.mode = mode;
+    document.querySelectorAll('.editor-mode-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.mode === mode));
+    document.getElementById('editorAddPanel').style.display = mode === 'add' ? '' : 'none';
+    document.getElementById('editorEditPanel').style.display = mode === 'edit' ? '' : 'none';
+}
+
+// ── Search & Add ─────────────────────────────────────────────────────────────
+
+async function searchDiscogsReleases(page) {
+    page = page || editorState.searchPage;
+    const q      = document.getElementById('editorQ').value.trim();
+    const format = document.getElementById('editorFormat').value;
+    const year   = document.getElementById('editorYear').value.trim();
+    const status = document.getElementById('editorSearchStatus');
+    if (!q) { status.textContent = 'Enter a title or artist to search.'; return; }
+    status.textContent = 'Searching…';
+    document.getElementById('editorSearchBody').innerHTML = '';
+    document.getElementById('editorSearchPager').innerHTML = '';
+    try {
+        let url = `/api/discogs/search?page=${page}`;
+        if (q)      url += `&q=${encodeURIComponent(q)}`;
+        if (format) url += `&format=${encodeURIComponent(format)}`;
+        if (year)   url += `&year=${encodeURIComponent(year)}`;
+        const data = await api(url);
+        editorState.searchResults = data.results || [];
+        editorState.searchPage    = data.pagination?.page  || page;
+        editorState.searchPages   = data.pagination?.pages || 1;
+        status.textContent = data.pagination?.items
+            ? `${data.pagination.items.toLocaleString()} results — page ${editorState.searchPage} of ${editorState.searchPages}`
+            : 'No results.';
+        renderEditorSearchResults();
+        renderEditorPager();
+    } catch(e) { status.textContent = 'Search error: ' + e.message; }
+}
+
+function renderEditorSearchResults() {
+    const tbody = document.getElementById('editorSearchBody');
+    if (!editorState.searchResults.length) { tbody.innerHTML = ''; return; }
+    tbody.innerHTML = editorState.searchResults.map((r, idx) => {
+        const thumb = r.thumb
+            ? `<img class="editor-thumb" src="${esc(r.thumb)}" loading="lazy" alt="">`
+            : `<div class="editor-thumb" style="display:inline-block"></div>`;
+        return `<tr>
+            <td style="padding:4px">${thumb}</td>
+            <td>${esc(r.title)}</td>
+            <td>${esc(r.format)}</td>
+            <td>${esc(r.year)}</td>
+            <td>${esc(r.country)}</td>
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.label)}">${esc(r.label)}</td>
+            <td>${esc(r.catno)}</td>
+            <td><button class="btn-primary" style="padding:4px 10px;font-size:0.75rem"
+                data-idx="${idx}" onclick="openAddDialogByIdx(this.dataset.idx)">+</button></td>
+        </tr>`;
+    }).join('');
+}
+
+function openAddDialogByIdx(idx) {
+    openAddDialog(editorState.searchResults[parseInt(idx)]);
+}
+
+function renderEditorPager() {
+    const el = document.getElementById('editorSearchPager');
+    const { searchPage: p, searchPages: pages } = editorState;
+    if (pages <= 1) { el.innerHTML = ''; return; }
+    let html = '';
+    if (p > 1) html += `<button class="btn-ghost" onclick="searchDiscogsReleases(${p-1})">‹ Prev</button>`;
+    html += `<span style="font-size:0.78rem;color:var(--text-muted);align-self:center">${p} / ${pages}</span>`;
+    if (p < pages) html += `<button class="btn-ghost" onclick="searchDiscogsReleases(${p+1})">Next ›</button>`;
+    el.innerHTML = html;
+}
+
+function openAddDialog(release) {
+    editorState.selectedRelease = release;
+    editorState.dialogMode = 'add';
+    // Populate folder dropdown
+    const fsel = document.getElementById('editorDialogFolder');
+    fsel.innerHTML = editorState.folders.map(f =>
+        `<option value="${f.folder_id}">${esc(f.name)}</option>`).join('');
+    // Release info
+    document.getElementById('editorDialogTitle').textContent = 'Add to Collection';
+    document.getElementById('editorDialogInfo').textContent =
+        `${release.title}  •  ${release.format || ''}  •  ${release.year || ''}  •  ${release.country || ''}`;
+    // Clear fields
+    ['edField1','edField2','edField8','edField10','edField11'].forEach(id =>
+        { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('editorDeleteBtn').style.display = 'none';
+    document.getElementById('editorConfirmBtn').textContent = 'Add to Collection';
+    document.getElementById('editorDialogMsg').textContent = '';
+    document.getElementById('editorDialog').style.display = 'flex';
+}
+
+// ── Edit Owned ───────────────────────────────────────────────────────────────
+
+async function searchOwnedForEdit() {
+    const q = document.getElementById('editorOwnedQ').value.trim();
+    const status = document.getElementById('editorOwnedStatus');
+    status.textContent = 'Searching…';
+    document.getElementById('editorOwnedBody').innerHTML = '';
+    try {
+        const url = `/api/collection/edit-items?limit=100` + (q ? `&search=${encodeURIComponent(q)}` : '');
+        const rows = await api(url);
+        editorState.ownedResults = Array.isArray(rows) ? rows : [];
+        status.textContent = editorState.ownedResults.length
+            ? `${editorState.ownedResults.length} item(s) found`
+            : 'No results.';
+        renderOwnedEditResults();
+    } catch(e) { status.textContent = 'Error: ' + e.message; }
+}
+
+function renderOwnedEditResults() {
+    const tbody = document.getElementById('editorOwnedBody');
+    tbody.innerHTML = editorState.ownedResults.map((r, idx) =>
+        `<tr>
+            <td>${esc(r.artist_name)}</td>
+            <td>${esc(r.basic_title)}</td>
+            <td>${esc(r.format_primary)}</td>
+            <td>${esc(r.folder_name)}</td>
+            <td>${r.media_condition ? esc(r.media_condition) : '<span style="color:var(--text-muted)">—</span>'}</td>
+            <td>${r.sleeve_condition ? esc(r.sleeve_condition) : '<span style="color:var(--text-muted)">—</span>'}</td>
+            <td><button class="btn-ghost" data-idx="${idx}" onclick="openEditDialogByIdx(this.dataset.idx)">Edit</button></td>
+        </tr>`
+    ).join('');
+}
+
+function openEditDialogByIdx(idx) {
+    openEditDialog(editorState.ownedResults[parseInt(idx)]);
+}
+
+function openEditDialog(item) {
+    editorState.editingItem = item;
+    editorState.dialogMode = 'edit';
+    // Populate folder dropdown with current folder pre-selected
+    const fsel = document.getElementById('editorDialogFolder');
+    fsel.innerHTML = editorState.folders.map(f =>
+        `<option value="${f.folder_id}" ${f.folder_id === item.folder_id ? 'selected' : ''}>${esc(f.name)}</option>`
+    ).join('');
+    // Release info header
+    document.getElementById('editorDialogTitle').textContent = 'Edit Item';
+    document.getElementById('editorDialogInfo').textContent =
+        `${item.artist_name} — ${item.basic_title}  •  ${item.format_primary || ''}  •  ${item.basic_year || ''}`;
+    // Pre-fill fields
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    setVal('edField1',  item.media_condition);
+    setVal('edField2',  item.sleeve_condition);
+    setVal('edField8',  item.edition);
+    setVal('edField10', item.pressing);
+    setVal('edField11', item.notes);
+    document.getElementById('editorDeleteBtn').style.display = '';
+    document.getElementById('editorConfirmBtn').textContent = 'Save Changes';
+    document.getElementById('editorDialogMsg').textContent = '';
+    document.getElementById('editorDialog').style.display = 'flex';
+}
+
+// ── Dialog actions ───────────────────────────────────────────────────────────
+
+async function confirmEditorDialog() {
+    if (editorState.dialogMode === 'add') {
+        await _doAdd();
+    } else {
+        await _doSaveEdit();
+    }
+}
+
+async function _doAdd() {
+    const release    = editorState.selectedRelease;
+    const folderId   = parseInt(document.getElementById('editorDialogFolder').value);
+    const msgEl      = document.getElementById('editorDialogMsg');
+    const confirmBtn = document.getElementById('editorConfirmBtn');
+    if (!release || !folderId) { msgEl.textContent = 'Choose a folder.'; return; }
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Adding…';
+    msgEl.textContent = '';
+    try {
+        const res = await api(`/api/collection/add?release_id=${release.release_id}&folder_id=${folderId}`);
+        if (!res.success) throw new Error(res.detail || 'Error');
+        const { instance_id } = res;
+        // Set custom fields (only non-empty ones)
+        const fields = [
+            [1, document.getElementById('edField1').value],
+            [2, document.getElementById('edField2').value],
+            [8, document.getElementById('edField8').value],
+            [10, document.getElementById('edField10').value],
+            [11, document.getElementById('edField11').value],
+        ];
+        for (const [fid, val] of fields) {
+            if (val && val.trim()) {
+                await api(`/api/collection/set-field?release_id=${release.release_id}&instance_id=${instance_id}&folder_id=${folderId}&field_id=${fid}&value=${encodeURIComponent(val)}`);
+            }
+        }
+        closeEditorDialog();
+        _editorToast(`Added "${release.title}" to collection`, 'success');
+        // Refresh in-memory state so Dashboard & Collection reflect change
+        if (typeof loadNotes === 'function') loadNotes();
+    } catch(e) {
+        msgEl.textContent = 'Error: ' + e.message;
+    } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Add to Collection';
+    }
+}
+
+async function _doSaveEdit() {
+    const item       = editorState.editingItem;
+    const newFolder  = parseInt(document.getElementById('editorDialogFolder').value);
+    const msgEl      = document.getElementById('editorDialogMsg');
+    const confirmBtn = document.getElementById('editorConfirmBtn');
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Saving…';
+    msgEl.textContent = '';
+    try {
+        // Move folder if changed
+        if (newFolder !== item.folder_id) {
+            await api(`/api/collection/move-folder?release_id=${item.release_id}&instance_id=${item.instance_id}&from_folder_id=${item.folder_id}&to_folder_id=${newFolder}`);
+        }
+        // Update each editable custom field
+        const fields = [
+            [1, document.getElementById('edField1').value,  item.media_condition],
+            [2, document.getElementById('edField2').value,  item.sleeve_condition],
+            [8, document.getElementById('edField8').value,  item.edition],
+            [10, document.getElementById('edField10').value, item.pressing],
+            [11, document.getElementById('edField11').value, item.notes],
+        ];
+        const fid = newFolder !== item.folder_id ? newFolder : item.folder_id;
+        for (const [fieldId, newVal, oldVal] of fields) {
+            if ((newVal || '') !== (oldVal || '')) {
+                await api(`/api/collection/set-field?release_id=${item.release_id}&instance_id=${item.instance_id}&folder_id=${fid}&field_id=${fieldId}&value=${encodeURIComponent(newVal || '')}`);
+            }
+        }
+        closeEditorDialog();
+        _editorToast('Changes saved', 'success');
+        if (typeof loadNotes === 'function') loadNotes();
+        // Refresh the owned list so edits are reflected
+        searchOwnedForEdit();
+    } catch(e) {
+        msgEl.textContent = 'Error: ' + e.message;
+    } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Save Changes';
+    }
+}
+
+async function confirmRemoveItem() {
+    const item   = editorState.editingItem;
+    const msgEl  = document.getElementById('editorDialogMsg');
+    const delBtn = document.getElementById('editorDeleteBtn');
+    if (!item) return;
+    // Inline confirm: first click turns red and changes label
+    if (delBtn.dataset.confirming !== '1') {
+        delBtn.dataset.confirming = '1';
+        delBtn.textContent = 'Confirm Delete';
+        return;
+    }
+    delBtn.disabled = true;
+    msgEl.textContent = '';
+    try {
+        await api(`/api/collection/remove?release_id=${item.release_id}&instance_id=${item.instance_id}&folder_id=${item.folder_id}`);
+        closeEditorDialog();
+        _editorToast(`Removed "${item.basic_title}" from collection`, 'success');
+        if (typeof loadNotes === 'function') loadNotes();
+        searchOwnedForEdit();
+    } catch(e) {
+        msgEl.textContent = 'Error: ' + e.message;
+        delBtn.disabled = false;
+    }
+}
+
+function closeEditorDialog() {
+    document.getElementById('editorDialog').style.display = 'none';
+    editorState.selectedRelease = null;
+    editorState.editingItem = null;
+    const delBtn = document.getElementById('editorDeleteBtn');
+    delBtn.dataset.confirming = '';
+    delBtn.textContent = 'Delete';
+}
+
+function _editorToast(msg, type) {
+    let t = document.getElementById('editorToast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'editorToast';
+        t.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2000;padding:10px 18px;border-radius:8px;font-size:0.82rem;font-weight:500;transition:opacity 0.4s';
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.background = type === 'success' ? 'rgba(74,222,128,0.2)' : 'rgba(248,113,113,0.2)';
+    t.style.border = type === 'success' ? '1px solid rgba(74,222,128,0.4)' : '1px solid rgba(248,113,113,0.4)';
+    t.style.color = type === 'success' ? 'var(--green)' : 'var(--red)';
+    t.style.opacity = '1';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3000);
+}
 
 function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
