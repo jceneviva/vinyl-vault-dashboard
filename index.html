@@ -200,6 +200,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
 }
 .top-rank { font-family: var(--font-mono); color: var(--gold); width: 28px; font-size: 0.78rem; flex-shrink: 0; }
 .top-name { flex: 1; font-size: 0.82rem; font-weight: 500; }
+.top-copies { font-family: var(--font-mono); font-size: 0.68rem; color: var(--accent); background: var(--accent-glow); border: 1px solid var(--accent); border-radius: 10px; padding: 1px 7px; flex-shrink: 0; white-space: nowrap; }
 .top-rating { font-family: var(--font-mono); color: var(--gold); font-size: 0.82rem; flex-shrink: 0; }
 
 /* ═══ LOGIN ═══ */
@@ -1430,6 +1431,13 @@ function dashUpdateMetrics(filtered) {
 
 function dashUpdateRanking(filtered) {
     const rbm = state.ratingByMaster || {};
+    // Count copies per master_id (or release_id as fallback)
+    const copiesCount = {};
+    filtered.forEach(i => {
+        const key = i.master_id || i.release_id;
+        if (!key) return;
+        copiesCount[key] = (copiesCount[key] || 0) + 1;
+    });
     // Deduplicate by master_id (or release_id as fallback)
     const seen = new Set();
     const allAlbums = [];
@@ -1442,7 +1450,8 @@ function dashUpdateRanking(filtered) {
             artist: i.artist_name || '',
             title: i.basic_title || '',
             rating: ratingInfo ? ratingInfo.rating : null,
-            year: (i.original_year && i.original_year > 0) ? i.original_year : null
+            year: (i.original_year && i.original_year > 0) ? i.original_year : null,
+            copies: copiesCount[key] || 1
         });
     });
 
@@ -1471,14 +1480,14 @@ function dashUpdateRanking(filtered) {
     if (rated.length > 0) {
         html += '<div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;padding:6px 0 4px;border-bottom:1px solid var(--border);margin-bottom:2px">Ranked by Rating</div>';
         html += rated.map((item, i) =>
-            `<div class="top-item"><span class="top-rank">#${i + 1}</span><span class="top-name">${esc(item.artist)} — ${esc(item.title)}${item.year ? ' <span style="color:var(--text-muted);font-size:0.72rem">(' + item.year + ')</span>' : ''}</span><span class="top-rating">${Number(item.rating).toFixed(2)}</span></div>`
+            `<div class="top-item"><span class="top-rank">#${i + 1}</span><span class="top-name">${esc(item.artist)} — ${esc(item.title)}${item.year ? ' <span style="color:var(--text-muted);font-size:0.72rem">(' + item.year + ')</span>' : ''}</span>${item.copies > 1 ? `<span class="top-copies" title="${item.copies} editions owned">${item.copies}x</span>` : ''}<span class="top-rating">${Number(item.rating).toFixed(2)}</span></div>`
         ).join('');
     }
     // Unrated section
     if (unrated.length > 0) {
         html += '<div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;padding:10px 0 4px;border-bottom:1px solid var(--border);margin-bottom:2px">Unrated — Alphabetical</div>';
         html += unrated.map(item =>
-            `<div class="top-item"><span class="top-rank" style="color:var(--text-muted)">—</span><span class="top-name" style="color:var(--text-secondary)">${esc(item.artist)} — ${esc(item.title)}${item.year ? ' <span style="color:var(--text-muted);font-size:0.72rem">(' + item.year + ')</span>' : ''}</span><span class="top-rating" style="color:var(--text-muted)">—</span></div>`
+            `<div class="top-item"><span class="top-rank" style="color:var(--text-muted)">—</span><span class="top-name" style="color:var(--text-secondary)">${esc(item.artist)} — ${esc(item.title)}${item.year ? ' <span style="color:var(--text-muted);font-size:0.72rem">(' + item.year + ')</span>' : ''}</span>${item.copies > 1 ? `<span class="top-copies" title="${item.copies} editions owned">${item.copies}x</span>` : ''}<span class="top-rating" style="color:var(--text-muted)">—</span></div>`
         ).join('');
     }
     if (total === 0) {
