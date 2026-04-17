@@ -1299,29 +1299,8 @@ tbody tr:hover { background: var(--bg-card-hover); }
                         <div class="editor-fields-grid">
                             <span class="form-label">Folder</span>
                             <select id="editorDialogFolder" class="sel" style="width:100%"></select>
-                            <span class="form-label">Media Condition</span>
-                            <select id="edField1" class="sel">
-                                <option value="">—</option>
-                                <option>Mint (M)</option><option>Near Mint (NM or M-)</option>
-                                <option>Very Good Plus (VG+)</option><option>Very Good (VG)</option>
-                                <option>Good Plus (G+)</option><option>Good (G)</option>
-                                <option>Fair (F)</option><option>Poor (P)</option>
-                            </select>
-                            <span class="form-label">Sleeve Condition</span>
-                            <select id="edField2" class="sel">
-                                <option value="">—</option>
-                                <option>Mint (M)</option><option>Near Mint (NM or M-)</option>
-                                <option>Very Good Plus (VG+)</option><option>Very Good (VG)</option>
-                                <option>Good Plus (G+)</option><option>Good (G)</option>
-                                <option>Fair (F)</option><option>Poor (P)</option>
-                            </select>
-                            <span class="form-label">Edition</span>
-                            <input id="edField8" class="inp" placeholder="Original, Reissue, Remaster…">
-                            <span class="form-label">Pressing</span>
-                            <input id="edField10" class="inp" placeholder="FirstEdition, JP, BR…">
-                            <span class="form-label">Notes</span>
-                            <input id="edField11" class="inp" placeholder="Free text…">
                         </div>
+                        <div id="editorDynamicFields" class="editor-fields-grid" style="margin-top:8px"></div>
                         <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end;align-items:center">
                             <button class="btn-secondary" onclick="closeEditorDialog()">Cancel</button>
                             <button class="btn-danger" id="editorDeleteBtn" style="display:none" onclick="confirmRemoveItem()">Delete</button>
@@ -3057,20 +3036,25 @@ document.getElementById('explorerVersionHeaders').addEventListener('click', e =>
 let editorState = {
     mode: 'add',
     folders: [],
+    fieldDefs: [],           // [{id, name, type, options[], position}] from Discogs
     searchResults: [],
     searchPage: 1,
     searchPages: 1,
-    selectedRelease: null,   // release chosen from Discogs search
+    selectedRelease: null,
     ownedResults: [],
-    editingItem: null,       // item being edited (has instance_id, folder_id, etc.)
-    dialogMode: 'add',       // 'add' | 'edit'
+    editingItem: null,
+    dialogMode: 'add',
 };
 
 async function loadEditorFolders() {
     try {
-        const data = await api('/api/collection/folders');
-        editorState.folders = Array.isArray(data) ? data : [];
-    } catch(e) { editorState.folders = []; }
+        const [folders, fields] = await Promise.all([
+            api('/api/collection/folders'),
+            api('/api/collection/field-defs'),
+        ]);
+        editorState.folders   = Array.isArray(folders) ? folders : [];
+        editorState.fieldDefs = Array.isArray(fields)  ? fields  : [];
+    } catch(e) { editorState.folders = []; editorState.fieldDefs = []; }
 }
 
 function editorSetMode(mode) {
@@ -3146,20 +3130,37 @@ function renderEditorPager() {
     el.innerHTML = html;
 }
 
+function _buildEditorFields(currentValues) {
+    // currentValues: object keyed by field_id → value string (or null for add mode)
+    const container = document.getElementById('editorDynamicFields');
+    if (!editorState.fieldDefs.length) {
+        container.innerHTML = '<span style="color:var(--text-muted);font-size:0.8rem;grid-column:1/-1">Loading fields…</span>';
+        return;
+    }
+    container.innerHTML = editorState.fieldDefs.map(f => {
+        const val = (currentValues && currentValues[f.id]) || '';
+        let input;
+        if (f.type === 'dropdown') {
+            const opts = `<option value="">—</option>` +
+                f.options.map(o => `<option${o === val ? ' selected' : ''}>${esc(o)}</option>`).join('');
+            input = `<select id="edField${f.id}" class="sel">${opts}</select>`;
+        } else {
+            input = `<input id="edField${f.id}" class="inp" value="${esc(val)}" placeholder="…">`;
+        }
+        return `<span class="form-label">${esc(f.name)}</span>${input}`;
+    }).join('');
+}
+
 function openAddDialog(release) {
     editorState.selectedRelease = release;
     editorState.dialogMode = 'add';
-    // Populate folder dropdown
     const fsel = document.getElementById('editorDialogFolder');
     fsel.innerHTML = editorState.folders.map(f =>
         `<option value="${f.folder_id}">${esc(f.name)}</option>`).join('');
-    // Release info
     document.getElementById('editorDialogTitle').textContent = 'Add to Collection';
     document.getElementById('editorDialogInfo').textContent =
         `${release.title}  •  ${release.format || ''}  •  ${release.year || ''}  •  ${release.country || ''}`;
-    // Clear fields
-    ['edField1','edField2','edField8','edField10','edField11'].forEach(id =>
-        { const el = document.getElementById(id); if (el) el.value = ''; });
+    _buildEditorFields(null);
     document.getElementById('editorDeleteBtn').style.display = 'none';
     document.getElementById('editorConfirmBtn').textContent = 'Add to Collection';
     document.getElementById('editorDialogMsg').textContent = '';
@@ -3184,19 +3185,30 @@ async function searchOwnedForEdit() {
     } catch(e) { status.textContent = 'Error: ' + e.message; }
 }
 
+function _noteVal(notesRaw, fieldId) {
+    if (!Array.isArray(notesRaw)) return '';
+    const n = notesRaw.find(x => x.field_id === fieldId);
+    return n ? (n.value || '') : '';
+}
+
 function renderOwnedEditResults() {
+    // Find field IDs for InstanceMedia (pos 4) and InstanceSleeve (pos 5) from fieldDefs
+    const mediaDef  = editorState.fieldDefs.find(f => f.position === 4) || {};
+    const sleeveDef = editorState.fieldDefs.find(f => f.position === 5) || {};
     const tbody = document.getElementById('editorOwnedBody');
-    tbody.innerHTML = editorState.ownedResults.map((r, idx) =>
-        `<tr>
+    tbody.innerHTML = editorState.ownedResults.map((r, idx) => {
+        const media  = _noteVal(r.notes_raw, mediaDef.id);
+        const sleeve = _noteVal(r.notes_raw, sleeveDef.id);
+        return `<tr>
             <td>${esc(r.artist_name)}</td>
             <td>${esc(r.basic_title)}</td>
             <td>${esc(r.format_primary)}</td>
             <td>${esc(r.folder_name)}</td>
-            <td>${r.media_condition ? esc(r.media_condition) : '<span style="color:var(--text-muted)">—</span>'}</td>
-            <td>${r.sleeve_condition ? esc(r.sleeve_condition) : '<span style="color:var(--text-muted)">—</span>'}</td>
+            <td>${media  || '<span style="color:var(--text-muted)">—</span>'}</td>
+            <td>${sleeve || '<span style="color:var(--text-muted)">—</span>'}</td>
             <td><button class="btn-ghost" data-idx="${idx}" onclick="openEditDialogByIdx(this.dataset.idx)">Edit</button></td>
-        </tr>`
-    ).join('');
+        </tr>`;
+    }).join('');
 }
 
 function openEditDialogByIdx(idx) {
@@ -3206,22 +3218,18 @@ function openEditDialogByIdx(idx) {
 function openEditDialog(item) {
     editorState.editingItem = item;
     editorState.dialogMode = 'edit';
-    // Populate folder dropdown with current folder pre-selected
     const fsel = document.getElementById('editorDialogFolder');
     fsel.innerHTML = editorState.folders.map(f =>
         `<option value="${f.folder_id}" ${f.folder_id === item.folder_id ? 'selected' : ''}>${esc(f.name)}</option>`
     ).join('');
-    // Release info header
     document.getElementById('editorDialogTitle').textContent = 'Edit Item';
     document.getElementById('editorDialogInfo').textContent =
         `${item.artist_name} — ${item.basic_title}  •  ${item.format_primary || ''}  •  ${item.basic_year || ''}`;
-    // Pre-fill fields
-    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-    setVal('edField1',  item.media_condition);
-    setVal('edField2',  item.sleeve_condition);
-    setVal('edField8',  item.edition);
-    setVal('edField10', item.pressing);
-    setVal('edField11', item.notes);
+    // Build current values map from notes_raw array
+    const currentValues = {};
+    const notes = Array.isArray(item.notes_raw) ? item.notes_raw : [];
+    notes.forEach(n => { if (n.field_id) currentValues[n.field_id] = n.value || ''; });
+    _buildEditorFields(currentValues);
     document.getElementById('editorDeleteBtn').style.display = '';
     document.getElementById('editorConfirmBtn').textContent = 'Save Changes';
     document.getElementById('editorDialogMsg').textContent = '';
@@ -3251,17 +3259,12 @@ async function _doAdd() {
         const res = await api(`/api/collection/add?release_id=${release.release_id}&folder_id=${folderId}`);
         if (!res.success) throw new Error(res.detail || 'Error');
         const { instance_id } = res;
-        // Set custom fields (only non-empty ones)
-        const fields = [
-            [1, document.getElementById('edField1').value],
-            [2, document.getElementById('edField2').value],
-            [8, document.getElementById('edField8').value],
-            [10, document.getElementById('edField10').value],
-            [11, document.getElementById('edField11').value],
-        ];
-        for (const [fid, val] of fields) {
-            if (val && val.trim()) {
-                await api(`/api/collection/set-field?release_id=${release.release_id}&instance_id=${instance_id}&folder_id=${folderId}&field_id=${fid}&value=${encodeURIComponent(val)}`);
+        // Set each non-empty custom field
+        for (const f of editorState.fieldDefs) {
+            const el = document.getElementById(`edField${f.id}`);
+            const val = el ? el.value.trim() : '';
+            if (val) {
+                await api(`/api/collection/set-field?release_id=${release.release_id}&instance_id=${instance_id}&folder_id=${folderId}&field_id=${f.id}&value=${encodeURIComponent(val)}`);
             }
         }
         closeEditorDialog();
@@ -3289,18 +3292,18 @@ async function _doSaveEdit() {
         if (newFolder !== item.folder_id) {
             await api(`/api/collection/move-folder?release_id=${item.release_id}&instance_id=${item.instance_id}&from_folder_id=${item.folder_id}&to_folder_id=${newFolder}`);
         }
-        // Update each editable custom field
-        const fields = [
-            [1, document.getElementById('edField1').value,  item.media_condition],
-            [2, document.getElementById('edField2').value,  item.sleeve_condition],
-            [8, document.getElementById('edField8').value,  item.edition],
-            [10, document.getElementById('edField10').value, item.pressing],
-            [11, document.getElementById('edField11').value, item.notes],
-        ];
-        const fid = newFolder !== item.folder_id ? newFolder : item.folder_id;
-        for (const [fieldId, newVal, oldVal] of fields) {
-            if ((newVal || '') !== (oldVal || '')) {
-                await api(`/api/collection/set-field?release_id=${item.release_id}&instance_id=${item.instance_id}&folder_id=${fid}&field_id=${fieldId}&value=${encodeURIComponent(newVal || '')}`);
+        // Build original values map from notes_raw
+        const origValues = {};
+        const notes = Array.isArray(item.notes_raw) ? item.notes_raw : [];
+        notes.forEach(n => { if (n.field_id) origValues[n.field_id] = n.value || ''; });
+        // Update each field that changed
+        const activeFolderId = newFolder !== item.folder_id ? newFolder : item.folder_id;
+        for (const f of editorState.fieldDefs) {
+            const el = document.getElementById(`edField${f.id}`);
+            const newVal = el ? el.value : '';
+            const oldVal = origValues[f.id] || '';
+            if (newVal !== oldVal) {
+                await api(`/api/collection/set-field?release_id=${item.release_id}&instance_id=${item.instance_id}&folder_id=${activeFolderId}&field_id=${f.id}&value=${encodeURIComponent(newVal)}`);
             }
         }
         closeEditorDialog();
