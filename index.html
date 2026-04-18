@@ -454,6 +454,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
 }
 .explorer-master-card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
 .explorer-master-card.selected { border-color: var(--accent); background: var(--accent-glow); }
+tr.row-selected td { background: var(--accent-glow) !important; color: var(--accent); }
 .explorer-master-card img {
     width: 100%; aspect-ratio: 1; object-fit: cover;
     border-radius: 6px; margin-bottom: 6px; background: var(--bg-elevated);
@@ -603,9 +604,9 @@ tbody tr:hover { background: var(--bg-card-hover); }
                     </button>
                     <div class="section-body">
                         <div class="section-dim-label">Subgenre</div>
-                        <div class="sb-chips" id="sb-subgenre"></div>
+                        <select id="sb-subgenre" class="sb-dropdown" onchange="dashSetDropdown('subgenre', this.value)"><option value="">All Subgenres</option></select>
                         <div class="section-dim-label">Country</div>
-                        <div class="sb-chips" id="sb-country"></div>
+                        <select id="sb-country" class="sb-dropdown" onchange="dashSetDropdown('country', this.value)"><option value="">All Countries</option></select>
                     </div>
                 </div>
 
@@ -871,7 +872,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
                         Subgênero <span class="section-toggle-arrow">▾</span>
                     </button>
                     <div class="section-body">
-                        <div class="sb-chips" id="bench-sb-subgenre"></div>
+                        <select id="bench-sb-subgenre" class="sb-dropdown" onchange="benchSetDropdown('subgenre', this.value)"><option value="">All Subgenres</option></select>
                     </div>
                 </div>
             </aside>
@@ -997,10 +998,17 @@ tbody tr:hover { background: var(--bg-card-hover); }
                     <span class="cf-count-label" id="explorerMasterCount"></span>
                 </div>
 
-                <!-- Masters grid -->
-                <div class="explorer-masters-grid" id="explorerMastersGrid">
-                    <div style="color:var(--text-muted);font-size:0.82rem;padding:20px 0">
-                        Enter an artist name and click Load.
+                <!-- Masters table -->
+                <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px" id="explorerMastersCard">
+                    <div class="tbl-scroll" style="max-height:50vh">
+                        <table>
+                            <thead><tr>
+                                <th style="width:60%">Title</th>
+                                <th style="width:15%;font-family:var(--font-mono)">Year</th>
+                                <th style="width:25%">Owned</th>
+                            </tr></thead>
+                            <tbody id="explorerMastersGrid"><tr><td colspan="3" style="color:var(--text-muted);font-size:0.82rem;padding:20px">Enter an artist name and click Load.</td></tr></tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -1763,19 +1771,36 @@ function dashPopulateSidebar() {
                 entries = entries.slice(0, lim);
             }
         }
-        el.innerHTML = entries.map(([val, count]) =>
-            `<button class="sb-chip" data-dim="${dim}" data-val="${esc(val)}"
-                onclick="dashSetFilter(this.dataset.dim, this.dataset.val)">
-                ${esc(val)}<span class="sb-chip-count">${count}</span>
-            </button>`
-        ).join('');
+        if (el.tagName === 'SELECT') {
+            el.innerHTML = `<option value="">${el.options[0]?.text || 'All'}</option>` +
+                entries.map(([val, count]) => `<option value="${esc(val)}">${esc(val)} (${count})</option>`).join('');
+        } else {
+            el.innerHTML = entries.map(([val, count]) =>
+                `<button class="sb-chip" data-dim="${dim}" data-val="${esc(val)}"
+                    onclick="dashSetFilter(this.dataset.dim, this.dataset.val)">
+                    ${esc(val)}<span class="sb-chip-count">${count}</span>
+                </button>`
+            ).join('');
+        }
     });
 }
 
 function dashUpdateSidebarActive() {
-    document.querySelectorAll('.sb-chip').forEach(btn => {
+    document.querySelectorAll('.sb-chip[data-dim]').forEach(btn => {
         btn.classList.toggle('active', dashFilters[btn.dataset.dim] === btn.dataset.val);
     });
+    ['subgenre', 'country'].forEach(dim => {
+        const el = document.getElementById('sb-' + dim);
+        if (el && el.tagName === 'SELECT') {
+            el.value = dashFilters[dim] || '';
+            el.classList.toggle('active', !!dashFilters[dim]);
+        }
+    });
+}
+
+function dashSetDropdown(dim, value) {
+    if (value) dashSetFilter(dim, value);
+    else dashRemoveFilter(dim);
 }
 
 function toggleSection(btn) {
@@ -2353,13 +2378,16 @@ function benchPopulateSidebar() {
     });
     const container = document.getElementById('bench-sb-subgenre');
     if (!container) return;
-    container.innerHTML = Object.entries(counts)
-        .sort((a, b) => b[1] - a[1])
-        .map(([sg, n]) => `<button class="sb-chip" data-dim="subgenre" data-val="${esc(sg)}"
-            onclick="benchSetFilter(this.dataset.dim, this.dataset.val)">
-            ${esc(sg)}<span class="sb-chip-count">${n}</span>
-        </button>`).join('');
+    container.innerHTML = '<option value="">All Subgenres</option>' +
+        Object.entries(counts)
+            .sort((a, b) => b[1] - a[1])
+            .map(([sg, n]) => `<option value="${esc(sg)}">${esc(sg)} (${n})</option>`).join('');
     benchUpdateSidebarActive();
+}
+
+function benchSetDropdown(dim, value) {
+    if (value) benchSetFilter(dim, value);
+    else benchRemoveFilter(dim);
 }
 
 // Sync chip active states with benchFilters (called at end of benchApplyFilters)
@@ -2367,6 +2395,11 @@ function benchUpdateSidebarActive() {
     document.querySelectorAll('#panel-benchmark .sb-chip').forEach(btn => {
         btn.classList.toggle('active', benchFilters[btn.dataset.dim] === btn.dataset.val);
     });
+    const sg = document.getElementById('bench-sb-subgenre');
+    if (sg) {
+        sg.value = benchFilters['subgenre'] || '';
+        sg.classList.toggle('active', !!benchFilters['subgenre']);
+    }
 }
 
 document.getElementById('benchmarkSearch').addEventListener('input', () => {
@@ -2921,16 +2954,19 @@ function renderExplorerMastersGrid() {
     document.getElementById('explorerMasterCount').textContent =
         masters.length ? `${masters.length} masters` : 'No masters found';
     if (!masters.length) {
-        grid.innerHTML = '<div style="color:var(--text-muted);font-size:0.82rem;padding:20px 0">No results.</div>';
+        grid.innerHTML = '<tr><td colspan="3" style="color:var(--text-muted);font-size:0.82rem;padding:20px">No results.</td></tr>';
         return;
     }
     grid.innerHTML = masters.map(m => `
-        <div class="explorer-master-card${m.master_id === explorerState.selectedMasterId ? ' selected' : ''}"
-            data-mid="${m.master_id}" onclick="loadMasterVersions(+this.dataset.mid)">
-            <span class="emc-title" title="${esc(m.title)}">${esc(m.title)}</span>
-            <span class="emc-year">${m.year || '—'}</span>
-            ${m.owned_count > 0 ? `<span class="emc-owned">✓ ${m.owned_count} owned</span>` : ''}
-        </div>
+        <tr class="${m.master_id === explorerState.selectedMasterId ? 'row-selected' : ''}"
+            data-mid="${m.master_id}" onclick="loadMasterVersions(+this.dataset.mid)"
+            style="cursor:pointer" title="${esc(m.title)}">
+            <td style="font-weight:500;max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.title)}</td>
+            <td style="font-family:var(--font-mono);color:var(--text-muted)">${m.year || '—'}</td>
+            <td>${m.owned_count > 0
+                ? `<span style="font-family:var(--font-mono);color:var(--green)">✓ ${m.owned_count}</span>`
+                : '<span style="color:var(--text-muted)">—</span>'}</td>
+        </tr>
     `).join('');
 }
 
