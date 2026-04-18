@@ -571,6 +571,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
         <div class="nav-item" data-tab="benchmark">Benchmark</div>
         <div class="nav-item" data-tab="explorer">Explorer</div>
         <div class="nav-item" data-tab="manage">Manage</div>
+        <div class="nav-item" data-tab="value">Value</div>
     </nav>
 
     <!-- ════════════════════════════════════════════════════════════════════════ -->
@@ -1331,6 +1332,74 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
 
             </div><!-- /.dash-main -->
         </div><!-- /.dash-layout -->
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
+    <!-- VALUE -->
+    <!-- ════════════════════════════════════════════════════════════════════════ -->
+    <div class="panel" id="panel-value">
+        <div class="dash-layout">
+            <div class="dash-main" style="padding:20px 0">
+
+                <!-- KPI cards -->
+                <div class="metrics" id="valueMetrics" style="margin-bottom:24px">
+                    <div class="metric">
+                        <div class="metric-label">Low (BRL)</div>
+                        <div class="metric-value" id="valueMin">—</div>
+                        <div class="metric-sub" id="valueMinSub"></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Med (BRL)</div>
+                        <div class="metric-value gold" id="valueMed">—</div>
+                        <div class="metric-sub" id="valueMedSub"></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">High (BRL)</div>
+                        <div class="metric-value" id="valueMax" style="color:var(--cyan)">—</div>
+                        <div class="metric-sub" id="valueMaxSub"></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Items</div>
+                        <div class="metric-value" id="valueItems">—</div>
+                        <div class="metric-sub" id="valueItemsSub"></div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+                    <button class="btn btn-sync" id="valueSnapBtn" onclick="captureValueSnapshot()">Capture Snapshot</button>
+                    <span id="valueSnapMsg" style="font-size:0.78rem;color:var(--text-muted)"></span>
+                </div>
+
+                <!-- Chart -->
+                <div class="card" style="margin-bottom:24px">
+                    <h3 style="font-family:var(--font-display);font-style:italic;margin-bottom:16px">Collection Value Over Time</h3>
+                    <div id="valueChartWrap" class="chart-wrap" style="position:relative;min-height:220px">
+                        <canvas id="valueChart"></canvas>
+                        <div id="valueChartMsg" style="display:none;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.82rem"></div>
+                    </div>
+                </div>
+
+                <!-- Snapshot history table -->
+                <div class="card">
+                    <h3 style="font-family:var(--font-display);font-style:italic;margin-bottom:12px">Snapshot History</h3>
+                    <div style="overflow-x:auto">
+                        <table class="data-table">
+                            <thead><tr>
+                                <th>Date</th>
+                                <th style="text-align:right">Low</th>
+                                <th style="text-align:right">Med</th>
+                                <th style="text-align:right">High</th>
+                                <th style="text-align:right">Items</th>
+                            </tr></thead>
+                            <tbody id="valueHistoryBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="valueHistoryEmpty" style="display:none;text-align:center;padding:20px;color:var(--text-muted);font-size:0.82rem">No snapshots yet — click Capture Snapshot to start.</div>
+                </div>
+
+            </div>
+        </div>
     </div>
 
 </div>
@@ -2357,6 +2426,7 @@ document.getElementById('tabBar').addEventListener('click', e => {
     document.getElementById('panel-'+e.target.dataset.tab).classList.add('active');
     if (e.target.dataset.tab==='manage') switchManageSub('wishlist');
     if (e.target.dataset.tab==='explorer' && explorerState.ownedMasters.length === 0) loadExplorerMasters();
+    if (e.target.dataset.tab==='value' && !_valueLoaded) { _valueLoaded = true; loadValueTab(); }
 });
 
 function switchManageSub(sub) {
@@ -2569,8 +2639,9 @@ async function downloadSnapshot() {
 }
 let _syncPollTimer = null;
 const _SYNC_STEP_LABELS = {
-    folders: '1/5 — Folders', collection: '2/5 — Collection',
-    releases: '3/5 — Releases', masters: '4/5 — Masters', artists: '5/5 — Artists',
+    folders: '1/6 — Folders', collection: '2/6 — Collection',
+    releases: '3/6 — Releases', masters: '4/6 — Masters', artists: '5/6 — Artists',
+    value: '6/6 — Collection value',
     done: 'Complete', error: 'Error',
 };
 
@@ -2622,10 +2693,12 @@ async function _pollSync() {
                     `New releases: ${r.releases ?? '—'}`,
                     `New masters: ${r.masters ?? '—'}`,
                     `Artists: ${r.artists ?? '—'}`,
+                    r.value_snapshot ? `Value: ${fmtBRL(r.value_snapshot.value_med)} (med)` : null,
                 ].filter(Boolean);
                 res.textContent = '✓ ' + parts.join(' · ');
                 res.style.color = 'var(--green)';
                 loadAll();
+                _valueLoaded = false;
             } else {
                 res.textContent = '✗ Sync error: ' + (s.error || 'Unknown');
                 res.style.color = 'var(--red)';
@@ -3502,6 +3575,118 @@ function _editorToast(msg, type) {
 }
 
 function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+// ── Collection Value ──────────────────────────────────────────────────────────
+
+let _valueChart = null;
+let _valueLoaded = false;
+
+function fmtBRL(v) {
+    if (v == null) return '—';
+    return 'R$\u00a0' + v.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function fmtDate(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+}
+
+async function loadValueTab() {
+    const data = await api('/api/collection/value/history');
+    const cur = data.current;
+
+    // KPI cards
+    document.getElementById('valueMin').textContent  = cur ? fmtBRL(cur.value_min) : '—';
+    document.getElementById('valueMed').textContent  = cur ? fmtBRL(cur.value_med) : '—';
+    document.getElementById('valueMax').textContent  = cur ? fmtBRL(cur.value_max) : '—';
+    document.getElementById('valueItems').textContent = cur ? cur.item_count : '—';
+    if (cur) {
+        const sub = fmtDate(cur.captured_at);
+        document.getElementById('valueMinSub').textContent = sub;
+        document.getElementById('valueMedSub').textContent = sub;
+        document.getElementById('valueMaxSub').textContent = sub;
+        document.getElementById('valueItemsSub').textContent = sub;
+    }
+
+    // Chart
+    const hist = data.history || [];
+    const chartMsg = document.getElementById('valueChartMsg');
+    if (hist.length < 2) {
+        chartMsg.style.display = 'flex';
+        chartMsg.textContent = hist.length === 0
+            ? 'No snapshots yet — click Capture Snapshot to start.'
+            : 'Capture more snapshots to see the value trend over time.';
+        document.getElementById('valueChart').style.display = 'none';
+    } else {
+        chartMsg.style.display = 'none';
+        document.getElementById('valueChart').style.display = '';
+        const labels = hist.map(h => fmtDate(h.captured_at));
+        const mkDs = (label, key, color, dash) => ({
+            label, data: hist.map(h => h[key]),
+            borderColor: color, backgroundColor: color + '22',
+            borderWidth: 2, pointRadius: 3, tension: 0.3,
+            borderDash: dash || [],
+        });
+        if (_valueChart) _valueChart.destroy();
+        _valueChart = new Chart(document.getElementById('valueChart'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    mkDs('Low',  'value_min', '#607d8b', [4,2]),
+                    mkDs('Med',  'value_med', '#f4a300'),
+                    mkDs('High', 'value_max', '#00bcd4'),
+                ],
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                interaction: {mode: 'index', intersect: false},
+                plugins: {
+                    legend: {labels: {color: '#aaa', font: {size: 11}}},
+                    tooltip: {
+                        callbacks: {label: ctx => ` ${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}`}
+                    },
+                },
+                scales: {
+                    x: {ticks: {color: '#888', maxRotation: 30, font: {size: 10}}, grid: {color: '#333'}},
+                    y: {ticks: {color: '#888', callback: v => fmtBRL(v), font: {size: 10}}, grid: {color: '#333'}},
+                },
+            },
+        });
+    }
+
+    // History table (newest first, last 20)
+    const tbody = document.getElementById('valueHistoryBody');
+    const empty = document.getElementById('valueHistoryEmpty');
+    if (hist.length === 0) {
+        tbody.innerHTML = ''; empty.style.display = 'block';
+    } else {
+        empty.style.display = 'none';
+        const rows = [...hist].reverse().slice(0, 20);
+        tbody.innerHTML = rows.map(h => `<tr>
+            <td style="font-family:var(--font-mono);font-size:0.76rem">${fmtDate(h.captured_at)}</td>
+            <td style="text-align:right;font-family:var(--font-mono)">${fmtBRL(h.value_min)}</td>
+            <td style="text-align:right;font-family:var(--font-mono);color:var(--gold)">${fmtBRL(h.value_med)}</td>
+            <td style="text-align:right;font-family:var(--font-mono);color:var(--cyan)">${fmtBRL(h.value_max)}</td>
+            <td style="text-align:right;font-family:var(--font-mono)">${h.item_count ?? '—'}</td>
+        </tr>`).join('');
+    }
+}
+
+async function captureValueSnapshot() {
+    const btn = document.getElementById('valueSnapBtn');
+    const msg = document.getElementById('valueSnapMsg');
+    btn.disabled = true; msg.textContent = 'Capturing…';
+    try {
+        const snap = await api('/api/collection/value/snapshot');
+        msg.textContent = `Saved — Med: ${fmtBRL(snap.value_med)} at ${fmtDate(snap.captured_at)}`;
+        await loadValueTab();
+    } catch(e) {
+        msg.textContent = 'Error: ' + e.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
 
 // Auto-connect
 window.addEventListener('DOMContentLoaded',()=>{if(API_KEY){document.getElementById('loginOverlay').style.display='none';connectAPI();}});
