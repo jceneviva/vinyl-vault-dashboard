@@ -1245,6 +1245,13 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                     </div>
                 </div>
 
+                <!-- Album Detail Modal -->
+                <div class="dialog-overlay" id="albumDetailModal" onclick="if(event.target===this)closeAlbumDetail()">
+                    <div class="dialog" style="max-width:640px;max-height:85vh;overflow-y:auto">
+                        <div id="albumDetailContent" style="display:flex;flex-direction:column;gap:16px"></div>
+                    </div>
+                </div>
+
                 <!-- ADMIN sub-section -->
                 <div class="manage-sub" data-sub="admin">
                     <div class="card">
@@ -2222,7 +2229,7 @@ function renderCFTable(items) {
         const ys=oy!=='—'&&ry!=='—'&&oy!==ry?'color:var(--cyan)':'';
         const re=i.master_id?rbm[i.master_id]:null;
         const rh=re?`<span style="font-family:var(--font-mono);color:var(--gold)">${Number(re.rating).toFixed(2)}</span>`:'<span style="color:var(--text-muted)">—</span>';
-        return `<tr>
+        return `<tr style="cursor:pointer" onclick="openAlbumDetail(${i.release_id})">
             <td style="font-weight:500;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.artist_name||'—')}</td>
             <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.basic_title||'—')}</td>
             <td style="font-family:var(--font-mono)">${oy}</td><td style="font-family:var(--font-mono);${ys}">${ry}</td>
@@ -2491,6 +2498,62 @@ async function submitManualLink() {
 }
 async function skipLink(){try{await api(`/api/linking/link?pa_album_id=${linkingState.currentPaId}&master_id=0&notes=manually_skipped`);closeLinkDialog();loadLinkingData();}catch(e){}}
 function closeLinkDialog(){document.getElementById('linkDialog').style.display='none';linkingState.currentPaId=null;}
+
+function openAlbumDetail(releaseId) {
+    const overlay = document.getElementById('albumDetailModal');
+    const content = document.getElementById('albumDetailContent');
+    content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Loading…</div>';
+    overlay.style.display = 'flex';
+    const scoreMap={10:['#5c4fc7','JP'],9:['#9d4edd','JP'],8:['#2196f3','EU'],7:['#1976d2','US'],6:['#f4a300','AU'],5:['#607d8b','RE'],4:['#546e7a','RE'],3:['#795548','BR'],2:['#4e342e','BR'],1:['#333','?']};
+    function psb(s){if(!s)return'';const[bg,label]=scoreMap[s]||['#333','?'];return`<span style="display:inline-flex;align-items:center;gap:3px;background:${bg};color:#fff;border-radius:4px;padding:2px 8px;font-size:0.7rem;font-family:var(--font-mono);font-weight:700">${s}<span style="opacity:.75;font-size:0.62rem">${label}</span></span>`;}
+    api(`/api/collection/detail/${releaseId}`)
+        .then(d => {
+            const oy = d.master_year && d.master_year > 0 ? d.master_year : '—';
+            const ry = d.release_year && d.release_year > 0 ? d.release_year : '—';
+            const ys = oy !== '—' && ry !== '—' && String(oy) !== String(ry) ? 'color:var(--cyan)' : '';
+            const tracklist = (d.tracklist || []);
+            const tlRows = tracklist.map(t =>
+                t.type_ === 'heading'
+                    ? `<tr><td colspan="3" style="padding-top:8px;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">${esc(t.title||'')}</td></tr>`
+                    : `<tr><td style="color:var(--text-muted);font-size:0.72rem;min-width:36px;padding:2px 0">${esc(t.position||'')}</td><td style="padding:2px 8px">${esc(t.title||'')}</td><td style="color:var(--text-muted);font-size:0.72rem;text-align:right;padding:2px 0">${esc(t.duration||'')}</td></tr>`
+            ).join('');
+            const coverHtml = d.cover
+                ? `<img src="${esc(d.cover)}" alt="cover" style="width:110px;height:110px;object-fit:cover;border-radius:6px;flex-shrink:0">`
+                : `<div style="width:110px;height:110px;background:var(--bg-hover);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.7rem;flex-shrink:0">No cover</div>`;
+            content.innerHTML = `
+                <div style="display:flex;gap:16px;align-items:flex-start">
+                    ${coverHtml}
+                    <div style="flex:1;min-width:0">
+                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:2px">${esc(d.artist_all||'')}</div>
+                        <div style="font-size:1.05rem;font-weight:600;font-style:italic;line-height:1.3;margin-bottom:10px">${esc(d.basic_title||'')}</div>
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:0.78rem;margin-bottom:10px">
+                            <span><span style="color:var(--text-muted)">Original:</span> <span style="font-family:var(--font-mono)">${oy}</span></span>
+                            <span><span style="color:var(--text-muted)">Release:</span> <span style="font-family:var(--font-mono);${ys}">${ry}</span></span>
+                            ${d.country ? `<span><span style="color:var(--text-muted)">Country:</span> ${esc(d.country)}</span>` : ''}
+                            ${d.label ? `<span><span style="color:var(--text-muted)">Label:</span> ${esc(d.label)}</span>` : ''}
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                            ${psb(d.pressing_score)}
+                            ${d.media_condition ? `<span style="font-size:0.72rem;color:var(--text-muted)">Media: <strong style="color:var(--text-secondary)">${esc(d.media_condition)}</strong></span>` : ''}
+                            ${d.sleeve_condition ? `<span style="font-size:0.72rem;color:var(--text-muted)">Sleeve: <strong style="color:var(--text-secondary)">${esc(d.sleeve_condition)}</strong></span>` : ''}
+                        </div>
+                    </div>
+                </div>
+                ${d.notes ? `<div style="font-size:0.78rem;color:var(--text-secondary);background:var(--bg-hover);border-radius:6px;padding:10px 12px;border-left:3px solid var(--border)">${esc(d.notes)}</div>` : ''}
+                ${tlRows ? `<div>
+                    <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Tracklist</div>
+                    <table style="width:100%;border-collapse:collapse;font-size:0.78rem"><tbody>${tlRows}</tbody></table>
+                </div>` : ''}
+                <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border)">
+                    <a href="${esc(d.discogs_url)}" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-muted);text-decoration:underline">View on Discogs ↗</a>
+                    <button class="btn btn-ghost" onclick="closeAlbumDetail()" style="border:1px solid var(--border)">Close</button>
+                </div>`;
+        })
+        .catch(err => {
+            content.innerHTML = `<div style="color:var(--text-muted);padding:20px">Failed to load details (${err.message})</div>`;
+        });
+}
+function closeAlbumDetail(){document.getElementById('albumDetailModal').style.display='none';}
 document.getElementById('linkSourceFilter').addEventListener('change',()=>loadLinkingData());
 document.getElementById('linkMethodFilter').addEventListener('change',()=>loadLinkingData());
 document.getElementById('linkSearch').addEventListener('input',()=>{clearTimeout(state.searchDebounce);state.searchDebounce=setTimeout(()=>renderLinkingTable(),300);});
