@@ -1245,13 +1245,6 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                     </div>
                 </div>
 
-                <!-- Album Detail Modal -->
-                <div class="dialog-overlay" id="albumDetailModal" onclick="if(event.target===this)closeAlbumDetail()">
-                    <div class="dialog" style="max-width:640px;max-height:85vh;overflow-y:auto">
-                        <div id="albumDetailContent" style="display:flex;flex-direction:column;gap:16px"></div>
-                    </div>
-                </div>
-
                 <!-- ADMIN sub-section -->
                 <div class="manage-sub" data-sub="admin">
                     <div class="card">
@@ -1340,6 +1333,13 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
         </div><!-- /.dash-layout -->
     </div>
 
+</div>
+
+<!-- Album Detail Modal — top-level so it's visible from any tab -->
+<div class="dialog-overlay" id="albumDetailModal" onclick="if(event.target===this)closeAlbumDetail()">
+    <div class="dialog" style="max-width:640px;max-height:85vh;overflow-y:auto">
+        <div id="albumDetailContent" style="display:flex;flex-direction:column;gap:16px"></div>
+    </div>
 </div>
 
 <script>
