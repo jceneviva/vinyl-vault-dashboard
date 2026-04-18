@@ -3678,7 +3678,10 @@ async function captureValueSnapshot() {
     const msg = document.getElementById('valueSnapMsg');
     btn.disabled = true; msg.textContent = 'Capturing…';
     try {
-        const snap = await api('/api/collection/value/snapshot');
+        const resp = await fetch(`${API}/api/collection/value/snapshot`, {method:'POST', headers:{'X-API-Key':API_KEY}});
+        if (resp.status===401){logout();throw new Error('Session expired');}
+        if (!resp.ok) throw new Error(`API ${resp.status}`);
+        const snap = await resp.json();
         msg.textContent = `Saved — Med: ${fmtBRL(snap.value_med)} at ${fmtDate(snap.captured_at)}`;
         await loadValueTab();
     } catch(e) {
