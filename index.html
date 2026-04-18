@@ -406,6 +406,15 @@ tbody tr:hover { background: var(--bg-card-hover); }
     font-family: var(--font-mono); font-size: 0.58rem; color: var(--text-muted); opacity: 0.8;
 }
 .sb-chip.active .sb-chip-count { color: var(--accent); }
+.sb-dropdown {
+    width: 100%; background: var(--bg-card); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 4px 8px; font-size: 0.7rem; font-family: var(--font-body);
+    margin-bottom: 8px; cursor: pointer; transition: var(--transition);
+}
+.sb-dropdown:hover { border-color: var(--border-hover); }
+.sb-dropdown:focus { outline: none; border-color: var(--accent); }
+.sb-dropdown.active { border-color: var(--accent); color: var(--accent); }
 
 /* KPI grid */
 .kpi-grid {
@@ -712,9 +721,8 @@ tbody tr:hover { background: var(--bg-card-hover); }
     <div class="panel" id="panel-collection">
 
         <!-- Hidden selects — kept in DOM so renderCFTable() can read their values -->
+        <!-- Folder, Subgenre, ShelfSlot are visible dropdowns in the sidebar (not hidden) -->
         <div class="cf-hidden-selects">
-            <select id="cfFilterFolder"><option value="">All Folders</option></select>
-            <select id="cfFilterSubgenre"><option value="">All Subgenres</option></select>
             <select id="cfFilterCuration"><option value="">All Types</option></select>
             <select id="cfFilterPressing"><option value="">All Pressings</option></select>
             <select id="cfFilterCondition"><option value="">All Conditions</option></select>
@@ -743,7 +751,9 @@ tbody tr:hover { background: var(--bg-card-hover); }
                     </button>
                     <div class="section-body">
                         <div class="section-dim-label">Folder</div>
-                        <div class="sb-chips" id="cf-sb-folder"></div>
+                        <select id="cfFilterFolder" class="sb-dropdown"><option value="">All Folders</option></select>
+                        <div class="section-dim-label">ShelfSlot</div>
+                        <select id="cfFilterShelfSlot" class="sb-dropdown"><option value="">All Shelf Slots</option></select>
                         <div class="section-dim-label">Format</div>
                         <div class="sb-chips" id="cf-sb-format"></div>
                     </div>
@@ -756,7 +766,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
                     </button>
                     <div class="section-body">
                         <div class="section-dim-label">Subgenre</div>
-                        <div class="sb-chips" id="cf-sb-subgenre"></div>
+                        <select id="cfFilterSubgenre" class="sb-dropdown"><option value="">All Subgenres</option></select>
                     </div>
                 </div>
 
@@ -2154,6 +2164,7 @@ function populateCFFilters(stats, items) {
     function fill(id,data) { const el=document.getElementById(id); const f=el.options[0].outerHTML; el.innerHTML=f+Object.keys(data).map(k=>`<option value="${esc(k)}">${esc(k)} (${data[k]})</option>`).join(''); }
     fill('cfFilterCuration',stats.curation_type); fill('cfFilterPressing',stats.pressing); fill('cfFilterCondition',stats.media_condition);
     if (stats.artist_subgenre) fill('cfFilterSubgenre',stats.artist_subgenre);
+    if (stats.shelf_slot) fill('cfFilterShelfSlot', Object.fromEntries(Object.entries(stats.shelf_slot).sort((a,b)=>a[0].localeCompare(b[0]))));
     const folders={}; items.forEach(i=>{const f=i.folder_name||'Unknown';folders[f]=(folders[f]||0)+1;});
     document.getElementById('cfFilterFolder').innerHTML='<option value="">All Folders</option>'+Object.entries(folders).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
     const fmts={}; items.forEach(i=>{const f=i.format_primary||'Unknown';fmts[f]=(fmts[f]||0)+1;});
@@ -2166,11 +2177,13 @@ function renderCFTable(items) {
     const condition=document.getElementById('cfFilterCondition').value, folder=document.getElementById('cfFilterFolder').value;
     const format=document.getElementById('cfFilterFormat').value, search=document.getElementById('cfSearch').value.toLowerCase();
     const subgenreFilter=document.getElementById('cfFilterSubgenre').value;
+    const shelfSlot=document.getElementById('cfFilterShelfSlot').value;
     let f = items;
     if (curation) f=f.filter(i=>i.curation_type===curation); if (pressing) f=f.filter(i=>i.pressing===pressing);
     if (condition) f=f.filter(i=>i.media_condition===condition); if (folder) f=f.filter(i=>i.folder_name===folder);
     if (format) f=f.filter(i=>i.format_primary===format);
     if (subgenreFilter) f=f.filter(i=>i.artist_subgenre===subgenreFilter);
+    if (shelfSlot) f=f.filter(i=>i.shelf_slot===shelfSlot);
     if (search) f=f.filter(i=>(i.artist_name||'').toLowerCase().includes(search)||(i.basic_title||'').toLowerCase().includes(search)||(i.notes||'').toLowerCase().includes(search));
     const rbm=state.ratingByMaster||{}; const {col,dir}=state.cfSort; const m=dir==='asc'?1:-1;
     f.sort((a,b)=>{let va,vb; if(col==='rating'){const ra=a.master_id?rbm[a.master_id]:null;const rb=b.master_id?rbm[b.master_id]:null;va=ra?ra.rating:-1;vb=rb?rb.rating:-1;}else if(col==='original_year'||col==='basic_year'){va=(a[col]&&a[col]>0)?a[col]:99999;vb=(b[col]&&b[col]>0)?b[col]:99999;}else{va=(a[col]||'').toLowerCase();vb=(b[col]||'').toLowerCase();}if(va<vb)return -1*m;if(va>vb)return 1*m;return 0;});
@@ -2201,9 +2214,7 @@ function renderCFTable(items) {
 // Populate sidebar chips from hidden <select> options (called after populateCFFilters)
 function cfPopulateSidebar() {
     const map = [
-        { selectId: 'cfFilterFolder',    chipId: 'cf-sb-folder' },
         { selectId: 'cfFilterFormat',    chipId: 'cf-sb-format' },
-        { selectId: 'cfFilterSubgenre',  chipId: 'cf-sb-subgenre' },
         { selectId: 'cfFilterCuration',  chipId: 'cf-sb-curation' },
         { selectId: 'cfFilterPressing',  chipId: 'cf-sb-pressing' },
         { selectId: 'cfFilterCondition', chipId: 'cf-sb-condition' },
@@ -2233,14 +2244,19 @@ function cfUpdateSidebarActive() {
     });
     const activeChips = document.getElementById('cfActiveChips');
     if (!activeChips) return;
-    const labels = { cfFilterFolder:'Folder', cfFilterFormat:'Format', cfFilterSubgenre:'Subgenre',
-                     cfFilterCuration:'Type', cfFilterPressing:'Pressing', cfFilterCondition:'Condition' };
+    const labels = { cfFilterFolder:'Folder', cfFilterShelfSlot:'ShelfSlot', cfFilterSubgenre:'Subgenre',
+                     cfFilterFormat:'Format', cfFilterCuration:'Type', cfFilterPressing:'Pressing', cfFilterCondition:'Condition' };
     activeChips.innerHTML = Object.entries(labels).map(([id, label]) => {
         const sel = document.getElementById(id);
         if (!sel || !sel.value) return '';
         return `<button class="cf-active-chip" data-select="${id}" data-val="${esc(sel.value)}"
-            onclick="cfSetFilter(this.dataset.select, this.dataset.val)">${esc(label)}: ${esc(sel.value)} ✕</button>`;
+            onclick="cfClearDropdownOrChip(this.dataset.select)">${esc(label)}: ${esc(sel.value)} ✕</button>`;
     }).join('');
+    // Highlight active dropdowns
+    ['cfFilterFolder','cfFilterShelfSlot','cfFilterSubgenre'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('active', !!el.value);
+    });
 }
 
 // Toggle a sidebar filter: set select value and fire change event
@@ -2252,9 +2268,18 @@ function cfSetFilter(selectId, value) {
     cfUpdateSidebarActive();
 }
 
+// Clear a single dropdown or chip filter (used by top bar active chips)
+function cfClearDropdownOrChip(selectId) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    sel.value = '';
+    sel.dispatchEvent(new Event('change'));
+    cfUpdateSidebarActive();
+}
+
 // Clear all Collection filters
 function cfClearAllFilters() {
-    ['cfFilterFolder','cfFilterSubgenre','cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFormat'].forEach(id => {
+    ['cfFilterFolder','cfFilterShelfSlot','cfFilterSubgenre','cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFormat'].forEach(id => {
         const el = document.getElementById(id); if (el) el.value = '';
     });
     const vis = document.getElementById('cfSearchVisible');
@@ -2273,7 +2298,7 @@ function cfSyncSearch(value) {
 }
 
 // CF listeners
-['cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFolder','cfFilterFormat','cfFilterSubgenre'].forEach(id=>document.getElementById(id).addEventListener('change',()=>renderCFTable()));
+['cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFolder','cfFilterFormat','cfFilterSubgenre','cfFilterShelfSlot'].forEach(id=>document.getElementById(id).addEventListener('change',()=>renderCFTable()));
 document.getElementById('cfSearch').addEventListener('input',()=>{clearTimeout(state.searchDebounce);state.searchDebounce=setTimeout(()=>renderCFTable(),300);});
 document.getElementById('cfHeaders').addEventListener('click',e=>{const th=e.target.closest('th[data-sort]');if(!th)return;const c=th.dataset.sort;if(state.cfSort.col===c)state.cfSort.dir=state.cfSort.dir==='asc'?'desc':'asc';else{state.cfSort.col=c;state.cfSort.dir='asc';}document.querySelectorAll('#cfHeaders th[data-sort]').forEach(h=>{const a=h.dataset.sort===state.cfSort.col?(state.cfSort.dir==='asc'?' ▲':' ▼'):' ⇅';h.textContent=h.textContent.replace(/ [⇅▲▼]$/,'')+a;});renderCFTable();});
 
