@@ -810,6 +810,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                                     <th data-sort="curation_type" style="cursor:pointer">Type ⇅</th>
                                     <th data-sort="edition" style="cursor:pointer">Edition ⇅</th>
                                     <th data-sort="pressing" style="cursor:pointer">Press ⇅</th>
+                                    <th data-sort="pressing_score" style="cursor:pointer">Score ⇅</th>
                                     <th data-sort="rating" style="cursor:pointer">Rating ⇅</th>
                                     <th>Notes</th>
                                 </tr>
@@ -2211,9 +2212,11 @@ function renderCFTable(items) {
     if (shelfSlot) f=f.filter(i=>i.shelf_slot===shelfSlot);
     if (search) f=f.filter(i=>(i.artist_name||'').toLowerCase().includes(search)||(i.basic_title||'').toLowerCase().includes(search)||(i.notes||'').toLowerCase().includes(search));
     const rbm=state.ratingByMaster||{}; const {col,dir}=state.cfSort; const m=dir==='asc'?1:-1;
-    f.sort((a,b)=>{let va,vb; if(col==='rating'){const ra=a.master_id?rbm[a.master_id]:null;const rb=b.master_id?rbm[b.master_id]:null;va=ra?ra.rating:-1;vb=rb?rb.rating:-1;}else if(col==='original_year'||col==='basic_year'){va=(a[col]&&a[col]>0)?a[col]:99999;vb=(b[col]&&b[col]>0)?b[col]:99999;}else{va=(a[col]||'').toLowerCase();vb=(b[col]||'').toLowerCase();}if(va<vb)return -1*m;if(va>vb)return 1*m;return 0;});
+    f.sort((a,b)=>{let va,vb; if(col==='rating'){const ra=a.master_id?rbm[a.master_id]:null;const rb=b.master_id?rbm[b.master_id]:null;va=ra?ra.rating:-1;vb=rb?rb.rating:-1;}else if(col==='pressing_score'){va=a.pressing_score||0;vb=b.pressing_score||0;}else if(col==='original_year'||col==='basic_year'){va=(a[col]&&a[col]>0)?a[col]:99999;vb=(b[col]&&b[col]>0)?b[col]:99999;}else{va=(a[col]||'').toLowerCase();vb=(b[col]||'').toLowerCase();}if(va<vb)return -1*m;if(va>vb)return 1*m;return 0;});
     function cb(c){if(!c)return'—';const s=c.replace(/ \(.*\)/,'');const cl=c.includes('Mint')?'b-owned':c.includes('Good')?'b-format':'b-gap';return`<span class="badge ${cl}">${esc(s)}</span>`;}
     function tb(t){if(!t)return'—';const c={'Def':'b-owned','Editorial':'b-format','Temp':'b-gap','Unofficial':'b-gap','PicDisc':'b-genre','Historical':'b-format','Sentimental':'b-genre'};return`<span class="badge ${c[t]||'b-format'}">${esc(t)}</span>`;}
+    const scoreMap={10:['#5c4fc7','JP'],9:['#9d4edd','JP'],8:['#2196f3','EU'],7:['#1976d2','US'],6:['#f4a300','AU'],5:['#607d8b','RE'],4:['#546e7a','RE'],3:['#795548','BR'],2:['#4e342e','BR'],1:['#333','?']};
+    function psb(s){if(!s)return'<span style="color:var(--text-muted)">—</span>';const[bg,label]=scoreMap[s]||['#333','?'];return`<span style="display:inline-flex;align-items:center;gap:3px;background:${bg};color:#fff;border-radius:4px;padding:1px 6px;font-size:0.62rem;font-family:var(--font-mono);font-weight:700">${s}<span style="opacity:.75;font-size:0.58rem">${label}</span></span>`;}
     document.getElementById('cfBody').innerHTML = f.map(i => {
         const oy=i.original_year&&i.original_year>0?i.original_year:'—', ry=i.basic_year&&i.basic_year>0?i.basic_year:'—';
         const ys=oy!=='—'&&ry!=='—'&&oy!==ry?'color:var(--cyan)':'';
@@ -2227,7 +2230,7 @@ function renderCFTable(items) {
             <td>${i.artist_subgenre ? `<span class="badge badge-pillar">${esc(i.artist_subgenre)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
             <td><span class="badge b-format">${esc(i.format_primary||'—')}</span></td>
             <td>${cb(i.media_condition)}</td><td>${cb(i.sleeve_condition)}</td><td>${tb(i.curation_type)}</td>
-            <td>${esc(i.edition||'—')}</td><td>${esc(i.pressing||'—')}</td><td>${rh}</td>
+            <td>${esc(i.edition||'—')}</td><td>${esc(i.pressing||'—')}</td><td>${psb(i.pressing_score)}</td><td>${rh}</td>
             <td style="color:var(--text-muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(i.notes||'')}">${esc(i.notes||'')}</td>
         </tr>`;
     }).join('');
