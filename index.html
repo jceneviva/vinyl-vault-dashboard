@@ -2692,7 +2692,7 @@ function _buildCatalogHTML(data) {
         <td style="text-align:right">${i.release_year&&i.release_year!==i.year?`<span style="color:#00bcd4">${i.release_year}</span>`:i.release_year||'—'}</td>
         <td>${e(i.country)}</td><td>${e(i.format)}</td><td>${e(i.type)}</td>
         <td>${e(i.pressing)}</td><td>${psb(i.pressing_score)}</td><td>${e(i.media)}</td>
-        <td style="text-align:right;font-family:monospace">${i.lowest_price!=null?'$'+i.lowest_price.toFixed(2):'—'}</td></tr>`).join('');
+        <td style="text-align:right;font-family:monospace">${i.lowest_price!=null?'R$\u00a0'+i.lowest_price.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):'—'}</td></tr>`).join('');
 
     // JSON download helper embedded in page
     const jsonB64 = btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
@@ -2740,7 +2740,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid #2a2d3a;font-size:.
 <tbody>${gapRows}</tbody></table>
 
 <h2>Coleção Completa <span class="sec-count">${(data.collection||[]).length} itens</span></h2>
-<table><thead><tr><th>Artista</th><th>Título</th><th style="text-align:right">Orig.</th><th style="text-align:right">Ed.</th><th>País</th><th>Formato</th><th>Tipo</th><th>Pressing</th><th>Score</th><th>Mídia</th><th style="text-align:right">USD</th></tr></thead>
+<table><thead><tr><th>Artista</th><th>Título</th><th style="text-align:right">Orig.</th><th style="text-align:right">Ed.</th><th>País</th><th>Formato</th><th>Tipo</th><th>Pressing</th><th>Score</th><th>Mídia</th><th style="text-align:right">BRL</th></tr></thead>
 <tbody>${colRows}</tbody></table>
 
 <footer>
