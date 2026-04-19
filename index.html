@@ -2633,9 +2633,122 @@ document.getElementById('linkSearch').addEventListener('input',()=>{clearTimeout
 // ═══════════════════════════════════════════════════════════════════════════════
 async function downloadSnapshot() {
     const btn=document.getElementById('snapBtn'),res=document.getElementById('purgeResult');
-    btn.disabled=true;btn.textContent='Generating...';res.textContent='Building snapshot...';res.style.color='var(--text-muted)';
-    try { const data=await api('/api/curator/snapshot'); const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`vinyl-vault-snapshot-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); res.textContent=`Downloaded! ${data.total_items} items, ${data.top_gaps.length} gaps`; res.style.color='var(--green)';
-    } catch(e){res.textContent='Error: '+e.message;res.style.color='var(--red)';} btn.disabled=false;btn.textContent='Download Curator Snapshot';
+    btn.disabled=true; btn.textContent='Gerando...'; res.textContent='Buscando snapshot...'; res.style.color='var(--text-muted)';
+    try {
+        const data = await api('/api/curator/snapshot');
+        const w = window.open('', '_blank');
+        if (!w) { res.textContent='Popup bloqueado — permite pop-ups para este site.'; res.style.color='var(--red)'; return; }
+        w.document.write(_buildCatalogHTML(data));
+        w.document.close();
+        res.textContent = `Catálogo gerado — ${data.total_items} itens, ${data.top_gaps.length} gaps`;
+        res.style.color = 'var(--green)';
+    } catch(e) { res.textContent='Error: '+e.message; res.style.color='var(--red)'; }
+    btn.disabled=false; btn.textContent='Download Curator Snapshot';
+}
+
+function _buildCatalogHTML(data) {
+    const scoreMap={10:['#5c4fc7','JP'],9:['#9d4edd','JP'],8:['#2196f3','EU'],7:['#1976d2','US'],6:['#f4a300','AU'],5:['#607d8b','RE'],4:['#546e7a','RE'],3:['#795548','BR'],2:['#4e342e','BR'],1:['#333','?']};
+    function psb(s){if(!s)return'—';const[bg,lb]=scoreMap[s]||['#555','?'];return`<span style="background:${bg};color:#fff;border-radius:3px;padding:1px 6px;font-size:0.68rem;font-weight:700;font-family:monospace">${s}<span style="opacity:.7;font-size:.6rem"> ${lb}</span></span>`;}
+    function e(s){if(s==null)return'';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML;}
+    function stars(r){if(!r)return'—';return Number(r).toFixed(2)+' ★';}
+    const date = new Date(data.snapshot_date).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+    // Section 1 — by_type KPIs
+    const typeCards = Object.entries(data.by_type||{}).sort((a,b)=>b[1]-a[1])
+        .map(([k,v])=>`<div class="kpi"><div class="kpi-v">${v}</div><div class="kpi-l">${e(k)}</div></div>`).join('');
+
+    // Section 1b — by format (derived from collection)
+    const fmtCounts = {};
+    (data.collection||[]).forEach(i=>{ const f=i.format||'Other'; fmtCounts[f]=(fmtCounts[f]||0)+1; });
+    const fmtCards = Object.entries(fmtCounts).sort((a,b)=>b[1]-a[1])
+        .map(([k,v])=>`<div class="kpi"><div class="kpi-v">${v}</div><div class="kpi-l">${e(k)}</div></div>`).join('');
+
+    // Section 2 — benchmark coverage
+    const covRows = (data.benchmark_coverage||[]).map(c=>`<tr>
+        <td>${e(c.source)}</td><td style="text-align:right">${c.total}</td>
+        <td style="text-align:right">${c.owned}</td>
+        <td><div style="display:flex;align-items:center;gap:8px">
+            <div style="flex:1;background:#2a2d3a;border-radius:3px;height:8px">
+                <div style="width:${c.pct}%;background:#7c6af7;border-radius:3px;height:8px"></div>
+            </div>
+            <span style="min-width:38px;text-align:right;font-size:.8rem">${c.pct}%</span>
+        </div></td></tr>`).join('');
+
+    // Section 3 — top rated owned
+    const ratedRows = (data.top_rated_owned||[]).slice(0,50).map((r,i)=>`<tr>
+        <td>${i+1}</td><td>${e(r.artist)}</td><td>${e(r.album)}</td>
+        <td>${e(r.subgenre)}</td><td style="text-align:right">${stars(r.rating)}</td></tr>`).join('');
+
+    // Section 4 — top gaps
+    const gapRows = (data.top_gaps||[]).slice(0,100).map((g,i)=>`<tr>
+        <td>${i+1}</td><td>${e(g.artist)}</td><td>${e(g.album)}</td>
+        <td style="text-align:right">${g.year||'—'}</td><td>${e(g.subgenre)}</td>
+        <td style="text-align:right">${stars(g.rating)}</td><td>${e(g.source)}</td></tr>`).join('');
+
+    // Section 5 — full collection
+    const colRows = (data.collection||[]).map(i=>`<tr>
+        <td>${e(i.artist)}</td><td>${e(i.title)}</td>
+        <td style="text-align:right">${i.year||'—'}</td>
+        <td style="text-align:right">${i.release_year&&i.release_year!==i.year?`<span style="color:#00bcd4">${i.release_year}</span>`:i.release_year||'—'}</td>
+        <td>${e(i.country)}</td><td>${e(i.format)}</td><td>${e(i.type)}</td>
+        <td>${e(i.pressing)}</td><td>${psb(i.pressing_score)}</td><td>${e(i.media)}</td>
+        <td style="text-align:right;font-family:monospace">${i.lowest_price!=null?'$'+i.lowest_price.toFixed(2):'—'}</td></tr>`).join('');
+
+    // JSON download helper embedded in page
+    const jsonB64 = btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
+
+    return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<title>VinylVault — Curator's Catalog</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1117;color:#e0e0e0;font-family:system-ui,sans-serif;font-size:14px;padding:32px}
+h1{font-size:1.8rem;color:#7c6af7;margin-bottom:4px}
+.sub{color:#888;font-size:.85rem;margin-bottom:32px}
+h2{font-size:1.1rem;color:#7c6af7;border-bottom:1px solid #2a2d3a;padding-bottom:6px;margin:32px 0 14px}
+.kpis{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px}
+.kpi{background:#1a1d27;border:1px solid #2a2d3a;border-radius:6px;padding:12px 18px;min-width:90px}
+.kpi-v{font-size:1.5rem;font-weight:700;color:#e0e0e0}
+.kpi-l{font-size:.72rem;color:#888;text-transform:uppercase;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+th{background:#1a1d27;color:#888;text-align:left;padding:6px 10px;font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0}
+td{padding:5px 10px;border-bottom:1px solid #1e2130}
+tr:nth-child(even) td{background:#12151e}
+tr:hover td{background:#1e2233}
+.sec-count{font-size:.75rem;color:#888;font-weight:400;margin-left:8px}
+a{color:#7c6af7;text-decoration:underline;cursor:pointer}
+footer{margin-top:40px;padding-top:16px;border-top:1px solid #2a2d3a;font-size:.78rem;color:#666;display:flex;gap:24px;align-items:center}
+@media print{body{background:#fff;color:#000}h1,h2{color:#333}.kpi{background:#f5f5f5;border-color:#ddd}.kpi-v{color:#000}.kpi-l{color:#666}th{background:#eee;color:#333}tr:nth-child(even) td{background:#fafafa}td{border-color:#ddd}footer{color:#999}}
+</style></head><body>
+<h1>VinylVault — Curator's Catalog</h1>
+<div class="sub">${date} &nbsp;•&nbsp; ${data.total_items} itens</div>
+
+<h2>Visão Geral — Por Tipo</h2>
+<div class="kpis">${typeCards}</div>
+<h2 style="margin-top:16px">Visão Geral — Por Formato</h2>
+<div class="kpis">${fmtCards}</div>
+
+<h2>Cobertura de Benchmarks <span class="sec-count">${(data.benchmark_coverage||[]).length} listas</span></h2>
+<table><thead><tr><th>Source</th><th style="text-align:right">Total</th><th style="text-align:right">Owned</th><th>Cobertura</th></tr></thead>
+<tbody>${covRows}</tbody></table>
+
+<h2>Top 50 Melhores Avaliados (Owned) <span class="sec-count">${Math.min(50,(data.top_rated_owned||[]).length)} itens</span></h2>
+<table><thead><tr><th>#</th><th>Artista</th><th>Álbum</th><th>Subgênero</th><th style="text-align:right">Rating</th></tr></thead>
+<tbody>${ratedRows}</tbody></table>
+
+<h2>Top 100 Gaps Prioritários <span class="sec-count">${Math.min(100,(data.top_gaps||[]).length)} itens</span></h2>
+<table><thead><tr><th>#</th><th>Artista</th><th>Álbum</th><th style="text-align:right">Ano</th><th>Subgênero</th><th style="text-align:right">Rating</th><th>Source</th></tr></thead>
+<tbody>${gapRows}</tbody></table>
+
+<h2>Coleção Completa <span class="sec-count">${(data.collection||[]).length} itens</span></h2>
+<table><thead><tr><th>Artista</th><th>Título</th><th style="text-align:right">Orig.</th><th style="text-align:right">Ed.</th><th>País</th><th>Formato</th><th>Tipo</th><th>Pressing</th><th>Score</th><th>Mídia</th><th style="text-align:right">USD</th></tr></thead>
+<tbody>${colRows}</tbody></table>
+
+<footer>
+  <span>VinylVault Curator's Catalog — gerado em ${date}</span>
+  <a onclick="(()=>{const a=document.createElement('a');a.href='data:application/json;base64,${jsonB64}';a.download='vinyl-vault-snapshot-${new Date().toISOString().slice(0,10)}.json';a.click()})()">⬇ Download JSON</a>
+  <a onclick="window.print()">🖨 Imprimir / PDF</a>
+</footer>
+</body></html>`;
 }
 let _syncPollTimer = null;
 const _SYNC_STEP_LABELS = {
