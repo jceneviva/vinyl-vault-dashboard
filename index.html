@@ -2269,7 +2269,7 @@ function populateCFFilters(stats, items) {
     if (stats.shelf_slot) fill('cfFilterShelfSlot', Object.fromEntries(Object.entries(stats.shelf_slot).sort((a,b)=>a[0].localeCompare(b[0]))));
     const folders={}; items.forEach(i=>{const f=i.folder_name||'Unknown';folders[f]=(folders[f]||0)+1;});
     document.getElementById('cfFilterFolder').innerHTML='<option value="">All Folders</option>'+Object.entries(folders).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
-    const fmts={}; items.forEach(i=>{const f=i.format_primary||'Unknown';fmts[f]=(fmts[f]||0)+1;});
+    const fmts={}; items.forEach(i=>{const f=i.folder_format||'Unknown';fmts[f]=(fmts[f]||0)+1;});
     document.getElementById('cfFilterFormat').innerHTML='<option value="">All Formats</option>'+Object.entries(fmts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
 }
 
@@ -2283,7 +2283,7 @@ function renderCFTable(items) {
     let f = items;
     if (curation) f=f.filter(i=>i.curation_type===curation); if (pressing) f=f.filter(i=>i.pressing===pressing);
     if (condition) f=f.filter(i=>i.media_condition===condition); if (folder) f=f.filter(i=>i.folder_name===folder);
-    if (format) f=f.filter(i=>i.format_primary===format);
+    if (format) f=f.filter(i=>i.folder_format===format);
     if (subgenreFilter) f=f.filter(i=>i.artist_subgenre===subgenreFilter);
     if (shelfSlot) f=f.filter(i=>i.shelf_slot===shelfSlot);
     if (search) f=f.filter(i=>(i.artist_name||'').toLowerCase().includes(search)||(i.basic_title||'').toLowerCase().includes(search)||(i.notes||'').toLowerCase().includes(search));
@@ -2304,7 +2304,7 @@ function renderCFTable(items) {
             <td style="font-family:var(--font-mono)">${oy}</td><td style="font-family:var(--font-mono);${ys}">${ry}</td>
             <td>${esc(i.country||'—')}</td>
             <td>${i.artist_subgenre ? `<span class="badge badge-pillar">${esc(i.artist_subgenre)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
-            <td><span class="badge b-format">${esc(i.format_primary||'—')}</span></td>
+            <td><span class="badge b-format">${esc(i.folder_format||'—')}</span></td>
             <td>${cb(i.media_condition)}</td><td>${cb(i.sleeve_condition)}</td><td>${tb(i.curation_type)}</td>
             <td>${esc(i.edition||'—')}</td><td>${esc(i.pressing||'—')}</td><td>${psb(i.pressing_score)}</td><td>${rh}</td>
             <td style="color:var(--text-muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(i.notes||'')}">${esc(i.notes||'')}</td>
