@@ -825,6 +825,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                                     <th data-sort="pressing_score" style="cursor:pointer">Score ⇅</th>
                                     <th data-sort="rating" style="cursor:pointer">Rating ⇅</th>
                                     <th>Notes</th>
+                                    <th style="width:36px"></th>
                                 </tr>
                             </thead>
                             <tbody id="cfBody"></tbody>
@@ -2323,6 +2324,7 @@ function renderCFTable(items) {
             <td>${cb(i.media_condition)}</td><td>${cb(i.sleeve_condition)}</td><td>${tb(i.curation_type)}</td>
             <td>${esc(i.edition||'—')}</td><td>${esc(i.pressing||'—')}</td><td>${psb(i.pressing_score)}</td><td>${rh}</td>
             <td style="color:var(--text-muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(i.notes||'')}">${esc(i.notes||'')}</td>
+            <td onclick="event.stopPropagation()"><button class="btn btn-ghost" style="padding:2px 7px;font-size:0.7rem;border:1px solid var(--border)" onclick="openCollectionItemEdit(${i.release_id})">✎</button></td>
         </tr>`;
     }).join('');
     document.getElementById('cfCount').textContent = `${f.length} of ${items.length} items`;
@@ -3385,6 +3387,18 @@ async function loadEditorFolders() {
         editorState.folders   = Array.isArray(folders) ? folders : [];
         editorState.fieldDefs = Array.isArray(fields)  ? fields  : [];
     } catch(e) { editorState.folders = []; editorState.fieldDefs = []; }
+}
+
+async function openCollectionItemEdit(releaseId) {
+    if (!editorState.folders.length || !editorState.fieldDefs.length) {
+        await loadEditorFolders();
+    }
+    try {
+        const items = await api(`/api/collection/edit-items?release_id=${releaseId}&limit=1`);
+        const item = Array.isArray(items) ? items[0] : null;
+        if (!item) { alert('Item não encontrado.'); return; }
+        openEditDialog(item);
+    } catch(e) { alert('Erro ao carregar item: ' + e.message); }
 }
 
 function editorSetMode(mode) {
