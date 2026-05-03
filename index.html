@@ -1323,25 +1323,6 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                     </div>
                 </div>
 
-                <!-- Editor dialog (shared Add / Edit) -->
-                <div class="dialog-overlay" id="editorDialog">
-                    <div class="dialog" style="max-width:520px;width:95%">
-                        <h3 id="editorDialogTitle" style="font-family:var(--font-display);font-style:italic;margin-bottom:8px">Add to Collection</h3>
-                        <div id="editorDialogInfo" style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:14px"></div>
-                        <div class="editor-fields-grid">
-                            <span class="form-label">Folder</span>
-                            <select id="editorDialogFolder" class="sel" style="width:100%"></select>
-                        </div>
-                        <div id="editorDynamicFields" class="editor-fields-grid" style="margin-top:8px"></div>
-                        <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end;align-items:center">
-                            <button class="btn-secondary" onclick="closeEditorDialog()">Cancel</button>
-                            <button class="btn-danger" id="editorDeleteBtn" style="display:none" onclick="confirmRemoveItem()">Delete</button>
-                            <button class="btn-primary" id="editorConfirmBtn" onclick="confirmEditorDialog()">Add to Collection</button>
-                        </div>
-                        <div id="editorDialogMsg" style="font-size:0.78rem;color:var(--red);margin-top:8px;min-height:16px"></div>
-                    </div>
-                </div>
-
             </div><!-- /.dash-main -->
         </div><!-- /.dash-layout -->
     </div>
@@ -1414,6 +1395,25 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
         </div>
     </div>
 
+</div>
+
+<!-- Editor dialog — top-level so it's visible from any tab -->
+<div class="dialog-overlay" id="editorDialog">
+    <div class="dialog" style="max-width:520px;width:95%">
+        <h3 id="editorDialogTitle" style="font-family:var(--font-display);font-style:italic;margin-bottom:8px">Add to Collection</h3>
+        <div id="editorDialogInfo" style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:14px"></div>
+        <div class="editor-fields-grid">
+            <span class="form-label">Folder</span>
+            <select id="editorDialogFolder" class="sel" style="width:100%"></select>
+        </div>
+        <div id="editorDynamicFields" class="editor-fields-grid" style="margin-top:8px"></div>
+        <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end;align-items:center">
+            <button class="btn-secondary" onclick="closeEditorDialog()">Cancel</button>
+            <button class="btn-danger" id="editorDeleteBtn" style="display:none" onclick="confirmRemoveItem()">Delete</button>
+            <button class="btn-primary" id="editorConfirmBtn" onclick="confirmEditorDialog()">Add to Collection</button>
+        </div>
+        <div id="editorDialogMsg" style="font-size:0.78rem;color:var(--red);margin-top:8px;min-height:16px"></div>
+    </div>
 </div>
 
 <!-- Album Detail Modal — top-level so it's visible from any tab -->
@@ -2305,7 +2305,7 @@ function renderCFTable(items) {
     if (search) f=f.filter(i=>(i.artist_name||'').toLowerCase().includes(search)||(i.basic_title||'').toLowerCase().includes(search)||(i.notes||'').toLowerCase().includes(search));
     const rbm=state.ratingByMaster||{}; const {col,dir}=state.cfSort; const m=dir==='asc'?1:-1;
     f.sort((a,b)=>{let va,vb; if(col==='rating'){const ra=a.master_id?rbm[a.master_id]:null;const rb=b.master_id?rbm[b.master_id]:null;va=ra?ra.rating:-1;vb=rb?rb.rating:-1;}else if(col==='pressing_score'){va=a.pressing_score||0;vb=b.pressing_score||0;}else if(col==='original_year'||col==='basic_year'){va=(a[col]&&a[col]>0)?a[col]:99999;vb=(b[col]&&b[col]>0)?b[col]:99999;}else{va=(a[col]||'').toLowerCase();vb=(b[col]||'').toLowerCase();}if(va<vb)return -1*m;if(va>vb)return 1*m;return 0;});
-    function cb(c){if(!c)return'—';const s=c.replace(/ \(.*\)/,'');const cl=c.includes('Mint')?'b-owned':c.includes('Good')?'b-format':'b-gap';return`<span class="badge ${cl}">${esc(s)}</span>`;}
+    function cb(c){if(!c)return'—';const s=c.replace(/.*\(([^\s)]+).*\)/,'$1');const cl=c.includes('Mint')?'b-owned':c.includes('Good')?'b-format':'b-gap';return`<span class="badge ${cl}">${esc(s)}</span>`;}
     function tb(t){if(!t)return'—';const c={'Def':'b-owned','Editorial':'b-format','Temp':'b-gap','Unofficial':'b-gap','PicDisc':'b-genre','Historical':'b-format','Sentimental':'b-genre'};return`<span class="badge ${c[t]||'b-format'}">${esc(t)}</span>`;}
     const scoreMap={10:['#5c4fc7','JP'],9:['#9d4edd','JP'],8:['#2196f3','EU'],7:['#1976d2','US'],6:['#f4a300','AU'],5:['#607d8b','RE'],4:['#546e7a','RE'],3:['#795548','BR'],2:['#4e342e','BR'],1:['#333','?']};
     function psb(s){if(!s)return'<span style="color:var(--text-muted)">—</span>';const[bg,label]=scoreMap[s]||['#333','?'];return`<span style="display:inline-flex;align-items:center;gap:3px;background:${bg};color:#fff;border-radius:4px;padding:1px 6px;font-size:0.62rem;font-family:var(--font-mono);font-weight:700">${s}<span style="opacity:.75;font-size:0.58rem">${label}</span></span>`;}
@@ -2324,7 +2324,7 @@ function renderCFTable(items) {
             <td>${cb(i.media_condition)}</td><td>${cb(i.sleeve_condition)}</td><td>${tb(i.curation_type)}</td>
             <td>${esc(i.edition||'—')}</td><td>${esc(i.pressing||'—')}</td><td>${psb(i.pressing_score)}</td><td>${rh}</td>
             <td style="color:var(--text-muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(i.notes||'')}">${esc(i.notes||'')}</td>
-            <td onclick="event.stopPropagation()"><button class="btn btn-ghost" style="padding:2px 7px;font-size:0.7rem;border:1px solid var(--border)" onclick="openCollectionItemEdit(${i.release_id})">✎</button></td>
+            <td><button class="btn btn-ghost" style="padding:2px 7px;font-size:0.7rem;border:1px solid var(--border)" onclick="event.stopPropagation();openCollectionItemEdit(${i.release_id})">✎</button></td>
         </tr>`;
     }).join('');
     document.getElementById('cfCount').textContent = `${f.length} of ${items.length} items`;
@@ -3390,15 +3390,15 @@ async function loadEditorFolders() {
 }
 
 async function openCollectionItemEdit(releaseId) {
-    if (!editorState.folders.length || !editorState.fieldDefs.length) {
-        await loadEditorFolders();
-    }
     try {
+        if (!editorState.folders.length || !editorState.fieldDefs.length) {
+            await loadEditorFolders();
+        }
         const items = await api(`/api/collection/edit-items?release_id=${releaseId}&limit=1`);
         const item = Array.isArray(items) ? items[0] : null;
-        if (!item) { alert('Item não encontrado.'); return; }
+        if (!item) { alert('Item não encontrado (release_id=' + releaseId + ').'); return; }
         openEditDialog(item);
-    } catch(e) { alert('Erro ao carregar item: ' + e.message); }
+    } catch(e) { alert('Erro ao abrir editor: ' + e.message); }
 }
 
 function editorSetMode(mode) {
