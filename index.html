@@ -810,6 +810,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                         <table>
                             <thead>
                                 <tr id="cfHeaders">
+                                    <th style="width:36px"></th>
                                     <th data-sort="artist_name" style="cursor:pointer">Artist ⇅</th>
                                     <th data-sort="basic_title" style="cursor:pointer">Title ⇅</th>
                                     <th data-sort="original_year" style="cursor:pointer">Orig ⇅</th>
@@ -824,7 +825,6 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                                     <th data-sort="pressing_score" style="cursor:pointer">Score ⇅</th>
                                     <th data-sort="rating" style="cursor:pointer">Rating ⇅</th>
                                     <th>Notes</th>
-                                    <th style="width:36px"></th>
                                 </tr>
                             </thead>
                             <tbody id="cfBody"></tbody>
@@ -2314,6 +2314,7 @@ function renderCFTable(items) {
         const re=i.master_id?rbm[i.master_id]:null;
         const rh=re?`<span style="font-family:var(--font-mono);color:var(--gold)">${Number(re.rating).toFixed(2)}</span>`:'<span style="color:var(--text-muted)">—</span>';
         return `<tr style="cursor:pointer" onclick="openAlbumDetail(${i.release_id})">
+            <td><button class="btn btn-ghost" style="padding:2px 7px;font-size:0.7rem;border:1px solid var(--border)" onclick="event.stopPropagation();openCollectionItemEdit(${i.release_id})">✎</button></td>
             <td style="font-weight:500;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.artist_name||'—')}</td>
             <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.basic_title||'—')}</td>
             <td style="font-family:var(--font-mono)">${oy}</td><td style="font-family:var(--font-mono);${ys}">${ry}</td>
@@ -2322,7 +2323,6 @@ function renderCFTable(items) {
             <td>${cb(i.media_condition)}</td><td>${cb(i.sleeve_condition)}</td><td>${tb(i.curation_type)}</td>
             <td>${esc(i.edition||'—')}</td><td>${esc(i.pressing||'—')}</td><td>${psb(i.pressing_score)}</td><td>${rh}</td>
             <td style="color:var(--text-muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(i.notes||'')}">${esc(i.notes||'')}</td>
-            <td><button class="btn btn-ghost" style="padding:2px 7px;font-size:0.7rem;border:1px solid var(--border)" onclick="event.stopPropagation();openCollectionItemEdit(${i.release_id})">✎</button></td>
         </tr>`;
     }).join('');
     document.getElementById('cfCount').textContent = `${f.length} of ${items.length} items`;
