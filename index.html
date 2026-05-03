@@ -815,7 +815,6 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                                     <th data-sort="original_year" style="cursor:pointer">Orig ⇅</th>
                                     <th data-sort="basic_year" style="cursor:pointer">Rel ⇅</th>
                                     <th data-sort="country" style="cursor:pointer">Country ⇅</th>
-                                    <th data-sort="artist_subgenre" style="cursor:pointer">Subgenre ⇅</th>
                                     <th data-sort="format_primary" style="cursor:pointer">Fmt ⇅</th>
                                     <th data-sort="media_condition" style="cursor:pointer">Media ⇅</th>
                                     <th data-sort="sleeve_condition" style="cursor:pointer">Sleeve ⇅</th>
@@ -1276,7 +1275,6 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                         <!-- Mode toggle -->
                         <div class="editor-mode-bar">
                             <button class="editor-mode-btn active" data-mode="add" onclick="editorSetMode('add')">Search &amp; Add</button>
-                            <button class="editor-mode-btn" data-mode="edit" onclick="editorSetMode('edit')">Edit Owned</button>
                         </div>
 
                         <!-- ADD PANEL -->
@@ -2320,7 +2318,6 @@ function renderCFTable(items) {
             <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.basic_title||'—')}</td>
             <td style="font-family:var(--font-mono)">${oy}</td><td style="font-family:var(--font-mono);${ys}">${ry}</td>
             <td>${esc(i.country||'—')}</td>
-            <td>${i.artist_subgenre ? `<span class="badge badge-pillar">${esc(i.artist_subgenre)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
             <td><span class="badge b-format">${esc(i.folder_format||'—')}</span></td>
             <td>${cb(i.media_condition)}</td><td>${cb(i.sleeve_condition)}</td><td>${tb(i.curation_type)}</td>
             <td>${esc(i.edition||'—')}</td><td>${esc(i.pressing||'—')}</td><td>${psb(i.pressing_score)}</td><td>${rh}</td>
