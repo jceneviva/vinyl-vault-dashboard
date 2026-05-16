@@ -268,6 +268,11 @@ tbody tr:hover { background: var(--bg-card-hover); }
 .star-rating { display:flex; gap:6px; font-size:1.4rem; }
 .star-rating .star { cursor:pointer; color:var(--text-muted); transition:color 0.15s; }
 .star-rating .star.active { color:var(--gold); }
+.drill-row { display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-bottom:1px solid var(--border); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.drill-row-label { font-size:0.9rem; color:var(--text-primary); }
+.drill-row-value { font-size:0.82rem; color:var(--accent); max-width:55%; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.drill-option { display:flex; align-items:center; padding:14px 0; border-bottom:1px solid var(--border); cursor:pointer; gap:12px; font-size:0.9rem; color:var(--text-primary); -webkit-tap-highlight-color:transparent; }
+.drill-option.active { color:var(--accent); font-weight:600; }
 .bottom-sheet { position: fixed; bottom: 60px; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; transform: translateY(100%); transition: transform 0.3s ease; z-index: 1100; padding: 16px; display: none; }
 .bottom-sheet-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1099; }
 .bottom-sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
@@ -4215,24 +4220,87 @@ function updateDashFilterCount() {
     el.classList.toggle('has-filters', count > 0);
 }
 
+const _CF_DRILL_CONFIG = [
+    { label: 'Pasta',      selectId: 'cfFilterFolder' },
+    { label: 'Subcoleção', selectId: 'cfFilterSubcollection' },
+    { label: 'Formato',    selectId: 'cfFilterFormat' },
+    { label: 'Tipo Pasta', selectId: 'cfFilterFolderType' },
+    { label: 'Subgênero',  selectId: 'cfFilterSubgenre' },
+    { label: 'Tipo',       selectId: 'cfFilterCuration' },
+    { label: 'Pressing',   selectId: 'cfFilterPressing' },
+    { label: 'Condição',   selectId: 'cfFilterCondition' },
+];
+
 function openCollFilters() {
-    const sidebar = document.querySelector('#panel-collection .dash-sidebar');
-    const sheetBody = document.getElementById('collFilterSheetBody');
-    if (sidebar && sheetBody && sheetBody.children.length === 0) {
-        while (sidebar.firstChild) sheetBody.appendChild(sidebar.firstChild);
-    }
+    _renderDrillHome();
     document.getElementById('collFilterSheet').classList.add('open');
     document.getElementById('collFilterBackdrop').classList.add('open');
 }
 
 function closeCollFilters() {
-    const sidebar = document.querySelector('#panel-collection .dash-sidebar');
-    const sheetBody = document.getElementById('collFilterSheetBody');
-    if (sidebar && sheetBody && sheetBody.children.length > 0) {
-        while (sheetBody.firstChild) sidebar.appendChild(sheetBody.firstChild);
-    }
     document.getElementById('collFilterSheet').classList.remove('open');
     document.getElementById('collFilterBackdrop').classList.remove('open');
+}
+
+function _renderDrillHome() {
+    const body = document.getElementById('collFilterSheetBody');
+    const searchVal = document.getElementById('cfSearch')?.value || '';
+    const rows = _CF_DRILL_CONFIG.map(f => {
+        const sel = document.getElementById(f.selectId);
+        const hasVal = sel && sel.value !== '';
+        const valText = hasVal ? (sel.options[sel.selectedIndex]?.text || '') : '';
+        const dot = hasVal ? `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);vertical-align:middle;margin-left:4px"></span>` : '';
+        return `<div class="drill-row" onclick="_openDrillCategory('${f.selectId}','${f.label}')">
+            <span class="drill-row-label">${f.label}${dot}</span>
+            <span style="display:flex;align-items:center;gap:4px;min-width:0">
+                <span class="drill-row-value">${hasVal ? esc(valText) : ''}</span>
+                <span style="color:var(--text-muted);flex-shrink:0">›</span>
+            </span>
+        </div>`;
+    }).join('');
+    body.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <span style="font-size:1rem;font-weight:600;color:var(--text-primary)">Filtros</span>
+            <button class="btn-ghost" onclick="cfClearAllFilters();_renderDrillHome()">Limpar tudo</button>
+        </div>
+        <div class="cf-search-wrap" style="margin-bottom:4px">
+            <input type="text" placeholder="Buscar artista, título…" value="${esc(searchVal)}"
+                   oninput="cfSyncSearch(this.value);updateCollFilterCount()">
+        </div>
+        ${rows}
+        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeCollFilters()">Ver resultados</button>`;
+}
+
+function _openDrillCategory(selectId, label) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    const opts = Array.from(sel.options).filter(o => o.value !== '');
+    const body = document.getElementById('collFilterSheetBody');
+    const optHtml = opts.length === 0
+        ? `<div style="color:var(--text-muted);text-align:center;padding:20px">Sem opções</div>`
+        : opts.map(o => {
+            const isActive = sel.value === o.value;
+            const safeVal = o.value.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+            return `<div class="drill-option${isActive ? ' active' : ''}" onclick="_setDrillValue('${selectId}','${safeVal}')">
+                <span style="flex-shrink:0">${isActive ? '●' : '○'}</span>
+                <span>${esc(o.text)}</span>
+            </div>`;
+        }).join('');
+    body.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+            <button class="btn-ghost" onclick="_renderDrillHome()" style="padding:6px 12px;font-size:1.1rem">‹</button>
+            <span style="font-size:1rem;font-weight:600;color:var(--text-primary)">${label}</span>
+        </div>
+        <div style="max-height:340px;overflow-y:auto">${optHtml}</div>`;
+}
+
+function _setDrillValue(selectId, value) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    sel.value = sel.value === value ? '' : value;
+    sel.dispatchEvent(new Event('change'));
+    updateCollFilterCount();
+    _renderDrillHome();
 }
 
 function updateCollFilterCount() {
@@ -4258,11 +4326,6 @@ window.addEventListener('resize', () => {
         document.getElementById('dashFilterSheet')?.classList.remove('open');
         document.getElementById('dashFilterBackdrop')?.classList.remove('open');
 
-        const collSidebar = document.querySelector('#panel-collection .dash-sidebar');
-        const collBody = document.getElementById('collFilterSheetBody');
-        if (collSidebar && collBody && collBody.children.length > 0) {
-            while (collBody.firstChild) collSidebar.appendChild(collBody.firstChild);
-        }
         document.getElementById('collFilterSheet')?.classList.remove('open');
         document.getElementById('collFilterBackdrop')?.classList.remove('open');
     }
