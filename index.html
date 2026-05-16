@@ -247,6 +247,19 @@ tbody tr:hover { background: var(--bg-card-hover); }
     display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;
 }
+#bottomNav {
+    display: none; position: fixed; bottom: 0; left: 0; right: 0; height: 60px;
+    background: #0f1117; border-top: 1px solid var(--border); z-index: 1000;
+    align-items: stretch;
+}
+.bn-item {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    flex: 1; gap: 3px; background: none; border: none; cursor: pointer;
+    color: var(--text-secondary); font-size: 0.65rem; min-height: 44px;
+    transition: color 0.15s;
+}
+.bn-item.active { color: var(--accent); }
+.bn-icon { font-size: 1.2rem; line-height: 1; }
 .dialog {
     background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
     padding: 24px; max-width: 560px; width: 92%;
@@ -271,6 +284,10 @@ tbody tr:hover { background: var(--bg-card-hover); }
     table { font-size: 0.72rem; }
     thead th { padding: 8px 6px; font-size: 0.62rem; }
     tbody td { padding: 6px; }
+    /* Bottom nav — mobile only */
+    body { padding-bottom: 60px; }
+    #tabBar { display: none; }
+    #bottomNav { display: flex; }
 }
 @media (max-width: 480px) {
     .metrics { grid-template-columns: 1fr 1fr; gap: 6px; }
@@ -3851,6 +3868,44 @@ async function captureValueSnapshot() {
 
 // Auto-connect
 window.addEventListener('DOMContentLoaded',()=>{if(API_KEY){document.getElementById('loginOverlay').style.display='none';connectAPI();}});
+
+// Bottom nav
+document.getElementById('bottomNav').addEventListener('click', e => {
+    const btn = e.target.closest('.bn-item');
+    if (!btn) return;
+    const tab = btn.dataset.tab;
+    const tabMap = {
+        'wishlist-mobile': 'manage',
+        'add-mobile':      'manage',
+        'sync-mobile':     'manage',
+    };
+    const resolvedTab = tabMap[tab] || tab;
+    document.querySelector(`#tabBar [data-tab="${resolvedTab}"]`)?.click();
+    document.querySelectorAll('.bn-item').forEach(b => b.classList.toggle('active', b === btn));
+});
 </script>
+
+<nav id="bottomNav">
+    <button class="bn-item active" data-tab="collection">
+        <span class="bn-icon">📀</span>
+        <span class="bn-label">Collection</span>
+    </button>
+    <button class="bn-item" data-tab="wishlist-mobile">
+        <span class="bn-icon">🎯</span>
+        <span class="bn-label">Wishlist</span>
+    </button>
+    <button class="bn-item" data-tab="add-mobile">
+        <span class="bn-icon">➕</span>
+        <span class="bn-label">Add</span>
+    </button>
+    <button class="bn-item" data-tab="sync-mobile">
+        <span class="bn-icon">🔄</span>
+        <span class="bn-label">Sync</span>
+    </button>
+    <button class="bn-item" data-tab="dashboard">
+        <span class="bn-icon">📊</span>
+        <span class="bn-label">Dashboard</span>
+    </button>
+</nav>
 </body>
 </html>
