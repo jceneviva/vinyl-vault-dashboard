@@ -2941,7 +2941,12 @@ async function saveAlbumEdit() {
             body: JSON.stringify(body),
         });
         if (resp.status === 401) { logout(); return; }
-        if (!resp.ok) throw new Error(`API ${resp.status}`);
+        if (!resp.ok) {
+            let detail = `API ${resp.status}`;
+            try { const j = await resp.json(); detail = j.detail || detail; } catch {}
+            showToast('Erro: ' + detail, 8000);
+            return;
+        }
         showToast('Salvo com sucesso');
         closeAlbumDetail();
     } catch (err) {
