@@ -2827,10 +2827,16 @@ function openAlbumDetail(releaseId) {
             const coverHtml = d.cover
                 ? `<img src="${esc(d.cover)}" alt="cover" style="width:110px;height:110px;object-fit:cover;border-radius:6px;flex-shrink:0">`
                 : `<div style="width:110px;height:110px;background:var(--bg-hover);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.7rem;flex-shrink:0">No cover</div>`;
-            const condOpts = ['Mint (M)','Near Mint (NM or M-)','Very Good Plus (VG+)','Very Good (VG)','Good Plus (G+)','Good (G)'].map(o=>`<option${(d.media_condition||'')===o?' selected':''}>${esc(o)}</option>`).join('');
-            const sleeveOpts = ['Mint (M)','Near Mint (NM or M-)','Very Good Plus (VG+)','Very Good (VG)','Good Plus (G+)','Good (G)'].map(o=>`<option${(d.sleeve_condition||'')===o?' selected':''}>${esc(o)}</option>`).join('');
-            const typeOpts = ['Def','Temp','Editorial','Sentimental','For Sale','Unofficial','Historical'].map(o=>`<option${(d.curation_type||'')===o?' selected':''}>${esc(o)}</option>`).join('');
-            const pressingOpts = ['Original','Reissue','Bootleg'].map(o=>`<option${(d.pressing||'')===o?' selected':''}>${esc(o)}</option>`).join('');
+            function optsFrom(selectId, current) {
+                const sel = document.getElementById(selectId);
+                const vals = sel ? Array.from(sel.options).filter(o=>o.value).map(o=>o.value) : [];
+                if (current && !vals.includes(current)) vals.unshift(current);
+                return vals.map(o=>`<option${current===o?' selected':''}>${esc(o)}</option>`).join('');
+            }
+            const condOpts   = optsFrom('cfFilterCondition', d.media_condition||'');
+            const sleeveOpts = optsFrom('cfFilterCondition', d.sleeve_condition||'');
+            const typeOpts   = optsFrom('cfFilterCuration',  d.curation_type||'');
+            const pressingOpts = optsFrom('cfFilterPressing', d.pressing||'');
             const starsHtml = [1,2,3,4,5].map(n=>`<span class="star" data-n="${n}">★</span>`).join('');
             content.innerHTML = `
                 <div class="detail-tabs">
