@@ -642,7 +642,6 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
 </head>
 <body>
 
-<button id="testBtn" style="position:fixed;top:0;left:0;z-index:9999;background:red;color:white;padding:16px;font-size:1rem" onclick="alert('JS funciona')">TESTE JS</button>
 <div class="app">
     <header class="header">
         <div class="brand">
@@ -4153,19 +4152,35 @@ async function startSyncFromSheet() {
     setTimeout(_pollSheet, 800);
 }
 
-// Bottom nav — DEBUG VERSION
-document.addEventListener('DOMContentLoaded', () => {
-  const nav = document.getElementById('bottomNav');
-  if (!nav) {
-    console.error('bottomNav não encontrado');
-    return;
-  }
-  console.log('bottomNav encontrado, registrando listener');
+// Bottom nav — wrapped in DOMContentLoaded because #bottomNav is after </script>
+window.addEventListener('DOMContentLoaded', () => {
+    const nav = document.getElementById('bottomNav');
+    if (!nav) return;
+    nav.addEventListener('click', e => {
+        const btn = e.target.closest('.bn-item');
+        if (!btn) return;
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.bn-item').forEach(b => b.classList.toggle('active', b === btn));
 
-  nav.addEventListener('click', (e) => {
-    console.log('click detectado', e.target);
-    alert('Botão: ' + (e.target.closest('.bn-item')?.dataset?.tab || 'nenhum'));
-  });
+        if (tab === 'sync-mobile') {
+            openSyncSheet();
+            return;
+        }
+        if (tab === 'add-mobile') {
+            document.querySelector('#tabBar [data-tab="manage"]')?.click();
+            setTimeout(() => {
+                switchManageSub('wishlist');
+                const form = document.getElementById('wlAddForm');
+                if (form) { form.classList.add('open'); form.scrollIntoView({ behavior: 'smooth' }); }
+            }, 50);
+            return;
+        }
+
+        const tabMap = { 'wishlist-mobile': 'manage' };
+        const resolvedTab = tabMap[tab] || tab;
+        document.querySelector(`#tabBar [data-tab="${resolvedTab}"]`)?.click();
+        if (tab === 'wishlist-mobile') setTimeout(() => switchManageSub('wishlist'), 50);
+    });
 });
 </script>
 
