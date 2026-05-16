@@ -249,6 +249,24 @@ tbody tr:hover { background: var(--bg-card-hover); }
 }
 #collCards { display: none; }
 .coll-card { display: flex; gap: 12px; padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; align-items: flex-start; }
+#wlCards { display: none; }
+.wl-card { display: flex; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--border); align-items: flex-start; }
+.wl-card:active { background: rgba(255,255,255,0.03); }
+.wl-card-body { flex: 1; min-width: 0; }
+.wl-card-title { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wl-card-artist { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 2px; }
+.wl-card-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+#wlFab { display: none; position: fixed; bottom: 76px; right: 16px; width: 52px; height: 52px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 1.5rem; border: none; cursor: pointer; z-index: 999; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+#dashFilterBtn { display: none; }
+.bottom-sheet { position: fixed; bottom: 60px; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; transform: translateY(100%); transition: transform 0.3s ease; z-index: 1100; padding: 16px; display: none; }
+.bottom-sheet-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1099; }
+.bottom-sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+.bottom-sheet-title { font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); }
+.sync-sheet-status { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px; }
+.sync-sheet-bar { height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 8px; overflow: hidden; }
+.sync-sheet-fill { height: 100%; background: var(--accent); border-radius: 2px; width: 0%; transition: width 0.3s ease; }
+.sync-sheet-step { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 16px; }
+.sync-sheet-actions { display: flex; flex-direction: column; gap: 8px; }
 .coll-card:active { background: rgba(255,255,255,0.03); }
 .coll-card-thumb { width: 56px; height: 56px; border-radius: var(--radius-sm); object-fit: cover; flex-shrink: 0; background: var(--bg-card); }
 .coll-card-body { flex: 1; min-width: 0; }
@@ -280,7 +298,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
 @media (max-width: 768px) {
     .app { padding: 10px; }
     .header { flex-direction: column; gap: 10px; align-items: flex-start; }
-    .header-right { width: 100%; justify-content: flex-end; }
+    .header-right { display: none !important; }
     .nav { gap: 0; }
     .nav-item { padding: 9px 12px; font-size: 0.72rem; }
     .metrics { grid-template-columns: repeat(2, 1fr); }
@@ -302,6 +320,64 @@ tbody tr:hover { background: var(--bg-card-hover); }
     /* Collection cards — mobile only */
     #collCards { display: block; }
     #panel-collection .tbl-scroll { display: none; }
+    /* Wishlist cards + FAB — mobile only */
+    #wlCards { display: block; }
+    .manage-sub[data-sub="wishlist"] .tbl-scroll { display: none; }
+    #wlAddForm { display: none; }
+    #wlAddForm.open { display: block; }
+    /* Bottom sheet — mobile only */
+    .bottom-sheet.open { display: block; transform: translateY(0); }
+    .bottom-sheet-backdrop.open { display: block; }
+    /* All sidebars hidden on mobile — each panel uses its own strategy */
+    .dash-sidebar { display: none !important; }
+    /* Manage sidebar override — kept visible for horizontal subnav */
+    #panel-manage .dash-sidebar { display: block !important; padding: 0; }
+    #dashFilterBtn {
+        display: flex; position: fixed; bottom: 76px; left: 16px;
+        background: var(--bg-card); border: 1px solid var(--accent);
+        border-radius: 20px; color: var(--accent);
+        font-size: 0.78rem; padding: 8px 16px;
+        cursor: pointer; z-index: 999; align-items: center; gap: 6px;
+    }
+    #dashFilterBtn .filter-count {
+        background: var(--accent); color: #fff; border-radius: 10px;
+        padding: 1px 6px; font-size: 0.7rem; display: none;
+    }
+    #dashFilterBtn .filter-count.has-filters { display: inline-block; }
+    /* Header mobile */
+    .header { padding: 8px 12px; }
+    .brand-sub { display: none; }
+    /* Dialog — bottom sheet on mobile */
+    .dialog {
+        max-width: 100% !important; width: 100%; margin: 0;
+        border-radius: var(--radius) var(--radius) 0 0;
+        position: fixed; bottom: 60px; left: 0; right: 0;
+        max-height: 80vh; overflow-y: auto;
+    }
+    .dialog-overlay { align-items: flex-end; }
+    /* Touch targets */
+    button, select, input[type="text"] { min-height: 44px; }
+    .badge, .cf-active-chip, .sb-chip, .sb-chip-count, .filter-clear-all { min-height: unset; }
+    /* Benchmark table */
+    #panel-benchmark .tbl-scroll { font-size: 0.72rem; }
+    #panel-benchmark .tbl-scroll th, #panel-benchmark .tbl-scroll td { padding: 6px 8px; }
+    #panel-benchmark .col-hide-mobile { display: none; }
+    /* Value tab */
+    #valueMetrics { grid-template-columns: 1fr 1fr; }
+    #valueChartWrap { max-height: 220px; }
+    /* Manage sub-nav — horizontal strip */
+    #panel-manage .dash-sidebar .sidebar-header { display: none; }
+    #panel-manage .dash-sidebar .manage-filters { display: none; }
+    #panel-manage .manage-subnav {
+        flex-direction: row; overflow-x: auto;
+        padding: 8px; gap: 8px;
+        border-bottom: 1px solid var(--border);
+        -webkit-overflow-scrolling: touch;
+    }
+    #panel-manage .manage-nav-btn { white-space: nowrap; flex-shrink: 0; width: auto; text-align: center; }
+    #panel-manage .dash-main { width: 100%; }
+    /* Logout button — mobile only */
+    .manage-mobile-logout { display: block; padding: 16px 0; }
 }
 @media (max-width: 480px) {
     .metrics { grid-template-columns: 1fr 1fr; gap: 6px; }
@@ -310,6 +386,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
     .nav-item { padding: 8px 10px; font-size: 0.68rem; }
 }
 
+.manage-mobile-logout { display: none; }
 /* Hidden config */
 .config-bar { display: none; }
 
@@ -565,6 +642,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
 </head>
 <body>
 
+<button id="testBtn" style="position:fixed;top:0;left:0;z-index:9999;background:red;color:white;padding:16px;font-size:1rem" onclick="alert('JS funciona')">TESTE JS</button>
 <div class="app">
     <header class="header">
         <div class="brand">
@@ -979,9 +1057,9 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                                 <th data-bsort="year" style="cursor:pointer">Year ⇅</th>
                                 <th data-bsort="subgenre" style="cursor:pointer">Subgenre ⇅</th>
                                 <th data-bsort="rating_avg" style="cursor:pointer">Rating ⇅</th>
-                                <th data-bsort="rating_count" style="cursor:pointer">Reviews ⇅</th>
+                                <th data-bsort="rating_count" style="cursor:pointer" class="col-hide-mobile">Reviews ⇅</th>
                                 <th data-bsort="status" style="cursor:pointer">Status ⇅</th>
-                                <th>Action</th>
+                                <th class="col-hide-mobile">Action</th>
                             </tr></thead>
                             <tbody id="benchmarkBody"></tbody>
                         </table>
@@ -1158,7 +1236,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
 
                 <!-- WISHLIST sub-section -->
                 <div class="manage-sub active" data-sub="wishlist">
-                    <div class="card" style="margin-bottom:20px">
+                    <div class="card" id="wlAddForm" style="margin-bottom:20px">
                         <h3>Add to Wishlist</h3>
                         <!-- Step 1: search -->
                         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
@@ -1215,6 +1293,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                             <span id="wlCount" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);margin-left:12px"></span>
                         </div>
                     </div>
+                    <div id="wlCards"></div>
                 </div>
 
                 <!-- ARTISTS sub-section -->
@@ -1298,6 +1377,9 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                             <button class="btn btn-snap" onclick="downloadSnapshot()" id="snapBtn">Download Curator Snapshot</button>
                         </div>
                         <div id="purgeResult" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);min-height:20px"></div>
+                    </div>
+                    <div class="manage-mobile-logout">
+                        <button class="btn-ghost" onclick="logout()">Sair da conta</button>
                     </div>
                 </div>
 
@@ -1601,6 +1683,7 @@ function dashApplyFilters() {
     dashUpdateRanking(filtered);
     // Sync sidebar active states
     dashUpdateSidebarActive();
+    updateDashFilterCount();
 }
 
 function dashRenderFilterBar() {
@@ -2223,9 +2306,9 @@ function benchRenderTable(filtered) {
         <td style="font-family:var(--font-mono)">${a.year || '—'}</td>
         <td><span class="badge b-genre">${esc(a.subgenre || '—')}</span></td>
         <td style="font-family:var(--font-mono);color:var(--gold)">${a.rating_avg ? Number(a.rating_avg).toFixed(2) : '—'}</td>
-        <td style="font-family:var(--font-mono)">${a.rating_count || '—'}</td>
+        <td class="col-hide-mobile" style="font-family:var(--font-mono)">${a.rating_count || '—'}</td>
         <td>${a.status === 'owned' ? '<span class="badge b-owned">OWNED</span>' : '<span class="badge b-gap">GAP</span>'}</td>
-        <td style="white-space:nowrap">${a.status !== 'owned' && a.master_id ? `<button class="btn btn-sync" style="font-size:0.68rem;padding:3px 7px;margin-right:4px"
+        <td class="col-hide-mobile" style="white-space:nowrap">${a.status !== 'owned' && a.master_id ? `<button class="btn btn-sync" style="font-size:0.68rem;padding:3px 7px;margin-right:4px"
                 data-mid="${a.master_id}"
                 onclick="wantByMaster(+this.dataset.mid, '', this)">Want</button>
             <a href="https://www.discogs.com/master/${a.master_id}" target="_blank"
@@ -2541,6 +2624,8 @@ function switchManageSub(sub) {
     if (sub === 'artists' && artistsState.items.length === 0) loadArtists();
     if (sub === 'wishlist' && wlState.items.length === 0) loadWishlist();
     if (sub === 'editor' && editorState.folders.length === 0) loadEditorFolders();
+    const fab = document.getElementById('wlFab');
+    if (fab) fab.style.display = (sub === 'wishlist' && window.innerWidth <= 768) ? 'flex' : 'none';
 }
 
 document.getElementById('manageSubNav').addEventListener('click', e => {
@@ -3147,6 +3232,41 @@ function renderWishlistTable() {
         </tr>
     `).join('');
     document.getElementById('wlCount').textContent = `${items.length} of ${wlState.total} items`;
+    renderWishlistCards();
+}
+
+function renderWishlistCards() {
+    const container = document.getElementById('wlCards');
+    if (!container) return;
+    const search = document.getElementById('wlSearch').value.toLowerCase();
+    let items = [...wlState.items];
+    if (search) items = items.filter(w =>
+        (w.artist||'').toLowerCase().includes(search) ||
+        (w.title||'').toLowerCase().includes(search));
+    if (!items.length) {
+        container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:24px">No items</p>';
+        return;
+    }
+    container.innerHTML = items.map(w => `
+        <div class="wl-card">
+            <div class="wl-card-body">
+                <div class="wl-card-artist">${esc(w.artist)}</div>
+                <div class="wl-card-title">${esc(w.title)}</div>
+                <div class="wl-card-meta">
+                    ${w.year ? `<span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-muted)">${w.year}</span>` : ''}
+                    ${w.format ? `<span class="badge b-format" style="font-size:0.62rem">${esc(w.format)}</span>` : ''}
+                    ${w.rating ? `<span style="color:var(--gold);font-size:0.78rem">${w.rating} ★</span>` : ''}
+                </div>
+                ${w.notes ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(w.notes)}</div>` : ''}
+            </div>
+            <button class="btn btn-purge" style="font-size:0.7rem;padding:3px 8px;align-self:flex-start;flex-shrink:0"
+                onclick="event.stopPropagation();removeFromWishlist(${w.release_id},${JSON.stringify(w.title)})">✕</button>
+        </div>
+    `).join('');
+}
+
+function toggleWlAddForm() {
+    document.getElementById('wlAddForm')?.classList.toggle('open');
 }
 
 let wlPendingReleaseId = null;
@@ -3921,22 +4041,184 @@ async function captureValueSnapshot() {
 // Auto-connect
 window.addEventListener('DOMContentLoaded',()=>{if(API_KEY){document.getElementById('loginOverlay').style.display='none';connectAPI();}});
 
-// Bottom nav
-document.getElementById('bottomNav').addEventListener('click', e => {
-    const btn = e.target.closest('.bn-item');
-    if (!btn) return;
-    const tab = btn.dataset.tab;
-    const tabMap = {
-        'wishlist-mobile': 'manage',
-        'add-mobile':      'manage',
-        'sync-mobile':     'manage',
+// ── Dashboard filter bottom sheet ─────────────────────────────────────────
+function openDashFilters() {
+    const sidebar = document.querySelector('#panel-dashboard .dash-sidebar');
+    const sheetBody = document.getElementById('dashFilterSheetBody');
+    if (sidebar && sheetBody && sheetBody.children.length === 0) {
+        while (sidebar.firstChild) sheetBody.appendChild(sidebar.firstChild);
+    }
+    document.getElementById('dashFilterSheet').classList.add('open');
+    document.getElementById('dashFilterBackdrop').classList.add('open');
+}
+
+function closeDashFilters() {
+    const sidebar = document.querySelector('#panel-dashboard .dash-sidebar');
+    const sheetBody = document.getElementById('dashFilterSheetBody');
+    if (sidebar && sheetBody && sheetBody.children.length > 0) {
+        while (sheetBody.firstChild) sidebar.appendChild(sheetBody.firstChild);
+    }
+    document.getElementById('dashFilterSheet').classList.remove('open');
+    document.getElementById('dashFilterBackdrop').classList.remove('open');
+}
+
+function clearDashFilters() {
+    dashClearAllFilters();
+}
+
+function updateDashFilterCount() {
+    const count = Object.keys(dashFilters).length;
+    const el = document.getElementById('dashFilterCount');
+    if (!el) return;
+    el.textContent = count || '';
+    el.classList.toggle('has-filters', count > 0);
+}
+
+window.addEventListener('resize', () => {
+    if (window.innerWidth > 768) {
+        const sidebar = document.querySelector('#panel-dashboard .dash-sidebar');
+        const sheetBody = document.getElementById('dashFilterSheetBody');
+        if (sidebar && sheetBody && sheetBody.children.length > 0) {
+            while (sheetBody.firstChild) sidebar.appendChild(sheetBody.firstChild);
+        }
+        document.getElementById('dashFilterSheet')?.classList.remove('open');
+        document.getElementById('dashFilterBackdrop')?.classList.remove('open');
+    }
+});
+
+// ── Sync bottom sheet ──────────────────────────────────────────────────────
+let _syncSheetPollTimer = null;
+
+function openSyncSheet() {
+    document.getElementById('syncSheet').classList.add('open');
+    document.getElementById('syncSheetBackdrop').classList.add('open');
+}
+function closeSyncSheet() {
+    document.getElementById('syncSheet').classList.remove('open');
+    document.getElementById('syncSheetBackdrop').classList.remove('open');
+}
+
+async function startSyncFromSheet() {
+    const btn = document.getElementById('syncSheetBtn');
+    const statusEl = document.getElementById('syncSheetStatus');
+    const fillEl = document.getElementById('syncSheetFill');
+    const stepEl = document.getElementById('syncSheetStep');
+    const progressEl = document.getElementById('syncSheetProgress');
+
+    btn.disabled = true;
+    btn.textContent = 'Sincronizando...';
+    progressEl.style.display = 'block';
+    statusEl.textContent = 'Iniciando...';
+    fillEl.style.width = '0%';
+    stepEl.textContent = '';
+
+    runSync();
+
+    const stepKeys = ['folders', 'collection', 'releases', 'masters', 'artists', 'value'];
+    if (_syncSheetPollTimer) { clearInterval(_syncSheetPollTimer); _syncSheetPollTimer = null; }
+
+    const _pollSheet = async () => {
+        try {
+            const s = await api('/api/admin/sync-status');
+            const label = _SYNC_STEP_LABELS[s.step] || s.step || '...';
+            const p = s.progress || {};
+            const stepIdx = stepKeys.indexOf(s.step);
+            let pct = 0;
+            if (stepIdx >= 0) {
+                const within = (p.total > 0) ? p.done / p.total : 0.5;
+                pct = Math.round(((stepIdx + within) / stepKeys.length) * 100);
+            }
+            fillEl.style.width = `${Math.min(pct, 99)}%`;
+
+            if (!s.running) {
+                clearInterval(_syncSheetPollTimer); _syncSheetPollTimer = null;
+                btn.disabled = false; btn.textContent = 'Sincronizar agora';
+                if (s.step === 'done') {
+                    statusEl.textContent = '✓ Sincronização concluída';
+                    fillEl.style.width = '100%';
+                    stepEl.textContent = '';
+                } else {
+                    statusEl.textContent = '✗ Erro: ' + (s.error || 'Desconhecido');
+                    statusEl.style.color = 'var(--red)';
+                }
+            } else {
+                const prog = p.total > 0 ? ` (${p.done}/${p.total})` : '';
+                statusEl.textContent = `${label}${prog}`;
+                stepEl.textContent = label;
+            }
+        } catch(e) { /* transient error — keep polling */ }
     };
-    const resolvedTab = tabMap[tab] || tab;
-    document.querySelector(`#tabBar [data-tab="${resolvedTab}"]`)?.click();
-    document.querySelectorAll('.bn-item').forEach(b => b.classList.toggle('active', b === btn));
+
+    _syncSheetPollTimer = setInterval(_pollSheet, 3000);
+    setTimeout(_pollSheet, 800);
+}
+
+// Bottom nav — wrapped in DOMContentLoaded because #bottomNav is after </script>
+window.addEventListener('DOMContentLoaded', () => {
+    const nav = document.getElementById('bottomNav');
+    if (!nav) return;
+    nav.addEventListener('click', e => {
+        const btn = e.target.closest('.bn-item');
+        if (!btn) return;
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.bn-item').forEach(b => b.classList.toggle('active', b === btn));
+
+        if (tab === 'sync-mobile') {
+            openSyncSheet();
+            return;
+        }
+        if (tab === 'add-mobile') {
+            document.querySelector('#tabBar [data-tab="manage"]')?.click();
+            setTimeout(() => {
+                switchManageSub('wishlist');
+                const form = document.getElementById('wlAddForm');
+                if (form) { form.classList.add('open'); form.scrollIntoView({ behavior: 'smooth' }); }
+            }, 50);
+            return;
+        }
+
+        const tabMap = { 'wishlist-mobile': 'manage' };
+        const resolvedTab = tabMap[tab] || tab;
+        document.querySelector(`#tabBar [data-tab="${resolvedTab}"]`)?.click();
+        if (tab === 'wishlist-mobile') setTimeout(() => switchManageSub('wishlist'), 50);
+    });
 });
 </script>
 
+<!-- Dashboard filter button (mobile only) -->
+<button id="dashFilterBtn" onclick="openDashFilters()">⚙ Filtros <span class="filter-count" id="dashFilterCount"></span></button>
+
+<!-- Dashboard filters bottom sheet -->
+<div id="dashFilterSheet" class="bottom-sheet">
+    <div class="bottom-sheet-handle"></div>
+    <div class="bottom-sheet-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 class="bottom-sheet-title" style="margin:0">Filtros</h3>
+            <button class="btn-ghost" onclick="clearDashFilters()">Limpar</button>
+        </div>
+        <div id="dashFilterSheetBody"></div>
+        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeDashFilters()">Ver resultados</button>
+    </div>
+</div>
+<div id="dashFilterBackdrop" class="bottom-sheet-backdrop" onclick="closeDashFilters()"></div>
+
+<div id="syncSheet" class="bottom-sheet">
+    <div class="bottom-sheet-handle"></div>
+    <div class="bottom-sheet-content">
+        <h3 class="bottom-sheet-title">Sync Discogs</h3>
+        <div id="syncSheetStatus" class="sync-sheet-status">Pronto para sincronizar</div>
+        <div id="syncSheetProgress" class="sync-sheet-progress" style="display:none">
+            <div class="sync-sheet-bar"><div id="syncSheetFill" class="sync-sheet-fill"></div></div>
+            <div id="syncSheetStep" class="sync-sheet-step"></div>
+        </div>
+        <div class="sync-sheet-actions">
+            <button id="syncSheetBtn" class="btn-primary" onclick="startSyncFromSheet()">Sincronizar agora</button>
+            <button class="btn-ghost" onclick="closeSyncSheet()">Fechar</button>
+        </div>
+    </div>
+</div>
+<div id="syncSheetBackdrop" class="bottom-sheet-backdrop" onclick="closeSyncSheet()"></div>
+<button id="wlFab" aria-label="Add to wishlist" onclick="toggleWlAddForm()">+</button>
 <nav id="bottomNav">
     <button class="bn-item active" data-tab="collection">
         <span class="bn-icon">📀</span>
