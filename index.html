@@ -742,7 +742,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                 <!-- MÚSICA -->
                 <div class="sidebar-section">
                     <button class="section-toggle" onclick="toggleSection(this)">
-                        Música <span class="section-toggle-arrow">▾</span>
+                        Music <span class="section-toggle-arrow">▾</span>
                     </button>
                     <div class="section-body">
                         <div class="section-dim-label">Subgenre</div>
@@ -755,7 +755,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                 <!-- FORMATO -->
                 <div class="sidebar-section">
                     <button class="section-toggle" onclick="toggleSection(this)">
-                        Formato <span class="section-toggle-arrow">▾</span>
+                        Format <span class="section-toggle-arrow">▾</span>
                     </button>
                     <div class="section-body">
                         <div class="section-dim-label">Curatorial</div>
@@ -768,7 +768,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                 <!-- CURADORIA (collapsed by default) -->
                 <div class="sidebar-section collapsed">
                     <button class="section-toggle" onclick="toggleSection(this)">
-                        Curadoria <span class="section-toggle-arrow">▾</span>
+                        Curation <span class="section-toggle-arrow">▾</span>
                     </button>
                     <div class="section-body">
                         <div class="section-dim-label">Curation</div>
@@ -891,7 +891,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                 <!-- BIBLIOTECA -->
                 <div class="sidebar-section">
                     <button class="section-toggle" onclick="toggleSection(this)">
-                        Biblioteca <span class="section-toggle-arrow">▾</span>
+                        Library <span class="section-toggle-arrow">▾</span>
                     </button>
                     <div class="section-body">
                         <div class="section-dim-label">Folder</div>
@@ -916,7 +916,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                 <!-- MÚSICA -->
                 <div class="sidebar-section">
                     <button class="section-toggle" onclick="toggleSection(this)">
-                        Música <span class="section-toggle-arrow">▾</span>
+                        Music <span class="section-toggle-arrow">▾</span>
                     </button>
                     <div class="section-body">
                         <div class="section-dim-label">Subgenre</div>
@@ -927,7 +927,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                 <!-- CURADORIA -->
                 <div class="sidebar-section">
                     <button class="section-toggle" onclick="toggleSection(this)">
-                        Curadoria <span class="section-toggle-arrow">▾</span>
+                        Curation <span class="section-toggle-arrow">▾</span>
                     </button>
                     <div class="section-body">
                         <div class="section-dim-label">Type</div>
@@ -1024,7 +1024,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                 <!-- SUBGÊNERO -->
                 <div class="sidebar-section">
                     <button class="section-toggle" onclick="toggleSection(this)">
-                        Subgênero <span class="section-toggle-arrow">▾</span>
+                        Subgenre <span class="section-toggle-arrow">▾</span>
                     </button>
                     <div class="section-body">
                         <select id="bench-sb-subgenre" class="sb-dropdown" onchange="benchSetDropdown('subgenre', this.value)"><option value="">All Subgenres</option></select>
@@ -1411,7 +1411,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                         <div id="purgeResult" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);min-height:20px"></div>
                     </div>
                     <div class="manage-mobile-logout">
-                        <button class="btn-ghost" onclick="logout()">Sair da conta</button>
+                        <button class="btn-ghost" onclick="logout()">Sign out</button>
                     </div>
                 </div>
 
@@ -2841,7 +2841,7 @@ function openAlbumDetail(releaseId) {
             content.innerHTML = `
                 <div class="detail-tabs">
                     <button class="detail-tab active" data-panel="info">Info</button>
-                    <button class="detail-tab" data-panel="edit">Editar</button>
+                    <button class="detail-tab" data-panel="edit">Edit</button>
                 </div>
                 <div class="detail-panel" data-panel="info">
                     <div style="display:flex;gap:16px;align-items:flex-start">
@@ -2901,7 +2901,7 @@ function openAlbumDetail(releaseId) {
                         <label>SubCollection</label>
                         <input type="text" id="editSubCollection" value="${esc(d.subcollection||'')}">
                     </div>
-                    <button class="btn-primary" style="width:100%" onclick="saveAlbumEdit()">Salvar</button>
+                    <button class="btn-primary" style="width:100%" onclick="saveAlbumEdit()">Save</button>
                 </div>`;
             // Tab switching
             content.querySelectorAll('.detail-tab').forEach(tab => {
@@ -2950,13 +2950,13 @@ async function saveAlbumEdit() {
         if (!resp.ok) {
             let detail = `API ${resp.status}`;
             try { const j = await resp.json(); detail = j.detail || detail; } catch {}
-            showToast('Erro: ' + detail, 8000);
+            showToast('Error: ' + detail, 8000);
             return;
         }
-        showToast('Salvo com sucesso');
+        showToast('Saved successfully');
         closeAlbumDetail();
     } catch (err) {
-        showToast('Erro ao salvar: ' + err.message);
+        showToast('Save error: ' + err.message);
     }
 }
 function closeAlbumDetail(){document.getElementById('albumDetailModal').style.display='none';}
@@ -2976,7 +2976,7 @@ async function downloadSnapshot() {
         if (!w) { res.textContent='Popup bloqueado — permite pop-ups para este site.'; res.style.color='var(--red)'; return; }
         w.document.write(_buildCatalogHTML(data));
         w.document.close();
-        res.textContent = `Catálogo gerado — ${data.total_items} itens, ${data.top_gaps.length} gaps`;
+        res.textContent = `Catalog generated — ${data.total_items} items, ${data.top_gaps.length} gaps`;
         res.style.color = 'var(--green)';
     } catch(e) { res.textContent='Error: '+e.message; res.style.color='var(--red)'; }
     btn.disabled=false; btn.textContent='Download Curator Snapshot';
@@ -3057,31 +3057,31 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid #2a2d3a;font-size:.
 @media print{body{background:#fff;color:#000}h1,h2{color:#333}.kpi{background:#f5f5f5;border-color:#ddd}.kpi-v{color:#000}.kpi-l{color:#666}th{background:#eee;color:#333}tr:nth-child(even) td{background:#fafafa}td{border-color:#ddd}footer{color:#999}}
 </style></head><body>
 <h1>VinylVault — Curator's Catalog</h1>
-<div class="sub">${date} &nbsp;•&nbsp; ${data.total_items} itens</div>
+<div class="sub">${date} &nbsp;•&nbsp; ${data.total_items} items</div>
 
-<h2>Visão Geral — Por Tipo</h2>
+<h2>Overview — By Type</h2>
 <div class="kpis">${typeCards}</div>
-<h2 style="margin-top:16px">Visão Geral — Por Formato</h2>
+<h2 style="margin-top:16px">Overview — By Format</h2>
 <div class="kpis">${fmtCards}</div>
 
-<h2>Cobertura de Benchmarks <span class="sec-count">${(data.benchmark_coverage||[]).length} listas</span></h2>
-<table><thead><tr><th>Source</th><th style="text-align:right">Total</th><th style="text-align:right">Owned</th><th>Cobertura</th></tr></thead>
+<h2>Benchmark Coverage <span class="sec-count">${(data.benchmark_coverage||[]).length} lists</span></h2>
+<table><thead><tr><th>Source</th><th style="text-align:right">Total</th><th style="text-align:right">Owned</th><th>Coverage</th></tr></thead>
 <tbody>${covRows}</tbody></table>
 
-<h2>Top 50 Melhores Avaliados (Owned) <span class="sec-count">${Math.min(50,(data.top_rated_owned||[]).length)} itens</span></h2>
-<table><thead><tr><th>#</th><th>Artista</th><th>Álbum</th><th>Subgênero</th><th style="text-align:right">Rating</th></tr></thead>
+<h2>Top 50 Highest Rated (Owned) <span class="sec-count">${Math.min(50,(data.top_rated_owned||[]).length)} items</span></h2>
+<table><thead><tr><th>#</th><th>Artist</th><th>Album</th><th>Subgenre</th><th style="text-align:right">Rating</th></tr></thead>
 <tbody>${ratedRows}</tbody></table>
 
-<h2>Top 100 Gaps Prioritários <span class="sec-count">${Math.min(100,(data.top_gaps||[]).length)} itens</span></h2>
-<table><thead><tr><th>#</th><th>Artista</th><th>Álbum</th><th style="text-align:right">Ano</th><th>Subgênero</th><th style="text-align:right">Rating</th><th>Source</th></tr></thead>
+<h2>Top 100 Priority Gaps <span class="sec-count">${Math.min(100,(data.top_gaps||[]).length)} items</span></h2>
+<table><thead><tr><th>#</th><th>Artist</th><th>Album</th><th style="text-align:right">Year</th><th>Subgenre</th><th style="text-align:right">Rating</th><th>Source</th></tr></thead>
 <tbody>${gapRows}</tbody></table>
 
-<h2>Coleção Completa <span class="sec-count">${(data.collection||[]).length} itens</span></h2>
-<table><thead><tr><th>Artista</th><th>Título</th><th style="text-align:right">Orig.</th><th style="text-align:right">Ed.</th><th>País</th><th>Formato</th><th>Tipo</th><th>Subcollection</th><th>Pressing</th><th>Score</th><th>Mídia</th><th style="text-align:right">BRL</th></tr></thead>
+<h2>Full Collection <span class="sec-count">${(data.collection||[]).length} items</span></h2>
+<table><thead><tr><th>Artist</th><th>Title</th><th style="text-align:right">Orig.</th><th style="text-align:right">Ed.</th><th>Country</th><th>Format</th><th>Type</th><th>Subcollection</th><th>Pressing</th><th>Score</th><th>Media</th><th style="text-align:right">BRL</th></tr></thead>
 <tbody>${colRows}</tbody></table>
 
 <footer>
-  <span>VinylVault Curator's Catalog — gerado em ${date}</span>
+  <span>VinylVault Curator's Catalog — generated ${date}</span>
   <a onclick="(()=>{const a=document.createElement('a');a.href='data:application/json;base64,${jsonB64}';a.download='vinyl-vault-snapshot-${new Date().toISOString().slice(0,10)}.json';a.click()})()">⬇ Download JSON</a>
   <a onclick="window.print()">🖨 Imprimir / PDF</a>
 </footer>
@@ -4236,14 +4236,14 @@ function updateDashFilterCount() {
 }
 
 const _CF_DRILL_CONFIG = [
-    { label: 'Pasta',      selectId: 'cfFilterFolder' },
-    { label: 'Subcoleção', selectId: 'cfFilterSubcollection' },
-    { label: 'Formato',    selectId: 'cfFilterFormat' },
-    { label: 'Tipo Pasta', selectId: 'cfFilterFolderType' },
-    { label: 'Subgênero',  selectId: 'cfFilterSubgenre' },
-    { label: 'Tipo',       selectId: 'cfFilterCuration' },
-    { label: 'Pressing',   selectId: 'cfFilterPressing' },
-    { label: 'Condição',   selectId: 'cfFilterCondition' },
+    { label: 'Folder',       selectId: 'cfFilterFolder' },
+    { label: 'Subcollection',selectId: 'cfFilterSubcollection' },
+    { label: 'Format',       selectId: 'cfFilterFormat' },
+    { label: 'Folder Type',  selectId: 'cfFilterFolderType' },
+    { label: 'Subgenre',     selectId: 'cfFilterSubgenre' },
+    { label: 'Type',         selectId: 'cfFilterCuration' },
+    { label: 'Pressing',     selectId: 'cfFilterPressing' },
+    { label: 'Condition',    selectId: 'cfFilterCondition' },
 ];
 
 function openCollFilters() {
@@ -4289,15 +4289,15 @@ function _renderDrillHome() {
     }).join('');
     body.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-            <span style="font-size:1rem;font-weight:600;color:var(--text-primary)">Filtros</span>
-            <button class="btn-ghost" onclick="cfClearAllFilters();_renderDrillHome()">Limpar tudo</button>
+            <span style="font-size:1rem;font-weight:600;color:var(--text-primary)">Filters</span>
+            <button class="btn-ghost" onclick="cfClearAllFilters();_renderDrillHome()">Clear all</button>
         </div>
         <div class="cf-search-wrap" style="margin-bottom:4px">
-            <input type="text" placeholder="Buscar artista, título…" value="${esc(searchVal)}"
+            <input type="text" placeholder="Search artist, title…" value="${esc(searchVal)}"
                    oninput="cfSyncSearch(this.value);updateCollFilterCount()">
         </div>
         ${rows}
-        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeCollFilters()">Ver resultados</button>`;
+        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeCollFilters()">Show results</button>`;
 }
 
 function _openDrillCategory(selectId, label) {
@@ -4306,7 +4306,7 @@ function _openDrillCategory(selectId, label) {
     const opts = Array.from(sel.options).filter(o => o.value !== '');
     const body = document.getElementById('collFilterSheetBody');
     const optHtml = opts.length === 0
-        ? `<div style="color:var(--text-muted);text-align:center;padding:20px">Sem opções</div>`
+        ? `<div style="color:var(--text-muted);text-align:center;padding:20px">No options</div>`
         : opts.map(o => {
             const isActive = sel.value === o.value;
             const safeVal = o.value.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -4380,7 +4380,7 @@ async function startSyncFromSheet() {
     const progressEl = document.getElementById('syncSheetProgress');
 
     btn.disabled = true;
-    btn.textContent = 'Sincronizando...';
+    btn.textContent = 'Syncing...';
     progressEl.style.display = 'block';
     statusEl.textContent = 'Iniciando...';
     fillEl.style.width = '0%';
@@ -4406,13 +4406,13 @@ async function startSyncFromSheet() {
 
             if (!s.running) {
                 clearInterval(_syncSheetPollTimer); _syncSheetPollTimer = null;
-                btn.disabled = false; btn.textContent = 'Sincronizar agora';
+                btn.disabled = false; btn.textContent = 'Sync now';
                 if (s.step === 'done') {
-                    statusEl.textContent = '✓ Sincronização concluída';
+                    statusEl.textContent = '✓ Sync complete';
                     fillEl.style.width = '100%';
                     stepEl.textContent = '';
                 } else {
-                    statusEl.textContent = '✗ Erro: ' + (s.error || 'Desconhecido');
+                    statusEl.textContent = '✗ Error: ' + (s.error || 'Unknown');
                     statusEl.style.color = 'var(--red)';
                 }
             } else {
@@ -4467,35 +4467,35 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <!-- Dashboard filter button (mobile only) -->
-<button id="dashFilterBtn" onclick="openDashFilters()">⚙ Filtros <span class="filter-count" id="dashFilterCount"></span></button>
+<button id="dashFilterBtn" onclick="openDashFilters()">⚙ Filters <span class="filter-count" id="dashFilterCount"></span></button>
 
 <!-- Dashboard filters bottom sheet -->
 <div id="dashFilterSheet" class="bottom-sheet">
     <div class="bottom-sheet-handle"></div>
     <div class="bottom-sheet-content">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-            <h3 class="bottom-sheet-title" style="margin:0">Filtros</h3>
-            <button class="btn-ghost" onclick="clearDashFilters()">Limpar</button>
+            <h3 class="bottom-sheet-title" style="margin:0">Filters</h3>
+            <button class="btn-ghost" onclick="clearDashFilters()">Clear</button>
         </div>
         <div id="dashFilterSheetBody"></div>
-        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeDashFilters()">Ver resultados</button>
+        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeDashFilters()">Show results</button>
     </div>
 </div>
 <div id="dashFilterBackdrop" class="bottom-sheet-backdrop" onclick="closeDashFilters()"></div>
 
 <!-- Collection filter button (mobile only) -->
-<button id="collFilterBtn" onclick="openCollFilters()">⚙ Filtros <span class="filter-count" id="collFilterCount"></span></button>
+<button id="collFilterBtn" onclick="openCollFilters()">⚙ Filters <span class="filter-count" id="collFilterCount"></span></button>
 
 <!-- Collection filters bottom sheet -->
 <div id="collFilterSheet" class="bottom-sheet">
     <div class="bottom-sheet-handle"></div>
     <div class="bottom-sheet-content">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-            <h3 class="bottom-sheet-title" style="margin:0">Filtros</h3>
-            <button class="btn-ghost" onclick="cfClearAllFilters()">Limpar</button>
+            <h3 class="bottom-sheet-title" style="margin:0">Filters</h3>
+            <button class="btn-ghost" onclick="cfClearAllFilters()">Clear</button>
         </div>
         <div id="collFilterSheetBody"></div>
-        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeCollFilters()">Ver resultados</button>
+        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeCollFilters()">Show results</button>
     </div>
 </div>
 <div id="collFilterBackdrop" class="bottom-sheet-backdrop" onclick="closeCollFilters()"></div>
@@ -4504,7 +4504,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="configSheet" class="bottom-sheet">
     <div class="bottom-sheet-handle"></div>
     <div class="bottom-sheet-content">
-        <h3 class="bottom-sheet-title">Gerenciar</h3>
+        <h3 class="bottom-sheet-title">Manage</h3>
         <div class="config-menu">
             <button class="config-item" onclick="openManageSub('editor')">
                 <span class="config-icon">✏</span>
@@ -4531,14 +4531,14 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="bottom-sheet-handle"></div>
     <div class="bottom-sheet-content">
         <h3 class="bottom-sheet-title">Sync Discogs</h3>
-        <div id="syncSheetStatus" class="sync-sheet-status">Pronto para sincronizar</div>
+        <div id="syncSheetStatus" class="sync-sheet-status">Ready to sync</div>
         <div id="syncSheetProgress" class="sync-sheet-progress" style="display:none">
             <div class="sync-sheet-bar"><div id="syncSheetFill" class="sync-sheet-fill"></div></div>
             <div id="syncSheetStep" class="sync-sheet-step"></div>
         </div>
         <div class="sync-sheet-actions">
-            <button id="syncSheetBtn" class="btn-primary" onclick="startSyncFromSheet()">Sincronizar agora</button>
-            <button class="btn-ghost" onclick="closeSyncSheet()">Fechar</button>
+            <button id="syncSheetBtn" class="btn-primary" onclick="startSyncFromSheet()">Sync now</button>
+            <button class="btn-ghost" onclick="closeSyncSheet()">Close</button>
         </div>
     </div>
 </div>
