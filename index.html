@@ -2603,19 +2603,7 @@ function destroyChart(id) { if(state.charts[id])state.charts[id].destroy(); }
 // ═══════════════════════════════════════════════════════════════════════════════
 // TABS
 // ═══════════════════════════════════════════════════════════════════════════════
-function dbg(msg) {
-    let el = document.getElementById('debugLog');
-    if (!el) {
-        el = document.createElement('div');
-        el.id = 'debugLog';
-        el.style.cssText = 'position:fixed;top:60px;left:0;right:0;background:rgba(0,0,0,0.85);color:lime;font-size:12px;padding:8px;z-index:99999;max-height:200px;overflow-y:auto';
-        document.body.appendChild(el);
-    }
-    el.innerHTML = `<div>${new Date().toISOString().slice(11,19)} ${msg}</div>` + el.innerHTML;
-}
-
 function switchTab(tab) {
-    dbg('switchTab called: ' + tab);
     document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     const navItem = document.querySelector(`#tabBar [data-tab="${tab}"]`);
@@ -4176,7 +4164,6 @@ async function startSyncFromSheet() {
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.bn-item').forEach(btn => {
         btn.addEventListener('click', () => {
-            dbg('bn-item click: ' + btn.dataset.tab);
             const tab = btn.dataset.tab;
             document.querySelectorAll('.bn-item').forEach(b => b.classList.toggle('active', b === btn));
             if (tab === 'sync-mobile') { openSyncSheet(); return; }
@@ -4189,9 +4176,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (form) {
                             form.classList.add('open');
                             form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            dbg('wlAddForm opened: ' + form.classList.contains('open'));
                         } else {
-                            dbg('wlAddForm not found');
                         }
                     }, 150);
                 }, 50);
