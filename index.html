@@ -4184,8 +4184,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 switchTab('manage');
                 setTimeout(() => {
                     switchManageSub('wishlist');
-                    const form = document.getElementById('wlAddForm');
-                    if (form) { form.classList.add('open'); form.scrollIntoView({ behavior: 'smooth' }); }
+                    setTimeout(() => {
+                        const form = document.getElementById('wlAddForm');
+                        if (form) {
+                            form.classList.add('open');
+                            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            dbg('wlAddForm opened: ' + form.classList.contains('open'));
+                        } else {
+                            dbg('wlAddForm not found');
+                        }
+                    }, 150);
                 }, 50);
                 return;
             }
