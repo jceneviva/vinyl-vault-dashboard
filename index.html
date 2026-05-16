@@ -2601,15 +2601,21 @@ function destroyChart(id) { if(state.charts[id])state.charts[id].destroy(); }
 // ═══════════════════════════════════════════════════════════════════════════════
 // TABS
 // ═══════════════════════════════════════════════════════════════════════════════
+function switchTab(tab) {
+    document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    const navItem = document.querySelector(`#tabBar [data-tab="${tab}"]`);
+    if (navItem) navItem.classList.add('active');
+    const panel = document.getElementById('panel-' + tab);
+    if (panel) panel.classList.add('active');
+    if (tab === 'manage') switchManageSub('wishlist');
+    if (tab === 'explorer' && explorerState.ownedMasters.length === 0) loadExplorerMasters();
+    if (tab === 'value' && !_valueLoaded) { _valueLoaded = true; loadValueTab(); }
+}
+
 document.getElementById('tabBar').addEventListener('click', e => {
     if (!e.target.classList.contains('nav-item')) return;
-    document.querySelectorAll('.nav-item').forEach(t=>t.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-    e.target.classList.add('active');
-    document.getElementById('panel-'+e.target.dataset.tab).classList.add('active');
-    if (e.target.dataset.tab==='manage') switchManageSub('wishlist');
-    if (e.target.dataset.tab==='explorer' && explorerState.ownedMasters.length === 0) loadExplorerMasters();
-    if (e.target.dataset.tab==='value' && !_valueLoaded) { _valueLoaded = true; loadValueTab(); }
+    switchTab(e.target.dataset.tab);
 });
 
 function switchManageSub(sub) {
@@ -4167,7 +4173,7 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
         if (tab === 'add-mobile') {
-            document.querySelector('#tabBar [data-tab="manage"]')?.click();
+            switchTab('manage');
             setTimeout(() => {
                 switchManageSub('wishlist');
                 const form = document.getElementById('wlAddForm');
@@ -4178,7 +4184,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const tabMap = { 'wishlist-mobile': 'manage' };
         const resolvedTab = tabMap[tab] || tab;
-        document.querySelector(`#tabBar [data-tab="${resolvedTab}"]`)?.click();
+        switchTab(resolvedTab);
         if (tab === 'wishlist-mobile') setTimeout(() => switchManageSub('wishlist'), 50);
     });
 });
