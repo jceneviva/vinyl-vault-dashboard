@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Vinyl Vault — Collection Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -2601,7 +2601,19 @@ function destroyChart(id) { if(state.charts[id])state.charts[id].destroy(); }
 // ═══════════════════════════════════════════════════════════════════════════════
 // TABS
 // ═══════════════════════════════════════════════════════════════════════════════
+function dbg(msg) {
+    let el = document.getElementById('debugLog');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'debugLog';
+        el.style.cssText = 'position:fixed;top:60px;left:0;right:0;background:rgba(0,0,0,0.85);color:lime;font-size:12px;padding:8px;z-index:99999;max-height:200px;overflow-y:auto';
+        document.body.appendChild(el);
+    }
+    el.innerHTML = `<div>${new Date().toISOString().slice(11,19)} ${msg}</div>` + el.innerHTML;
+}
+
 function switchTab(tab) {
+    dbg('switchTab called: ' + tab);
     document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     const navItem = document.querySelector(`#tabBar [data-tab="${tab}"]`);
@@ -4163,9 +4175,12 @@ window.addEventListener('DOMContentLoaded', () => {
     const nav = document.getElementById('bottomNav');
     if (!nav) return;
     nav.addEventListener('click', e => {
+        dbg('click event fired');
         const btn = e.target.closest('.bn-item');
+        dbg('btn: ' + (btn ? btn.dataset.tab : 'null'));
         if (!btn) return;
         const tab = btn.dataset.tab;
+        dbg('calling switchTab: ' + tab);
         document.querySelectorAll('.bn-item').forEach(b => b.classList.toggle('active', b === btn));
 
         if (tab === 'sync-mobile') {
