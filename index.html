@@ -286,7 +286,8 @@ tbody tr:hover { background: var(--bg-card-hover); }
     flex: 1; gap: 3px; background: none; border: none; cursor: pointer;
     color: var(--text-secondary); font-size: 0.65rem; min-height: 44px;
     transition: color 0.15s; pointer-events: auto !important;
-    -webkit-tap-highlight-color: rgba(124,106,247,0.2);
+    -webkit-tap-highlight-color: rgba(124,106,247,0.3);
+    touch-action: manipulation;
 }
 .bn-item.active { color: var(--accent); }
 .bn-icon { font-size: 1.2rem; line-height: 1; }
@@ -4171,37 +4172,30 @@ async function startSyncFromSheet() {
     setTimeout(_pollSheet, 800);
 }
 
-// Bottom nav — wrapped in DOMContentLoaded because #bottomNav is after </script>
-window.addEventListener('DOMContentLoaded', () => {
-    const nav = document.getElementById('bottomNav');
-    if (!nav) return;
-    nav.addEventListener('click', e => {
-        dbg('click event fired');
-        const btn = e.target.closest('.bn-item');
-        dbg('btn: ' + (btn ? btn.dataset.tab : 'null'));
-        if (!btn) return;
-        const tab = btn.dataset.tab;
-        dbg('calling switchTab: ' + tab);
-        document.querySelectorAll('.bn-item').forEach(b => b.classList.toggle('active', b === btn));
-
-        if (tab === 'sync-mobile') {
-            openSyncSheet();
-            return;
-        }
-        if (tab === 'add-mobile') {
-            switchTab('manage');
-            setTimeout(() => {
-                switchManageSub('wishlist');
-                const form = document.getElementById('wlAddForm');
-                if (form) { form.classList.add('open'); form.scrollIntoView({ behavior: 'smooth' }); }
-            }, 50);
-            return;
-        }
-
-        const tabMap = { 'wishlist-mobile': 'manage' };
-        const resolvedTab = tabMap[tab] || tab;
-        switchTab(resolvedTab);
-        if (tab === 'wishlist-mobile') setTimeout(() => switchManageSub('wishlist'), 50);
+// Bottom nav — direct listeners per button (iOS WebKit event delegation unreliable)
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.bn-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+            dbg('bn-item click: ' + btn.dataset.tab);
+            const tab = btn.dataset.tab;
+            document.querySelectorAll('.bn-item').forEach(b => b.classList.toggle('active', b === btn));
+            if (tab === 'sync-mobile') { openSyncSheet(); return; }
+            if (tab === 'add-mobile') {
+                switchTab('manage');
+                setTimeout(() => {
+                    switchManageSub('wishlist');
+                    const form = document.getElementById('wlAddForm');
+                    if (form) { form.classList.add('open'); form.scrollIntoView({ behavior: 'smooth' }); }
+                }, 50);
+                return;
+            }
+            if (tab === 'wishlist-mobile') {
+                switchTab('manage');
+                setTimeout(() => switchManageSub('wishlist'), 50);
+                return;
+            }
+            switchTab(tab);
+        });
     });
 });
 </script>
