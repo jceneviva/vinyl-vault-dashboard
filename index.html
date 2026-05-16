@@ -2926,7 +2926,13 @@ async function saveAlbumEdit() {
     };
     if (_detailRating > 0) body.rating = _detailRating;
     try {
-        await api('/api/collection/update', { method: 'POST', body: JSON.stringify(body), headers: {'Content-Type':'application/json'} });
+        const resp = await fetch(`${API}/api/collection/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+            body: JSON.stringify(body),
+        });
+        if (resp.status === 401) { logout(); return; }
+        if (!resp.ok) throw new Error(`API ${resp.status}`);
         showToast('Salvo com sucesso');
         closeAlbumDetail();
     } catch (err) {
