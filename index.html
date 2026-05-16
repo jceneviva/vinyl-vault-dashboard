@@ -273,6 +273,10 @@ tbody tr:hover { background: var(--bg-card-hover); }
 .drill-row-value { font-size:0.82rem; color:var(--accent); max-width:55%; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .drill-option { display:flex; align-items:center; padding:14px 0; border-bottom:1px solid var(--border); cursor:pointer; gap:12px; font-size:0.9rem; color:var(--text-primary); -webkit-tap-highlight-color:transparent; }
 .drill-option.active { color:var(--accent); font-weight:600; }
+.config-menu { display:flex; flex-direction:column; gap:4px; margin-top:8px; }
+.config-item { display:flex; align-items:center; gap:14px; padding:14px 12px; background:var(--bg-hover); border:none; border-radius:var(--radius-sm); color:var(--text-primary); font-size:0.95rem; cursor:pointer; text-align:left; width:100%; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+.config-item:active { background:var(--bg-elevated); }
+.config-icon { font-size:1.2rem; width:24px; text-align:center; flex-shrink:0; }
 .bottom-sheet { position: fixed; bottom: 60px; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; transform: translateY(100%); transition: transform 0.3s ease; z-index: 1100; padding: 16px; display: none; }
 .bottom-sheet-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1099; }
 .bottom-sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
@@ -4242,6 +4246,20 @@ function closeCollFilters() {
     document.getElementById('collFilterBackdrop').classList.remove('open');
 }
 
+function openConfigSheet() {
+    document.getElementById('configSheet').classList.add('open');
+    document.getElementById('configBackdrop').classList.add('open');
+}
+function closeConfigSheet() {
+    document.getElementById('configSheet').classList.remove('open');
+    document.getElementById('configBackdrop').classList.remove('open');
+}
+function openManageSub(sub) {
+    closeConfigSheet();
+    switchTab('manage');
+    setTimeout(() => switchManageSub(sub), 50);
+}
+
 function _renderDrillHome() {
     const body = document.getElementById('collFilterSheetBody');
     const searchVal = document.getElementById('cfSearch')?.value || '';
@@ -4425,21 +4443,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const tab = btn.dataset.tab;
             document.querySelectorAll('.bn-item').forEach(b => b.classList.toggle('active', b === btn));
             if (tab === 'sync-mobile') { openSyncSheet(); return; }
-            if (tab === 'add-mobile') {
-                switchTab('manage');
-                setTimeout(() => {
-                    switchManageSub('wishlist');
-                    setTimeout(() => {
-                        const form = document.getElementById('wlAddForm');
-                        if (form) {
-                            form.classList.add('open');
-                            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        } else {
-                        }
-                    }, 150);
-                }, 50);
-                return;
-            }
+            if (tab === 'config-mobile') { openConfigSheet(); return; }
             if (tab === 'wishlist-mobile') {
                 switchTab('manage');
                 setTimeout(() => switchManageSub('wishlist'), 50);
@@ -4485,6 +4489,33 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 <div id="collFilterBackdrop" class="bottom-sheet-backdrop" onclick="closeCollFilters()"></div>
 
+<!-- Config sheet (mobile only) -->
+<div id="configSheet" class="bottom-sheet">
+    <div class="bottom-sheet-handle"></div>
+    <div class="bottom-sheet-content">
+        <h3 class="bottom-sheet-title">Gerenciar</h3>
+        <div class="config-menu">
+            <button class="config-item" onclick="openManageSub('editor')">
+                <span class="config-icon">✏</span>
+                <span>Editor</span>
+            </button>
+            <button class="config-item" onclick="openManageSub('artists')">
+                <span class="config-icon">👥</span>
+                <span>Artists</span>
+            </button>
+            <button class="config-item" onclick="openManageSub('linking')">
+                <span class="config-icon">🔗</span>
+                <span>Linking</span>
+            </button>
+            <button class="config-item" onclick="openManageSub('admin')">
+                <span class="config-icon">🛠</span>
+                <span>Admin</span>
+            </button>
+        </div>
+    </div>
+</div>
+<div id="configBackdrop" class="bottom-sheet-backdrop" onclick="closeConfigSheet()"></div>
+
 <div id="syncSheet" class="bottom-sheet">
     <div class="bottom-sheet-handle"></div>
     <div class="bottom-sheet-content">
@@ -4511,9 +4542,9 @@ document.addEventListener('DOMContentLoaded', () => {
         <span class="bn-icon">🎯</span>
         <span class="bn-label">Wishlist</span>
     </button>
-    <button class="bn-item" data-tab="add-mobile">
-        <span class="bn-icon">➕</span>
-        <span class="bn-label">Add</span>
+    <button class="bn-item" data-tab="config-mobile">
+        <span class="bn-icon">⚙</span>
+        <span class="bn-label">Config</span>
     </button>
     <button class="bn-item" data-tab="sync-mobile">
         <span class="bn-icon">🔄</span>
