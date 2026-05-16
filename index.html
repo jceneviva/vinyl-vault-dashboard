@@ -247,6 +247,17 @@ tbody tr:hover { background: var(--bg-card-hover); }
     display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;
 }
+#collCards { display: none; }
+.coll-card { display: flex; gap: 12px; padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; align-items: flex-start; }
+.coll-card:active { background: rgba(255,255,255,0.03); }
+.coll-card-thumb { width: 56px; height: 56px; border-radius: var(--radius-sm); object-fit: cover; flex-shrink: 0; background: var(--bg-card); }
+.coll-card-body { flex: 1; min-width: 0; }
+.coll-card-title { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.coll-card-artist { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 4px; }
+.coll-card-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+.coll-card-country { font-size: 0.7rem; color: var(--text-secondary); }
+.coll-card-media { font-size: 0.7rem; color: var(--text-secondary); }
+
 #bottomNav {
     display: none; position: fixed; bottom: 0; left: 0; right: 0; height: 60px;
     background: #0f1117; border-top: 1px solid var(--border); z-index: 1000;
@@ -288,6 +299,9 @@ tbody tr:hover { background: var(--bg-card-hover); }
     body { padding-bottom: 60px; }
     #tabBar { display: none; }
     #bottomNav { display: flex; }
+    /* Collection cards — mobile only */
+    #collCards { display: block; }
+    #panel-collection .tbl-scroll { display: none; }
 }
 @media (max-width: 480px) {
     .metrics { grid-template-columns: 1fr 1fr; gap: 6px; }
@@ -848,6 +862,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                         </table>
                     </div>
                 </div>
+                <div id="collCards" class="coll-cards-mobile"></div>
             </div><!-- /.dash-main -->
 
         </div><!-- /.dash-layout -->
@@ -2302,7 +2317,10 @@ function populateCFFilters(stats, items) {
     document.getElementById('cfFilterFolderType').innerHTML='<option value="">All Types</option>'+Object.entries(ftypes).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
 }
 
-function renderCFTable(items) {
+const _cfScoreMap={10:['#5c4fc7','JP'],9:['#9d4edd','JP'],8:['#2196f3','EU'],7:['#1976d2','US'],6:['#f4a300','AU'],5:['#607d8b','RE'],4:['#546e7a','RE'],3:['#795548','BR'],2:['#4e342e','BR'],1:['#333','?']};
+function _cfPsb(s){if(!s)return'<span style="color:var(--text-muted)">—</span>';const[bg,label]=_cfScoreMap[s]||['#333','?'];return`<span style="display:inline-flex;align-items:center;gap:3px;background:${bg};color:#fff;border-radius:4px;padding:1px 6px;font-size:0.62rem;font-family:var(--font-mono);font-weight:700">${s}<span style="opacity:.75;font-size:0.58rem">${label}</span></span>`;}
+
+function getFilteredCFItems(items) {
     if (!items) items = state.customFields.items;
     const curation=document.getElementById('cfFilterCuration').value, pressing=document.getElementById('cfFilterPressing').value;
     const condition=document.getElementById('cfFilterCondition').value, folder=document.getElementById('cfFilterFolder').value;
@@ -2335,11 +2353,44 @@ function renderCFTable(items) {
         else{va=(a[col]||'').toLowerCase();vb=(b[col]||'').toLowerCase();}
         if(va<vb)return -1*m;if(va>vb)return 1*m;return 0;
     });
+    return { f, items, rbm };
+}
+
+function renderCollectionCards(items) {
+    const container = document.getElementById('collCards');
+    if (!container) return;
+    const {f} = getFilteredCFItems(items);
+    const _condAbbr={'Mint':'M','Near Mint':'NM','Very Good Plus':'VG+','Very Good':'VG','Good Plus':'G+','Good':'G','Fair':'F','Poor':'P'};
+    function condAbbr(c){if(!c)return'';const k=c.replace(/ \(.*\)/,'').trim();return _condAbbr[k]||k;}
+    container.innerHTML = f.map(i => {
+        const thumbHtml = i.thumb
+            ? `<img class="coll-card-thumb" src="${esc(i.thumb)}" alt="" loading="lazy">`
+            : `<div class="coll-card-thumb"></div>`;
+        const yr = i.original_year&&i.original_year>0 ? i.original_year : (i.basic_year||'');
+        return `<div class="coll-card" onclick="openAlbumDetail(${i.release_id})">
+            ${thumbHtml}
+            <div class="coll-card-body">
+                <div class="coll-card-artist">${esc(i.artist_name||'—')}</div>
+                <div class="coll-card-title">${esc(i.basic_title||'—')}</div>
+                <div class="coll-card-meta">
+                    ${_cfPsb(i.pressing_score)}
+                    ${i.folder_format?`<span class="badge b-format" style="font-size:0.62rem">${esc(i.folder_format)}</span>`:''}
+                    ${yr?`<span class="coll-card-country">${yr}</span>`:''}
+                    ${i.country?`<span class="coll-card-country">${esc(i.country)}</span>`:''}
+                    ${i.media_condition?`<span class="coll-card-media">${condAbbr(i.media_condition)}</span>`:''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderCFTable(items) {
+    const {f, items: allItems, rbm} = getFilteredCFItems(items);
     const _condAbbr={'Mint':'M','Near Mint':'NM','Very Good Plus':'VG+','Very Good':'VG','Good Plus':'G+','Good':'G','Fair':'F','Poor':'P'};
     function cb(c){if(!c)return'—';const k=c.replace(/ \(.*\)/,'').trim();const s=_condAbbr[k]||k;const cl=c.includes('Mint')?'b-owned':c.includes('Good')?'b-format':'b-gap';return`<span class="badge ${cl}">${esc(s)}</span>`;}
     function tb(t){if(!t)return'—';const c={'Def':'b-owned','Editorial':'b-format','Temp':'b-gap','Unofficial':'b-gap','PicDisc':'b-genre','Historical':'b-format','Sentimental':'b-genre'};return`<span class="badge ${c[t]||'b-format'}">${esc(t)}</span>`;}
-    const scoreMap={10:['#5c4fc7','JP'],9:['#9d4edd','JP'],8:['#2196f3','EU'],7:['#1976d2','US'],6:['#f4a300','AU'],5:['#607d8b','RE'],4:['#546e7a','RE'],3:['#795548','BR'],2:['#4e342e','BR'],1:['#333','?']};
-    function psb(s){if(!s)return'<span style="color:var(--text-muted)">—</span>';const[bg,label]=scoreMap[s]||['#333','?'];return`<span style="display:inline-flex;align-items:center;gap:3px;background:${bg};color:#fff;border-radius:4px;padding:1px 6px;font-size:0.62rem;font-family:var(--font-mono);font-weight:700">${s}<span style="opacity:.75;font-size:0.58rem">${label}</span></span>`;}
+    const scoreMap=_cfScoreMap;
+    function psb(s){return _cfPsb(s);}
     document.getElementById('cfBody').innerHTML = f.map(i => {
         const oy=i.original_year&&i.original_year>0?i.original_year:'—', ry=i.basic_year&&i.basic_year>0?i.basic_year:'—';
         const ys=oy!=='—'&&ry!=='—'&&oy!==ry?'color:var(--cyan)':'';
@@ -2357,7 +2408,8 @@ function renderCFTable(items) {
             <td style="color:var(--text-muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(i.notes||'')}">${esc(i.notes||'')}</td>
         </tr>`;
     }).join('');
-    document.getElementById('cfCount').textContent = `${f.length} of ${items.length} items`;
+    document.getElementById('cfCount').textContent = `${f.length} of ${allItems.length} items`;
+    renderCollectionCards();
 }
 
 // ── Collection sidebar functions ──────────────────────────────────────────
