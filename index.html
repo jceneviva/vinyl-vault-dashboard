@@ -3445,6 +3445,13 @@ function renderWishlistCards() {
     if (search) items = items.filter(w =>
         (w.artist||'').toLowerCase().includes(search) ||
         (w.title||'').toLowerCase().includes(search));
+    const { col, dir } = wlState.sort;
+    const mult = dir === 'asc' ? 1 : -1;
+    items.sort((a, b) => {
+        const va = col === 'year' || col === 'rating' ? (a[col] || 0) : (a[col] || '').toLowerCase();
+        const vb = col === 'year' || col === 'rating' ? (b[col] || 0) : (b[col] || '').toLowerCase();
+        return va < vb ? -1 * mult : va > vb ? mult : 0;
+    });
     if (!items.length) {
         container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:24px">No items</p>';
         return;
