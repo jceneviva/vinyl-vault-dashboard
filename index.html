@@ -4454,7 +4454,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', () => {
             const tab = btn.dataset.tab;
             document.querySelectorAll('.bn-item').forEach(b => b.classList.toggle('active', b === btn));
-            if (tab === 'sync-mobile') { openSyncSheet(); return; }
+
             if (tab === 'config-mobile') { openConfigSheet(); return; }
             if (tab === 'wishlist-mobile') {
                 switchTab('manage');
@@ -4566,9 +4566,9 @@ document.addEventListener('DOMContentLoaded', () => {
         <span class="bn-icon">⚙</span>
         <span class="bn-label">Admin</span>
     </button>
-    <button class="bn-item" data-tab="sync-mobile">
-        <span class="bn-icon">🔄</span>
-        <span class="bn-label">Sync</span>
+    <button class="bn-item" data-tab="benchmark">
+        <span class="bn-icon">🏆</span>
+        <span class="bn-label">Benchmark</span>
     </button>
     <button class="bn-item" data-tab="dashboard">
         <span class="bn-icon">📊</span>
