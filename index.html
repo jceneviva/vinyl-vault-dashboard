@@ -412,7 +412,11 @@ tbody tr:hover { background: var(--bg-card-hover); }
     /* Benchmark mobile — hide charts & coverage, compact KPI grid */
     #panel-benchmark .card-row { display: none !important; }
     #panel-benchmark .card:has(#coverageRows) { display: none !important; }
-    #panel-benchmark .kpi-grid { grid-template-columns: repeat(4, 1fr) !important; }
+    #panel-benchmark .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    /* Table: contain overflow, hide year+subgenre columns */
+    #panel-benchmark .tbl-scroll { overflow-x: hidden; }
+    #panel-benchmark .bench-col-year,
+    #panel-benchmark .bench-col-subgenre { display: none; }
     /* Stacked artist/album cell */
     #panel-benchmark .bench-col-artist { display: none; }
     .bench-mob-artist {
@@ -421,6 +425,10 @@ tbody tr:hover { background: var(--bg-card-hover); }
     }
     .bench-album-name {
         display: block; color: var(--text-secondary);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .bench-mob-meta {
+        display: block; color: var(--text-muted); font-size: 0.68rem;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     /* Value tab */
@@ -1115,8 +1123,8 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                                 <th data-bsort="rank_position" style="cursor:pointer"># ⇅</th>
                                 <th data-bsort="artist_name" style="cursor:pointer" class="bench-col-artist">Artist ⇅</th>
                                 <th data-bsort="album_title" style="cursor:pointer" class="bench-col-album">Artist / Album ⇅</th>
-                                <th data-bsort="year" style="cursor:pointer">Year ⇅</th>
-                                <th data-bsort="subgenre" style="cursor:pointer">Subgenre ⇅</th>
+                                <th data-bsort="year" style="cursor:pointer" class="bench-col-year">Year ⇅</th>
+                                <th data-bsort="subgenre" style="cursor:pointer" class="bench-col-subgenre">Subgenre ⇅</th>
                                 <th data-bsort="rating_avg" style="cursor:pointer">Rating ⇅</th>
                                 <th data-bsort="rating_count" style="cursor:pointer" class="col-hide-mobile">Reviews ⇅</th>
                                 <th data-bsort="status" style="cursor:pointer">Status ⇅</th>
@@ -1331,7 +1339,10 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                     <div class="tbl-card">
                         <div class="tbl-header">
                             <h3>Discogs Wantlist</h3>
-                            <button class="btn btn-sync" onclick="loadWishlist()">Refresh</button>
+                            <div style="display:flex;gap:6px;align-items:center">
+                                <button class="btn" id="wlSortArtistBtn" onclick="wlSortByArtist()">Artist ⇅</button>
+                                <button class="btn btn-sync" onclick="loadWishlist()">Refresh</button>
+                            </div>
                         </div>
                         <div class="tbl-scroll" style="max-height:calc(100vh - 260px)">
                             <table>
@@ -1350,8 +1361,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                             </table>
                         </div>
                         <div style="text-align:center;padding:10px">
-                            <button class="btn" id="wlLoadMore" onclick="loadWishlistMore()" style="display:none">Load More</button>
-                            <span id="wlCount" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);margin-left:12px"></span>
+                            <span id="wlCount" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted)"></span>
                         </div>
                     </div>
                     <div id="wlCards"></div>
@@ -2363,9 +2373,9 @@ function benchRenderTable(filtered) {
     document.getElementById('benchmarkBody').innerHTML = f.map(a => `<tr>
         <td style="font-family:var(--font-mono);color:var(--text-muted)">${a.rank_position || '—'}</td>
         <td class="bench-col-artist" style="font-weight:500">${esc(a.artist_name)}</td>
-        <td class="bench-col-album"><span class="bench-mob-artist">${esc(a.artist_name)}</span><span class="bench-album-name">${esc(a.album_title)}</span></td>
-        <td style="font-family:var(--font-mono)">${a.year || '—'}</td>
-        <td><span class="badge b-genre">${esc(a.subgenre || '—')}</span></td>
+        <td class="bench-col-album"><span class="bench-mob-artist">${esc(a.artist_name)}</span><span class="bench-album-name">${esc(a.album_title)}</span><span class="bench-mob-meta">${[a.year, a.subgenre].filter(Boolean).join(' · ')}</span></td>
+        <td class="bench-col-year" style="font-family:var(--font-mono)">${a.year || '—'}</td>
+        <td class="bench-col-subgenre"><span class="badge b-genre">${esc(a.subgenre || '—')}</span></td>
         <td style="font-family:var(--font-mono);color:var(--gold)">${a.rating_avg ? Number(a.rating_avg).toFixed(2) : '—'}</td>
         <td class="col-hide-mobile" style="font-family:var(--font-mono)">${a.rating_count || '—'}</td>
         <td>${a.status === 'owned' ? '<span class="badge b-owned">OWNED</span>' : '<span class="badge b-gap">GAP</span>'}</td>
@@ -3356,21 +3366,32 @@ document.getElementById('artSearch').addEventListener('input', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 let wlState = { items: [], page: 1, pages: 1, total: 0, sort: { col: 'date_added', dir: 'desc' } };
 
-async function loadWishlist(append) {
+async function loadWishlist() {
     try {
-        if (!append) { wlState.items = []; wlState.page = 1; }
-        const d = await api(`/api/wishlist?page=${wlState.page}&per_page=50`);
-        wlState.items = append ? wlState.items.concat(d.wants) : d.wants;
-        wlState.pages = d.pages;
-        wlState.total = d.total;
-        wlState.page++;
-        
-        document.getElementById('wlLoadMore').style.display = wlState.page <= wlState.pages ? '' : 'none';
+        wlState.items = [];
+        wlState.page = 1;
+        do {
+            const d = await api(`/api/wishlist?page=${wlState.page}&per_page=100`);
+            wlState.items = wlState.items.concat(d.wants);
+            wlState.total = d.total;
+            wlState.pages = d.pages;
+            wlState.page++;
+        } while (wlState.page <= wlState.pages);
         renderWishlistTable();
     } catch(e) { console.error('Wishlist:', e); }
 }
 
-function loadWishlistMore() { loadWishlist(true); }
+function wlSortByArtist() {
+    if (wlState.sort.col === 'artist') {
+        wlState.sort.dir = wlState.sort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+        wlState.sort.col = 'artist';
+        wlState.sort.dir = 'asc';
+    }
+    const btn = document.getElementById('wlSortArtistBtn');
+    if (btn) btn.textContent = 'Artist ' + (wlState.sort.dir === 'asc' ? '▲' : '▼');
+    renderWishlistTable();
+}
 
 function renderWishlistTable() {
     const search = document.getElementById('wlSearch').value.toLowerCase();
