@@ -3365,8 +3365,11 @@ document.getElementById('artSearch').addEventListener('input', () => {
 // 8. WISHLIST (Discogs Wantlist)
 // ═══════════════════════════════════════════════════════════════════════════════
 let wlState = { items: [], page: 1, pages: 1, total: 0, sort: { col: 'date_added', dir: 'desc' } };
+let wlLoading = false;
 
 async function loadWishlist() {
+    if (wlLoading) return;
+    wlLoading = true;
     try {
         wlState.items = [];
         wlState.page = 1;
@@ -3379,6 +3382,7 @@ async function loadWishlist() {
         } while (wlState.page <= wlState.pages);
         renderWishlistTable();
     } catch(e) { console.error('Wishlist:', e); }
+    finally { wlLoading = false; }
 }
 
 function wlSortByArtist() {
