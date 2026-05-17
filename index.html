@@ -413,10 +413,18 @@ tbody tr:hover { background: var(--bg-card-hover); }
     #panel-benchmark .card-row { display: none !important; }
     #panel-benchmark .card:has(#coverageRows) { display: none !important; }
     #panel-benchmark .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
-    /* Table: contain overflow, hide year+subgenre columns */
-    #panel-benchmark .tbl-scroll { overflow-x: hidden; }
+    /* Table: fixed layout so it can't exceed viewport, hide unneeded columns */
+    #panel-benchmark table { table-layout: fixed; width: 100%; }
     #panel-benchmark .bench-col-year,
-    #panel-benchmark .bench-col-subgenre { display: none; }
+    #panel-benchmark .bench-col-subgenre,
+    #panel-benchmark .bench-col-status { display: none; }
+    /* Column widths: # fixed, Rating fixed, Artist/Album gets the rest */
+    #panel-benchmark thead th:first-child,
+    #panel-benchmark tbody td:first-child { width: 28px; }
+    #panel-benchmark .bench-col-rating { width: 44px; text-align: right; padding-right: 10px !important; }
+    /* Row colours replace the Status column */
+    #panel-benchmark tr.b-row-owned { background: rgba(74,222,128,0.08); }
+    #panel-benchmark tr.b-row-gap   { background: rgba(248,113,113,0.07); }
     /* Stacked artist/album cell */
     #panel-benchmark .bench-col-artist { display: none; }
     .bench-mob-artist {
@@ -1125,9 +1133,9 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                                 <th data-bsort="album_title" style="cursor:pointer" class="bench-col-album">Artist / Album ⇅</th>
                                 <th data-bsort="year" style="cursor:pointer" class="bench-col-year">Year ⇅</th>
                                 <th data-bsort="subgenre" style="cursor:pointer" class="bench-col-subgenre">Subgenre ⇅</th>
-                                <th data-bsort="rating_avg" style="cursor:pointer">Rating ⇅</th>
+                                <th data-bsort="rating_avg" style="cursor:pointer" class="bench-col-rating">Rating ⇅</th>
                                 <th data-bsort="rating_count" style="cursor:pointer" class="col-hide-mobile">Reviews ⇅</th>
-                                <th data-bsort="status" style="cursor:pointer">Status ⇅</th>
+                                <th data-bsort="status" style="cursor:pointer" class="bench-col-status">Status ⇅</th>
                                 <th class="col-hide-mobile">Action</th>
                             </tr></thead>
                             <tbody id="benchmarkBody"></tbody>
@@ -2370,15 +2378,15 @@ function benchRenderTable(filtered) {
         return 0;
     });
 
-    document.getElementById('benchmarkBody').innerHTML = f.map(a => `<tr>
+    document.getElementById('benchmarkBody').innerHTML = f.map(a => `<tr class="${a.status === 'owned' ? 'b-row-owned' : 'b-row-gap'}">
         <td style="font-family:var(--font-mono);color:var(--text-muted)">${a.rank_position || '—'}</td>
         <td class="bench-col-artist" style="font-weight:500">${esc(a.artist_name)}</td>
         <td class="bench-col-album"><span class="bench-mob-artist">${esc(a.artist_name)}</span><span class="bench-album-name">${esc(a.album_title)}</span><span class="bench-mob-meta">${[a.year, a.subgenre].filter(Boolean).join(' · ')}</span></td>
         <td class="bench-col-year" style="font-family:var(--font-mono)">${a.year || '—'}</td>
         <td class="bench-col-subgenre"><span class="badge b-genre">${esc(a.subgenre || '—')}</span></td>
-        <td style="font-family:var(--font-mono);color:var(--gold)">${a.rating_avg ? Number(a.rating_avg).toFixed(2) : '—'}</td>
+        <td class="bench-col-rating" style="font-family:var(--font-mono);color:var(--gold)">${a.rating_avg ? Number(a.rating_avg).toFixed(2) : '—'}</td>
         <td class="col-hide-mobile" style="font-family:var(--font-mono)">${a.rating_count || '—'}</td>
-        <td>${a.status === 'owned' ? '<span class="badge b-owned">OWNED</span>' : '<span class="badge b-gap">GAP</span>'}</td>
+        <td class="bench-col-status">${a.status === 'owned' ? '<span class="badge b-owned">OWNED</span>' : '<span class="badge b-gap">GAP</span>'}</td>
         <td class="col-hide-mobile" style="white-space:nowrap">${a.status !== 'owned' && a.master_id ? `<button class="btn btn-sync" style="font-size:0.68rem;padding:3px 7px;margin-right:4px"
                 data-mid="${a.master_id}"
                 onclick="wantByMaster(+this.dataset.mid, '', this)">Want</button>
