@@ -259,6 +259,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
 #wlFab { display: none; position: fixed; bottom: 76px; right: 16px; width: 52px; height: 52px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 1.5rem; border: none; cursor: pointer; z-index: 999; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
 #dashFilterBtn { display: none; }
 #collFilterBtn { display: none; }
+#benchFilterBtn { display: none; }
 .detail-tabs { display:flex; border-bottom:1px solid var(--border); margin-bottom:16px; }
 .detail-tab { flex:1; padding:10px; background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:0.85rem; }
 .detail-tab.active { color:var(--accent); border-bottom:2px solid var(--accent); }
@@ -377,6 +378,18 @@ tbody tr:hover { background: var(--bg-card-hover); }
         padding: 1px 6px; font-size: 0.7rem; display: none;
     }
     #collFilterBtn .filter-count.has-filters { display: inline-block; }
+    #benchFilterBtn {
+        position: fixed; bottom: 76px; left: 16px;
+        background: var(--bg-card); border: 1px solid var(--accent);
+        border-radius: 20px; color: var(--accent);
+        font-size: 0.78rem; padding: 8px 16px;
+        cursor: pointer; z-index: 999; align-items: center; gap: 6px;
+    }
+    #benchFilterBtn .filter-count {
+        background: var(--accent); color: #fff; border-radius: 10px;
+        padding: 1px 6px; font-size: 0.7rem; display: none;
+    }
+    #benchFilterBtn .filter-count.has-filters { display: inline-block; }
     /* Header mobile */
     .header { padding: 8px 12px; }
     .brand-sub { display: none; }
@@ -395,6 +408,10 @@ tbody tr:hover { background: var(--bg-card-hover); }
     #panel-benchmark .tbl-scroll { font-size: 0.72rem; }
     #panel-benchmark .tbl-scroll th, #panel-benchmark .tbl-scroll td { padding: 6px 8px; }
     #panel-benchmark .col-hide-mobile { display: none; }
+    /* Benchmark mobile — hide charts & coverage, compact KPI grid */
+    #panel-benchmark .card-row { display: none !important; }
+    #panel-benchmark .card:has(#coverageRows) { display: none !important; }
+    #panel-benchmark .kpi-grid { grid-template-columns: repeat(4, 1fr) !important; }
     /* Value tab */
     #valueMetrics { grid-template-columns: 1fr 1fr; }
     #valueChartWrap { max-height: 220px; }
@@ -2650,8 +2667,10 @@ function switchTab(tab) {
     if (window.innerWidth <= 768) {
         const dashBtn = document.getElementById('dashFilterBtn');
         const collBtn = document.getElementById('collFilterBtn');
+        const benchBtn = document.getElementById('benchFilterBtn');
         if (dashBtn) dashBtn.style.display = tab === 'dashboard' ? 'flex' : 'none';
         if (collBtn) collBtn.style.display = tab === 'collection' ? 'flex' : 'none';
+        if (benchBtn) benchBtn.style.display = tab === 'benchmark' ? 'flex' : 'none';
     }
 }
 
@@ -4247,6 +4266,73 @@ const _CF_DRILL_CONFIG = [
     { label: 'Condition',    selectId: 'cfFilterCondition' },
 ];
 
+function openBenchFilters() {
+    _renderBenchSheet();
+    document.getElementById('benchFilterSheet').classList.add('open');
+    document.getElementById('benchFilterBackdrop').classList.add('open');
+}
+function closeBenchFilters() {
+    document.getElementById('benchFilterSheet').classList.remove('open');
+    document.getElementById('benchFilterBackdrop').classList.remove('open');
+}
+function _updateBenchCount() {
+    const n = Object.keys(benchFilters).length +
+              (document.getElementById('benchmarkSearch').value.trim() ? 1 : 0);
+    const el = document.getElementById('benchFilterCount');
+    if (!el) return;
+    el.textContent = n || '';
+    el.classList.toggle('has-filters', n > 0);
+}
+function _benchSheetStatus(val) {
+    if (val) benchSetFilter('status', val);
+    else benchRemoveFilter('status');
+    benchApplyFilters();
+    _renderBenchSheet();
+    _updateBenchCount();
+}
+function _renderBenchSheet() {
+    const body = document.getElementById('benchFilterSheetBody');
+    if (!body) return;
+    const src = document.getElementById('sourceSelect');
+    const sg = document.getElementById('bench-sb-subgenre');
+    const searchVal = document.getElementById('benchmarkSearch').value;
+    const statusVal = benchFilters.status || '';
+    const sgVal = benchFilters.subgenre || '';
+
+    const srcOpts = [...src.options].map(o =>
+        `<option value="${o.value}"${o.value === src.value ? ' selected' : ''}>${o.text}</option>`
+    ).join('');
+    const sgOpts = [...sg.options].map(o =>
+        `<option value="${o.value}"${o.value === sgVal ? ' selected' : ''}>${o.text}</option>`
+    ).join('');
+
+    const inp = 'width:100%;box-sizing:border-box;padding:9px 10px;background:var(--bg-hover);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:0.9rem;margin-top:6px';
+    const lbl = 'display:block;font-size:0.75rem;color:var(--text-secondary);margin-top:14px';
+    const btnBase = 'flex:1;padding:9px 4px;border-radius:var(--radius-sm);cursor:pointer;font-size:0.85rem;border:1px solid';
+    const btnOff = `${btnBase} var(--border);background:var(--bg-hover);color:var(--text-primary)`;
+    const btnOn  = `${btnBase} var(--accent);background:var(--accent);color:#fff`;
+
+    body.innerHTML = `
+        <label style="${lbl}">Search</label>
+        <input type="text" value="${searchVal.replace(/"/g,'&quot;')}" placeholder="Artist or album…" style="${inp}"
+            oninput="document.getElementById('benchmarkSearch').value=this.value;benchApplyFilters();_updateBenchCount()">
+        <label style="${lbl}">Ranking source</label>
+        <select style="${inp}" onchange="document.getElementById('sourceSelect').value=this.value;loadPASummary();loadPAAlbums()">
+            ${srcOpts}
+        </select>
+        <label style="${lbl}">Status</label>
+        <div style="display:flex;gap:8px;margin-top:6px">
+            <button style="${!statusVal ? btnOn : btnOff}" onclick="_benchSheetStatus('')">All</button>
+            <button style="${statusVal==='owned' ? btnOn : btnOff}" onclick="_benchSheetStatus('owned')">Owned</button>
+            <button style="${statusVal==='gap'   ? btnOn : btnOff}" onclick="_benchSheetStatus('gap')">Gap</button>
+        </div>
+        <label style="${lbl}">Subgenre</label>
+        <select style="${inp}" onchange="if(this.value)benchSetFilter('subgenre',this.value);else benchRemoveFilter('subgenre');benchApplyFilters();_updateBenchCount()">
+            ${sgOpts}
+        </select>
+    `;
+}
+
 function openCollFilters() {
     _renderDrillHome();
     document.getElementById('collFilterSheet').classList.add('open');
@@ -4484,6 +4570,9 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 <div id="dashFilterBackdrop" class="bottom-sheet-backdrop" onclick="closeDashFilters()"></div>
 
+<!-- Benchmark filter button (mobile only) -->
+<button id="benchFilterBtn" onclick="openBenchFilters()">⚙ Filters <span class="filter-count" id="benchFilterCount"></span></button>
+
 <!-- Collection filter button (mobile only) -->
 <button id="collFilterBtn" onclick="openCollFilters()">⚙ Filters <span class="filter-count" id="collFilterCount"></span></button>
 
@@ -4500,6 +4589,20 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 </div>
 <div id="collFilterBackdrop" class="bottom-sheet-backdrop" onclick="closeCollFilters()"></div>
+
+<!-- Benchmark filter sheet (mobile only) -->
+<div id="benchFilterSheet" class="bottom-sheet">
+    <div class="bottom-sheet-handle"></div>
+    <div class="bottom-sheet-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 class="bottom-sheet-title" style="margin:0">Filters</h3>
+            <button class="btn-ghost" onclick="benchClearAllFilters();_renderBenchSheet()">Clear</button>
+        </div>
+        <div id="benchFilterSheetBody"></div>
+        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeBenchFilters()">Show results</button>
+    </div>
+</div>
+<div id="benchFilterBackdrop" class="bottom-sheet-backdrop" onclick="closeBenchFilters()"></div>
 
 <!-- Config sheet (mobile only) -->
 <div id="configSheet" class="bottom-sheet">
