@@ -260,6 +260,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
 #dashFilterBtn { display: none; }
 #collFilterBtn { display: none; }
 #benchFilterBtn { display: none; }
+.bench-mob-artist { display: none; }
 .detail-tabs { display:flex; border-bottom:1px solid var(--border); margin-bottom:16px; }
 .detail-tab { flex:1; padding:10px; background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:0.85rem; }
 .detail-tab.active { color:var(--accent); border-bottom:2px solid var(--accent); }
@@ -412,6 +413,16 @@ tbody tr:hover { background: var(--bg-card-hover); }
     #panel-benchmark .card-row { display: none !important; }
     #panel-benchmark .card:has(#coverageRows) { display: none !important; }
     #panel-benchmark .kpi-grid { grid-template-columns: repeat(4, 1fr) !important; }
+    /* Stacked artist/album cell */
+    #panel-benchmark .bench-col-artist { display: none; }
+    .bench-mob-artist {
+        display: block; font-weight: 600; font-size: 0.78rem;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .bench-album-name {
+        display: block; color: var(--text-secondary);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
     /* Value tab */
     #valueMetrics { grid-template-columns: 1fr 1fr; }
     #valueChartWrap { max-height: 220px; }
@@ -1102,8 +1113,8 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                         <table>
                             <thead><tr id="benchHeaders">
                                 <th data-bsort="rank_position" style="cursor:pointer"># ⇅</th>
-                                <th data-bsort="artist_name" style="cursor:pointer">Artist ⇅</th>
-                                <th data-bsort="album_title" style="cursor:pointer">Album ⇅</th>
+                                <th data-bsort="artist_name" style="cursor:pointer" class="bench-col-artist">Artist ⇅</th>
+                                <th data-bsort="album_title" style="cursor:pointer" class="bench-col-album">Artist / Album ⇅</th>
                                 <th data-bsort="year" style="cursor:pointer">Year ⇅</th>
                                 <th data-bsort="subgenre" style="cursor:pointer">Subgenre ⇅</th>
                                 <th data-bsort="rating_avg" style="cursor:pointer">Rating ⇅</th>
@@ -2351,8 +2362,8 @@ function benchRenderTable(filtered) {
 
     document.getElementById('benchmarkBody').innerHTML = f.map(a => `<tr>
         <td style="font-family:var(--font-mono);color:var(--text-muted)">${a.rank_position || '—'}</td>
-        <td style="font-weight:500;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.artist_name)}</td>
-        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.album_title)}</td>
+        <td class="bench-col-artist" style="font-weight:500">${esc(a.artist_name)}</td>
+        <td class="bench-col-album"><span class="bench-mob-artist">${esc(a.artist_name)}</span><span class="bench-album-name">${esc(a.album_title)}</span></td>
         <td style="font-family:var(--font-mono)">${a.year || '—'}</td>
         <td><span class="badge b-genre">${esc(a.subgenre || '—')}</span></td>
         <td style="font-family:var(--font-mono);color:var(--gold)">${a.rating_avg ? Number(a.rating_avg).toFixed(2) : '—'}</td>
