@@ -260,6 +260,8 @@ tbody tr:hover { background: var(--bg-card-hover); }
 #dashFilterBtn { display: none; }
 #collFilterBtn { display: none; }
 #benchFilterBtn { display: none; }
+#linkFilterBtn  { display: none; }
+#artFilterBtn   { display: none; }
 .bench-mob-artist { display: none; }
 .detail-tabs { display:flex; border-bottom:1px solid var(--border); margin-bottom:16px; }
 .detail-tab { flex:1; padding:10px; background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:0.85rem; }
@@ -391,6 +393,19 @@ tbody tr:hover { background: var(--bg-card-hover); }
         padding: 1px 6px; font-size: 0.7rem; display: none;
     }
     #benchFilterBtn .filter-count.has-filters { display: inline-block; }
+    #linkFilterBtn, #artFilterBtn {
+        position: fixed; bottom: 76px; left: 16px;
+        background: var(--bg-card); border: 1px solid var(--accent);
+        border-radius: 20px; color: var(--accent);
+        font-size: 0.78rem; padding: 8px 16px;
+        cursor: pointer; z-index: 999; align-items: center; gap: 6px;
+    }
+    #linkFilterBtn .filter-count, #artFilterBtn .filter-count {
+        background: var(--accent); color: #fff; border-radius: 10px;
+        padding: 1px 6px; font-size: 0.7rem; display: none;
+    }
+    #linkFilterBtn .filter-count.has-filters,
+    #artFilterBtn  .filter-count.has-filters { display: inline-block; }
     /* Header mobile */
     .header { padding: 8px 12px; }
     .brand-sub { display: none; }
@@ -2694,12 +2709,16 @@ function switchTab(tab) {
     if (tab === 'explorer' && explorerState.ownedMasters.length === 0) loadExplorerMasters();
     if (tab === 'value' && !_valueLoaded) { _valueLoaded = true; loadValueTab(); }
     if (window.innerWidth <= 768) {
-        const dashBtn = document.getElementById('dashFilterBtn');
-        const collBtn = document.getElementById('collFilterBtn');
+        const dashBtn  = document.getElementById('dashFilterBtn');
+        const collBtn  = document.getElementById('collFilterBtn');
         const benchBtn = document.getElementById('benchFilterBtn');
-        if (dashBtn) dashBtn.style.display = tab === 'dashboard' ? 'flex' : 'none';
-        if (collBtn) collBtn.style.display = tab === 'collection' ? 'flex' : 'none';
-        if (benchBtn) benchBtn.style.display = tab === 'benchmark' ? 'flex' : 'none';
+        const linkBtn  = document.getElementById('linkFilterBtn');
+        const artBtn   = document.getElementById('artFilterBtn');
+        if (dashBtn)  dashBtn.style.display  = tab === 'dashboard'   ? 'flex' : 'none';
+        if (collBtn)  collBtn.style.display  = tab === 'collection'  ? 'flex' : 'none';
+        if (benchBtn) benchBtn.style.display = tab === 'benchmark'   ? 'flex' : 'none';
+        if (linkBtn)  linkBtn.style.display  = 'none';
+        if (artBtn)   artBtn.style.display   = 'none';
     }
 }
 
@@ -2721,6 +2740,12 @@ function switchManageSub(sub) {
     if (sub === 'editor' && editorState.folders.length === 0) loadEditorFolders();
     const fab = document.getElementById('wlFab');
     if (fab) fab.style.display = (sub === 'wishlist' && window.innerWidth <= 768) ? 'flex' : 'none';
+    if (window.innerWidth <= 768) {
+        const linkBtn = document.getElementById('linkFilterBtn');
+        const artBtn  = document.getElementById('artFilterBtn');
+        if (linkBtn) linkBtn.style.display = sub === 'linking'  ? 'flex' : 'none';
+        if (artBtn)  artBtn.style.display  = sub === 'artists'  ? 'flex' : 'none';
+    }
 }
 
 document.getElementById('manageSubNav').addEventListener('click', e => {
@@ -4384,6 +4409,70 @@ function _renderBenchSheet() {
     `;
 }
 
+// ── Linking filter sheet ────────────────────────────────────────────────────
+function openLinkFilters() { _renderLinkSheet(); document.getElementById('linkFilterSheet').classList.add('open'); document.getElementById('linkFilterBackdrop').classList.add('open'); }
+function closeLinkFilters() { document.getElementById('linkFilterSheet').classList.remove('open'); document.getElementById('linkFilterBackdrop').classList.remove('open'); }
+function _updateLinkCount() {
+    const n = (document.getElementById('linkSourceFilter').value ? 1 : 0)
+            + (document.getElementById('linkMethodFilter').value ? 1 : 0)
+            + (document.getElementById('linkSearch').value.trim() ? 1 : 0);
+    const el = document.getElementById('linkFilterCount');
+    if (el) { el.textContent = n || ''; el.classList.toggle('has-filters', n > 0); }
+}
+function _renderLinkSheet() {
+    const body = document.getElementById('linkFilterSheetBody');
+    if (!body) return;
+    const srcSel  = document.getElementById('linkSourceFilter');
+    const methSel = document.getElementById('linkMethodFilter');
+    const srchVal = document.getElementById('linkSearch').value;
+    const inp = 'width:100%;box-sizing:border-box;padding:9px 10px;background:var(--bg-hover);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:0.9rem;margin-top:6px';
+    const lbl = 'display:block;font-size:0.75rem;color:var(--text-secondary);margin-top:14px';
+    body.innerHTML = `
+        <label style="${lbl}">Search</label>
+        <input type="text" value="${srchVal.replace(/"/g,'&quot;')}" placeholder="Search artist, album…" style="${inp}"
+            oninput="document.getElementById('linkSearch').value=this.value;renderLinkingTable();_updateLinkCount()">
+        <label style="${lbl}">Source</label>
+        <select style="${inp}" onchange="document.getElementById('linkSourceFilter').value=this.value;loadLinkingData();_updateLinkCount()">
+            ${[...srcSel.options].map(o=>`<option value="${o.value}"${o.value===srcSel.value?' selected':''}>${o.text}</option>`).join('')}
+        </select>
+        <label style="${lbl}">Method</label>
+        <select style="${inp}" onchange="document.getElementById('linkMethodFilter').value=this.value;loadLinkingData();_updateLinkCount()">
+            ${[...methSel.options].map(o=>`<option value="${o.value}"${o.value===methSel.value?' selected':''}>${o.text}</option>`).join('')}
+        </select>`;
+}
+
+// ── Artists filter sheet ────────────────────────────────────────────────────
+function openArtFilters() { _renderArtSheet(); document.getElementById('artFilterSheet').classList.add('open'); document.getElementById('artFilterBackdrop').classList.add('open'); }
+function closeArtFilters() { document.getElementById('artFilterSheet').classList.remove('open'); document.getElementById('artFilterBackdrop').classList.remove('open'); }
+function _updateArtCount() {
+    const n = (document.getElementById('artFilterStatus').value ? 1 : 0)
+            + (document.getElementById('artFilterGenre').value ? 1 : 0)
+            + (document.getElementById('artSearch').value.trim() ? 1 : 0);
+    const el = document.getElementById('artFilterCount');
+    if (el) { el.textContent = n || ''; el.classList.toggle('has-filters', n > 0); }
+}
+function _renderArtSheet() {
+    const body = document.getElementById('artFilterSheetBody');
+    if (!body) return;
+    const statSel  = document.getElementById('artFilterStatus');
+    const genreSel = document.getElementById('artFilterGenre');
+    const srchVal  = document.getElementById('artSearch').value;
+    const inp = 'width:100%;box-sizing:border-box;padding:9px 10px;background:var(--bg-hover);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:0.9rem;margin-top:6px';
+    const lbl = 'display:block;font-size:0.75rem;color:var(--text-secondary);margin-top:14px';
+    body.innerHTML = `
+        <label style="${lbl}">Search</label>
+        <input type="text" value="${srchVal.replace(/"/g,'&quot;')}" placeholder="Search artist…" style="${inp}"
+            oninput="document.getElementById('artSearch').value=this.value;renderArtistsTable();_updateArtCount()">
+        <label style="${lbl}">Status</label>
+        <select style="${inp}" onchange="document.getElementById('artFilterStatus').value=this.value;renderArtistsTable();_updateArtCount()">
+            ${[...statSel.options].map(o=>`<option value="${o.value}"${o.value===statSel.value?' selected':''}>${o.text}</option>`).join('')}
+        </select>
+        <label style="${lbl}">Genre</label>
+        <select style="${inp}" onchange="document.getElementById('artFilterGenre').value=this.value;renderArtistsTable();_updateArtCount()">
+            ${[...genreSel.options].map(o=>`<option value="${o.value}"${o.value===genreSel.value?' selected':''}>${o.text}</option>`).join('')}
+        </select>`;
+}
+
 function openCollFilters() {
     _renderDrillHome();
     document.getElementById('collFilterSheet').classList.add('open');
@@ -4624,6 +4713,12 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- Benchmark filter button (mobile only) -->
 <button id="benchFilterBtn" onclick="openBenchFilters()">⚙ Filters <span class="filter-count" id="benchFilterCount"></span></button>
 
+<!-- Linking filter button (mobile only) -->
+<button id="linkFilterBtn" onclick="openLinkFilters()">⚙ Filters <span class="filter-count" id="linkFilterCount"></span></button>
+
+<!-- Artists filter button (mobile only) -->
+<button id="artFilterBtn" onclick="openArtFilters()">⚙ Filters <span class="filter-count" id="artFilterCount"></span></button>
+
 <!-- Collection filter button (mobile only) -->
 <button id="collFilterBtn" onclick="openCollFilters()">⚙ Filters <span class="filter-count" id="collFilterCount"></span></button>
 
@@ -4654,6 +4749,34 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 </div>
 <div id="benchFilterBackdrop" class="bottom-sheet-backdrop" onclick="closeBenchFilters()"></div>
+
+<!-- Linking filter sheet (mobile only) -->
+<div id="linkFilterSheet" class="bottom-sheet">
+    <div class="bottom-sheet-handle"></div>
+    <div class="bottom-sheet-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 class="bottom-sheet-title" style="margin:0">Filters</h3>
+            <button class="btn-ghost" onclick="document.getElementById('linkSourceFilter').value='';document.getElementById('linkMethodFilter').value='';document.getElementById('linkSearch').value='';loadLinkingData();_updateLinkCount();_renderLinkSheet()">Clear</button>
+        </div>
+        <div id="linkFilterSheetBody"></div>
+        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeLinkFilters()">Show results</button>
+    </div>
+</div>
+<div id="linkFilterBackdrop" class="bottom-sheet-backdrop" onclick="closeLinkFilters()"></div>
+
+<!-- Artists filter sheet (mobile only) -->
+<div id="artFilterSheet" class="bottom-sheet">
+    <div class="bottom-sheet-handle"></div>
+    <div class="bottom-sheet-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 class="bottom-sheet-title" style="margin:0">Filters</h3>
+            <button class="btn-ghost" onclick="document.getElementById('artFilterStatus').value='';document.getElementById('artFilterGenre').value='';document.getElementById('artSearch').value='';renderArtistsTable();_updateArtCount();_renderArtSheet()">Clear</button>
+        </div>
+        <div id="artFilterSheetBody"></div>
+        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeArtFilters()">Show results</button>
+    </div>
+</div>
+<div id="artFilterBackdrop" class="bottom-sheet-backdrop" onclick="closeArtFilters()"></div>
 
 <!-- Config sheet (mobile only) -->
 <div id="configSheet" class="bottom-sheet">
