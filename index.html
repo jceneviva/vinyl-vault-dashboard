@@ -2719,6 +2719,8 @@ function switchTab(tab) {
         if (benchBtn) benchBtn.style.display = tab === 'benchmark'   ? 'flex' : 'none';
         if (linkBtn)  linkBtn.style.display  = 'none';
         if (artBtn)   artBtn.style.display   = 'none';
+        const wlFab = document.getElementById('wlFab');
+        if (wlFab) wlFab.style.display = 'none';
     }
 }
 
