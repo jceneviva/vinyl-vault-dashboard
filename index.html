@@ -608,6 +608,11 @@ tbody tr:hover { background: var(--bg-card-hover); }
     font-family: var(--font-mono); font-size: 0.58rem; color: var(--text-muted); opacity: 0.8;
 }
 .sb-chip.active .sb-chip-count { color: var(--accent); }
+.sb-chip.score-a.active { background:rgba(124,106,247,.15); border-color:#7c6af7; color:#7c6af7; }
+.sb-chip.score-b.active { background:rgba(33,150,243,.15);  border-color:#2196f3; color:#2196f3; }
+.sb-chip.score-c.active { background:rgba(96,125,139,.15);  border-color:#607d8b; color:#607d8b; }
+.sb-chip.score-d.active { background:rgba(121,85,72,.15);   border-color:#795548; color:#795548; }
+.sb-chip.score-e.active { background:rgba(80,80,80,.15);    border-color:#555;    color:#aaa; }
 .sb-dropdown {
     width: 100%; background: var(--bg-card); color: var(--text-primary);
     border: 1px solid var(--border); border-radius: 6px;
@@ -932,6 +937,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
             <select id="cfFilterCondition"><option value="">All Conditions</option></select>
             <select id="cfFilterFormat"><option value="">All Formats</option></select>
             <select id="cfFilterFolderType"><option value="">All Types</option></select>
+            <select id="cfFilterScore"><option value="">All Scores</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option></select>
             <input type="text" id="cfSearch">
         </div>
 
@@ -997,6 +1003,23 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                         <div class="sb-chips" id="cf-sb-pressing"></div>
                         <div class="section-dim-label">Condition</div>
                         <div class="sb-chips" id="cf-sb-condition"></div>
+                    </div>
+                </div>
+
+                <!-- SCORE -->
+                <div class="sidebar-section">
+                    <button class="section-toggle" onclick="toggleSection(this)">
+                        Score <span class="section-toggle-arrow">▾</span>
+                    </button>
+                    <div class="section-body">
+                        <div class="sb-chips" id="cf-sb-score">
+                            <button class="sb-chip active" data-select="cfFilterScore" data-val="" onclick="cfSetFilter('cfFilterScore','')">All</button>
+                            <button class="sb-chip score-a" data-select="cfFilterScore" data-val="A" onclick="cfSetFilter('cfFilterScore','A')">A</button>
+                            <button class="sb-chip score-b" data-select="cfFilterScore" data-val="B" onclick="cfSetFilter('cfFilterScore','B')">B</button>
+                            <button class="sb-chip score-c" data-select="cfFilterScore" data-val="C" onclick="cfSetFilter('cfFilterScore','C')">C</button>
+                            <button class="sb-chip score-d" data-select="cfFilterScore" data-val="D" onclick="cfSetFilter('cfFilterScore','D')">D</button>
+                            <button class="sb-chip score-e" data-select="cfFilterScore" data-val="E" onclick="cfSetFilter('cfFilterScore','E')">E</button>
+                        </div>
                     </div>
                 </div>
             </aside>
@@ -2506,6 +2529,7 @@ function getFilteredCFItems(items) {
     const subgenreFilter=document.getElementById('cfFilterSubgenre').value;
     const subCollection=document.getElementById('cfFilterSubcollection').value;
     const folderType=document.getElementById('cfFilterFolderType').value;
+    const score=document.getElementById('cfFilterScore').value;
     let f = items;
     if (curation) f=f.filter(i=>i.curation_type===curation); if (pressing) f=f.filter(i=>i.pressing===pressing);
     if (condition) f=f.filter(i=>i.media_condition===condition); if (folder) f=f.filter(i=>i.folder_name===folder);
@@ -2513,6 +2537,7 @@ function getFilteredCFItems(items) {
     if (format) f=f.filter(i=>i.folder_format===format);
     if (subgenreFilter) f=f.filter(i=>i.artist_subgenre===subgenreFilter);
     if (subCollection) f=f.filter(i=>i.subcollection===subCollection);
+    if (score) f=f.filter(i=>i.pressing_score===score);
     if (search) f=f.filter(i=>(i.artist_name||'').toLowerCase().includes(search)||(i.basic_title||'').toLowerCase().includes(search)||(i.notes||'').toLowerCase().includes(search));
     const rbm=state.ratingByMaster||{}; const {col,dir}=state.cfSort; const m=dir==='asc'?1:-1;
     const _ak=n=>(n||'').replace(/^the\s+/i,'').toLowerCase();
@@ -2628,7 +2653,8 @@ function cfUpdateSidebarActive() {
     if (!activeChips) return;
     const labels = { cfFilterFolder:'Folder', cfFilterSubcollection:'Subcollection', cfFilterSubgenre:'Subgenre',
                      cfFilterFormat:'Format', cfFilterFolderType:'Curatorial',
-                     cfFilterCuration:'Type', cfFilterPressing:'Pressing', cfFilterCondition:'Condition' };
+                     cfFilterCuration:'Type', cfFilterPressing:'Pressing', cfFilterCondition:'Condition',
+                     cfFilterScore:'Score' };
     activeChips.innerHTML = Object.entries(labels).map(([id, label]) => {
         const sel = document.getElementById(id);
         if (!sel || !sel.value) return '';
@@ -2662,7 +2688,7 @@ function cfClearDropdownOrChip(selectId) {
 
 // Clear all Collection filters
 function cfClearAllFilters() {
-    ['cfFilterFolder','cfFilterSubcollection','cfFilterSubgenre','cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFormat','cfFilterFolderType'].forEach(id => {
+    ['cfFilterFolder','cfFilterSubcollection','cfFilterSubgenre','cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFormat','cfFilterFolderType','cfFilterScore'].forEach(id => {
         const el = document.getElementById(id); if (el) el.value = '';
     });
     const vis = document.getElementById('cfSearchVisible');
@@ -2682,7 +2708,7 @@ function cfSyncSearch(value) {
 }
 
 // CF listeners
-['cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFolder','cfFilterFormat','cfFilterSubgenre','cfFilterSubcollection','cfFilterFolderType'].forEach(id=>document.getElementById(id).addEventListener('change',()=>renderCFTable()));
+['cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFolder','cfFilterFormat','cfFilterSubgenre','cfFilterSubcollection','cfFilterFolderType','cfFilterScore'].forEach(id=>document.getElementById(id).addEventListener('change',()=>renderCFTable()));
 document.getElementById('cfSearch').addEventListener('input',()=>{clearTimeout(state.searchDebounce);state.searchDebounce=setTimeout(()=>renderCFTable(),300);});
 document.getElementById('cfHeaders').addEventListener('click',e=>{const th=e.target.closest('th[data-sort]');if(!th)return;const c=th.dataset.sort;if(state.cfSort.col===c)state.cfSort.dir=state.cfSort.dir==='asc'?'desc':'asc';else{state.cfSort.col=c;state.cfSort.dir='asc';}document.querySelectorAll('#cfHeaders th[data-sort]').forEach(h=>{const a=h.dataset.sort===state.cfSort.col?(state.cfSort.dir==='asc'?' ▲':' ▼'):' ⇅';h.textContent=h.textContent.replace(/ [⇅▲▼]$/,'')+a;});renderCFTable();});
 
@@ -4360,6 +4386,7 @@ const _CF_DRILL_CONFIG = [
     { label: 'Type',         selectId: 'cfFilterCuration' },
     { label: 'Pressing',     selectId: 'cfFilterPressing' },
     { label: 'Condition',    selectId: 'cfFilterCondition' },
+    { label: 'Score',        selectId: 'cfFilterScore' },
 ];
 
 function openBenchFilters() {
@@ -4582,7 +4609,7 @@ function _setDrillValue(selectId, value) {
 function updateCollFilterCount() {
     const ids = ['cfFilterFolder','cfFilterSubcollection','cfFilterSubgenre',
                  'cfFilterCuration','cfFilterPressing','cfFilterCondition',
-                 'cfFilterFormat','cfFilterFolderType'];
+                 'cfFilterFormat','cfFilterFolderType','cfFilterScore'];
     let count = ids.filter(id => { const el = document.getElementById(id); return el && el.value !== ''; }).length;
     const searchEl = document.getElementById('cfSearch');
     if (searchEl && searchEl.value) count++;
