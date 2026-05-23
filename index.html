@@ -4680,7 +4680,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', () => {
             const tab = btn.dataset.tab;
             document.querySelectorAll('.bn-item').forEach(b => b.classList.toggle('active', b === btn));
-
+            closeConfigSheet();
             if (tab === 'config-mobile') { openConfigSheet(); return; }
             if (tab === 'wishlist-mobile') {
                 switchTab('manage');
