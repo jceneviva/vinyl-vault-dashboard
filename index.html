@@ -3046,7 +3046,9 @@ async function saveAlbumEdit() {
             return;
         }
         showToast('Saved successfully');
-        closeAlbumDetail();
+        const savedId = _detailData.release_id;
+        openAlbumDetail(savedId);          // refresh badge + fields in-place, modal stays open
+        loadNotes().catch(() => {});       // reload collection table/cards in background
     } catch (err) {
         showToast('Save error: ' + err.message);
     }
