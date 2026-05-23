@@ -2978,7 +2978,10 @@ function openAlbumDetail(releaseId) {
                     </div>
                     <div class="edit-field">
                         <label>SubCollection</label>
-                        <input type="text" id="editSubCollection" value="${esc(d.subcollection||'')}">
+                        <select id="editSubCollection">
+                            <option value="">— none —</option>
+                            ${optsFrom('cfFilterSubcollection', d.subcollection||'')}
+                        </select>
                     </div>
                     <button class="btn-primary" style="width:100%" onclick="saveAlbumEdit()">Save</button>
                 </div>`;
