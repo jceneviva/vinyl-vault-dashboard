@@ -139,7 +139,6 @@ body {
     padding: 14px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap;
 }
 .tbl-header h3 { font-family: var(--font-display); font-size: 1rem; font-style: italic; margin: 0; white-space: nowrap; }
-.tbl-filters { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
 thead th {
@@ -331,7 +330,6 @@ tbody tr:hover { background: var(--bg-card-hover); }
     .metric-value { font-size: 1.3rem; }
     .card-row { grid-template-columns: 1fr; }
     .tbl-header { flex-direction: column; align-items: flex-start; }
-    .tbl-filters { width: 100%; }
     .sel, .inp { flex: 1; min-width: 0; font-size: 0.72rem; }
     .chart-wrap { height: 200px; }
     .cov-label { width: 100px; font-size: 0.7rem; }
@@ -650,35 +648,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
 }
 
 /* ── Explorer tab ───────────────────────────────────────────────────────── */
-.explorer-masters-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 10px; margin-bottom: 14px;
-}
-.explorer-master-card {
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 10px; cursor: pointer;
-    transition: var(--transition); text-align: center;
-}
-.explorer-master-card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
-.explorer-master-card.selected { border-color: var(--accent); background: var(--accent-glow); }
 tr.row-selected td { background: var(--accent-glow) !important; color: var(--accent); }
-.explorer-master-card img {
-    width: 100%; aspect-ratio: 1; object-fit: cover;
-    border-radius: 6px; margin-bottom: 6px; background: var(--bg-elevated);
-}
-.explorer-master-card .emc-title {
-    font-size: 0.72rem; font-weight: 600; color: var(--text-primary);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    display: block; margin-bottom: 2px;
-}
-.explorer-master-card .emc-year {
-    font-family: var(--font-mono); font-size: 0.62rem; color: var(--text-muted);
-}
-.explorer-master-card .emc-owned {
-    font-family: var(--font-mono); font-size: 0.62rem; color: var(--green);
-    margin-top: 4px; display: block;
-}
 
 /* ── Manage tab ─────────────────────────────────────────────────────────── */
 .manage-subnav {
@@ -1495,6 +1465,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
                             <button class="btn btn-sync" onclick="runSync()" id="syncBtn">Sync Discogs Collection</button>
                             <button class="btn btn-snap" onclick="downloadSnapshot()" id="snapBtn">Download Curator Snapshot</button>
+                            <button class="btn" onclick="runPurge()" id="purgeBtn">Purge Deleted</button>
                         </div>
                         <div id="purgeResult" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);min-height:20px"></div>
                     </div>
@@ -2196,37 +2167,9 @@ async function loadPAAlbums() {
         const params = new URLSearchParams({ limit: 5000 });
         if (source) params.set('source', source);
 
+        // master_id agora chega inline do backend (LEFT JOIN benchmark_master_link),
+        // então não é mais preciso o fetch paginado e serial de /api/linking/all.
         const albums = await api('/api/benchmark/progarchives/albums?' + params);
-
-        // Fetch ALL linking data (paginated, limit=1000 per call) to get master_id map
-        const masterMap = {};
-        let offset = 0;
-        const pageSize = 1000;
-        while (true) {
-            try {
-                const lp = new URLSearchParams({ limit: pageSize, offset });
-                if (source) lp.set('source', source);
-                const links = await api('/api/linking/all?' + lp);
-                links.forEach(l => {
-                    if (l.master_id && l.pa_album_id) masterMap[l.pa_album_id] = l.master_id;
-                });
-                if (links.length < pageSize) break;
-                offset += pageSize;
-            } catch (e) {
-                console.warn('Linking fetch page error:', e);
-                break;
-            }
-        }
-
-        // Merge master_id into album data
-        let merged = 0;
-        albums.forEach(a => {
-            if (!a.master_id && masterMap[a.pa_album_id]) {
-                a.master_id = masterMap[a.pa_album_id];
-                merged++;
-            }
-        });
-        console.log(`Benchmark: ${albums.length} albums, ${Object.keys(masterMap).length} links loaded, ${merged} master_ids merged`);
 
         state.paAlbums = albums;
         benchFilters = {};
@@ -3283,20 +3226,20 @@ async function _pollSync() {
 }
 async function runPurge() {
     const btn=document.getElementById('purgeBtn'),res=document.getElementById('purgeResult');
+    if(!confirm('Comparar a coleção local com o Discogs e remover itens que não existem mais lá?'))return;
     btn.disabled=true;btn.textContent='Purging...';res.textContent='';
-    try { const d=await api('/api/admin/purge-deleted'); if(d.status==='ok'){res.textContent=`Done! Discogs:${d.discogs_count}, DB:${d.db_count}, Purged:${d.deleted}`;res.style.color=d.deleted>0?'var(--green)':'var(--text-muted)';} else{res.textContent='Error: '+d.message;res.style.color='var(--red)';} } catch(e){res.textContent='Error: '+e.message;res.style.color='var(--red)';} btn.disabled=false;btn.textContent='Purge Deleted';
-}
-
-async function runMigration(endpoint, btn) {
-    const res = document.getElementById('purgeResult');
-    const origText = btn.textContent;
-    btn.disabled = true; btn.textContent = 'Running…'; res.textContent = '';
     try {
-        const d = await api(`/api/admin/${endpoint}`);
-        res.textContent = d.message || (d.status === 'ok' ? 'Done!' : 'Error: ' + d.message);
-        res.style.color = d.status === 'ok' ? 'var(--green)' : 'var(--red)';
-    } catch(e) { res.textContent = 'Error: ' + e.message; res.style.color = 'var(--red)'; }
-    btn.disabled = false; btn.textContent = origText;
+        const d=await api('/api/admin/purge-deleted');
+        if(d.status==='ok'){
+            res.textContent=`Done! Discogs:${d.discogs_count}, DB:${d.db_count}, Purged:${d.deleted}`;
+            res.style.color=d.deleted>0?'var(--green)':'var(--text-muted)';
+        } else {
+            // Backend abortou por guarda de sanidade (fetch vazio/incompleto ou >50% órfãos)
+            res.textContent='Abortado: '+(d.message||'erro desconhecido');
+            res.style.color='var(--orange)';
+        }
+    } catch(e){res.textContent='Error: '+e.message;res.style.color='var(--red)';}
+    btn.disabled=false;btn.textContent='Purge Deleted';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -3338,13 +3281,6 @@ async function loadArtists() {
             artistMap[aid].albums++;
         });
         artistsState.items = Object.values(artistMap).sort((a,b) => a.artist_name.localeCompare(b.artist_name));
-
-        // Stats
-        const total = artistsState.items.length;
-        const classified = artistsState.items.filter(a => a.subgenre).length;
-        
-        
-        
 
         // Populate genre filter
         const genreOpts = '<option value="">All Genres</option>' + Object.keys(GENRE_SUBGENRE).map(g => `<option value="${g}">${g}</option>`).join('');
@@ -3419,10 +3355,6 @@ async function saveArtistSubgenre(artistId, artistName, subgenre) {
             // Update local state
             const artist = artistsState.items.find(a => a.artist_id === artistId);
             if (artist) artist.subgenre = subgenre;
-            // Update stats
-            const classified = artistsState.items.filter(a => a.subgenre).length;
-            
-            
         }
     } catch(e) { console.error('Save subgenre:', e); }
 }
