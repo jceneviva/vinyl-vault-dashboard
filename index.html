@@ -281,10 +281,17 @@ tbody tr:hover { background: var(--bg-card-hover); }
 .config-item { display:flex; align-items:center; gap:14px; padding:14px 12px; background:var(--bg-hover); border:none; border-radius:var(--radius-sm); color:var(--text-primary); font-size:0.95rem; cursor:pointer; text-align:left; width:100%; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 .config-item:active { background:var(--bg-elevated); }
 .config-icon { font-size:1.2rem; width:24px; text-align:center; flex-shrink:0; }
-.bottom-sheet { position: fixed; bottom: 60px; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; transform: translateY(100%); transition: transform 0.3s ease; z-index: 1100; padding: 16px; display: none; }
+.bottom-sheet { position: fixed; bottom: 60px; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; transform: translateY(100%); transition: transform 0.3s ease; z-index: 1100; display: none; padding: 12px 0 0; max-height: calc(100vh - 120px); max-height: calc(100dvh - 120px); }
+.bottom-sheet-content { display: flex; flex-direction: column; max-height: calc(100vh - 132px); max-height: calc(100dvh - 132px); }
+/* Header + search stay fixed at the top; only the filter list scrolls. */
+.sheet-head { flex-shrink: 0; padding: 0 16px 8px; }
+.sheet-scroll { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 0 16px; }
+.sheet-foot { flex-shrink: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--bg-card); }
 .bottom-sheet-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1099; }
-.bottom-sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+.bottom-sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 12px; }
 .bottom-sheet-title { font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); }
+/* Inside the filter sheet the search box flows normally (no sticky float over options). */
+.bottom-sheet .cf-search-wrap { position: static; top: auto; padding: 0 0 10px; border-bottom: none; }
 .sync-sheet-status { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px; }
 .sync-sheet-bar { height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 8px; overflow: hidden; }
 .sync-sheet-fill { height: 100%; background: var(--accent); border-radius: 2px; width: 0%; transition: width 0.3s ease; }
@@ -1671,8 +1678,9 @@ function logout() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // API
 // ═══════════════════════════════════════════════════════════════════════════════
-async function api(path) {
-    const resp = await fetch(`${API}${path}`, { headers: API_KEY ? {'X-API-Key': API_KEY} : {} });
+async function api(path, opts) {
+    const headers = Object.assign(API_KEY ? {'X-API-Key': API_KEY} : {}, (opts && opts.headers) || {});
+    const resp = await fetch(`${API}${path}`, Object.assign({}, opts, { headers }));
     if (resp.status === 401) { logout(); throw new Error('Session expired'); }
     if (!resp.ok) throw new Error(`API ${resp.status}`);
     return resp.json();
@@ -2451,16 +2459,28 @@ async function loadNotes() {
 // Old standalone chart functions removed — all chart rendering now goes through dashRenderChart
 
 function populateCFFilters(stats, items) {
-    function fill(id,data) { const el=document.getElementById(id); const f=el.options[0].outerHTML; el.innerHTML=f+Object.keys(data).map(k=>`<option value="${esc(k)}">${esc(k)} (${data[k]})</option>`).join(''); }
+    // Preserve the user's current selections across a repopulate (e.g. after an edit
+    // triggers loadNotes); otherwise resetting innerHTML drops the active filter.
+    function fill(id,data) {
+        const el=document.getElementById(id); const prev=el.value;
+        const f=el.options[0].outerHTML;
+        el.innerHTML=f+Object.keys(data).map(k=>`<option value="${esc(k)}">${esc(k)} (${data[k]})</option>`).join('');
+        if (prev && [...el.options].some(o=>o.value===prev)) el.value=prev;
+    }
+    function fillRaw(id, html) {
+        const el=document.getElementById(id); const prev=el.value;
+        el.innerHTML=html;
+        if (prev && [...el.options].some(o=>o.value===prev)) el.value=prev;
+    }
     fill('cfFilterCuration',stats.curation_type); fill('cfFilterPressing',stats.pressing); fill('cfFilterCondition',stats.media_condition);
     if (stats.artist_subgenre) fill('cfFilterSubgenre',stats.artist_subgenre);
     if (stats.subcollection) fill('cfFilterSubcollection', Object.fromEntries(Object.entries(stats.subcollection).sort((a,b)=>a[0].localeCompare(b[0]))));
     const folders={}; items.forEach(i=>{const f=i.folder_name||'Unknown';folders[f]=(folders[f]||0)+1;});
-    document.getElementById('cfFilterFolder').innerHTML='<option value="">All Folders</option>'+Object.entries(folders).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
+    fillRaw('cfFilterFolder','<option value="">All Folders</option>'+Object.entries(folders).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join(''));
     const fmts={}; items.forEach(i=>{const f=i.folder_format||'Unknown';fmts[f]=(fmts[f]||0)+1;});
-    document.getElementById('cfFilterFormat').innerHTML='<option value="">All Formats</option>'+Object.entries(fmts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
+    fillRaw('cfFilterFormat','<option value="">All Formats</option>'+Object.entries(fmts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join(''));
     const ftypes={}; items.forEach(i=>{const f=i.folder_type||'Unknown';ftypes[f]=(ftypes[f]||0)+1;});
-    document.getElementById('cfFilterFolderType').innerHTML='<option value="">All Types</option>'+Object.entries(ftypes).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
+    fillRaw('cfFilterFolderType','<option value="">All Types</option>'+Object.entries(ftypes).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join(''));
 }
 
 const _cfScoreMap={AA:{bg:'#f4a300',fg:'#0f1117'},A:{bg:'#7c6af7',fg:'#fff'},B:{bg:'#2196f3',fg:'#fff'},C:{bg:'#607d8b',fg:'#fff'},D:{bg:'#795548',fg:'#fff'},E:{bg:'#333333',fg:'#fff'}};
@@ -3035,13 +3055,32 @@ document.getElementById('linkSearch').addEventListener('input',()=>{clearTimeout
 // ═══════════════════════════════════════════════════════════════════════════════
 async function downloadSnapshot() {
     const btn=document.getElementById('snapBtn'),res=document.getElementById('purgeResult');
-    btn.disabled=true; btn.textContent='Gerando...'; res.textContent='Buscando snapshot...'; res.style.color='var(--text-muted)';
+    btn.disabled=true; btn.textContent='Gerando...'; res.textContent='Iniciando snapshot...'; res.style.color='var(--text-muted)';
     try {
-        const data = await api('/api/curator/snapshot');
-        const w = window.open('', '_blank');
-        if (!w) { res.textContent='Popup bloqueado — permite pop-ups para este site.'; res.style.color='var(--red)'; return; }
-        w.document.write(_buildCatalogHTML(data));
-        w.document.close();
+        // Start the background job, then poll until it finishes. This avoids the
+        // proxy timeout that the old single synchronous request was hitting.
+        await api('/api/curator/snapshot-start', { method: 'POST' });
+        let data = null;
+        const started = Date.now();
+        const MAX_MS = 5 * 60 * 1000; // give up after 5 min
+        while (true) {
+            await new Promise(r => setTimeout(r, 1500));
+            const st = await api('/api/curator/snapshot-status');
+            if (st.status === 'done') { data = st.data; break; }
+            if (st.status === 'error') throw new Error(st.message || 'snapshot failed');
+            if (Date.now() - started > MAX_MS) throw new Error('timeout (>5min)');
+            const secs = Math.floor((Date.now() - started) / 1000);
+            res.textContent = `Gerando snapshot... (${secs}s)`;
+        }
+        // Render to a Blob and open it — robust against popup blocking on async flows.
+        const html = _buildCatalogHTML(data);
+        const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+        const w = window.open(url, '_blank');
+        if (!w) {
+            // Popup blocked: fall back to a download link the user can click.
+            const a = document.createElement('a');
+            a.href = url; a.download = 'curator-snapshot.html'; a.click();
+        }
         res.textContent = `Catalog generated — ${data.total_items} items, ${data.top_gaps.length} gaps`;
         res.style.color = 'var(--green)';
     } catch(e) { res.textContent='Error: '+e.message; res.style.color='var(--red)'; }
@@ -4058,8 +4097,9 @@ async function _doAdd() {
         }
         closeEditorDialog();
         _editorToast(`Added "${release.title}" to collection`, 'success');
-        // Refresh in-memory state so Dashboard & Collection reflect change
-        if (typeof loadNotes === 'function') loadNotes();
+        // Await the reload so Dashboard & Collection reflect the change before any filter re-runs.
+        if (typeof loadNotes === 'function') await loadNotes();
+        if (typeof renderCFTable === 'function') renderCFTable();
     } catch(e) {
         msgEl.textContent = 'Error: ' + e.message;
     } finally {
@@ -4097,7 +4137,11 @@ async function _doSaveEdit() {
         }
         closeEditorDialog();
         _editorToast('Changes saved', 'success');
-        if (typeof loadNotes === 'function') loadNotes();
+        // Await the reload so state.customFields / dashAllItems reflect the new value
+        // before any filter re-runs (otherwise the edited item keeps its stale value).
+        if (typeof loadNotes === 'function') await loadNotes();
+        // Re-apply whatever filter/table is currently shown so the edit is visible now.
+        if (typeof renderCFTable === 'function') renderCFTable();
         // Refresh the owned list so edits are reflected
         searchOwnedForEdit();
     } catch(e) {
@@ -4482,6 +4526,7 @@ function openManageSub(sub) {
 
 function _renderDrillHome() {
     const body = document.getElementById('collFilterSheetBody');
+    const head = document.getElementById('collFilterSheetHead');
     const searchVal = document.getElementById('cfSearch')?.value || '';
     const rows = _CF_DRILL_CONFIG.map(f => {
         const sel = document.getElementById(f.selectId);
@@ -4496,17 +4541,13 @@ function _renderDrillHome() {
             </span>
         </div>`;
     }).join('');
-    body.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-            <span style="font-size:1rem;font-weight:600;color:var(--text-primary)">Filters</span>
-            <button class="btn-ghost" onclick="cfClearAllFilters();_renderDrillHome()">Clear all</button>
-        </div>
-        <div class="cf-search-wrap" style="margin-bottom:4px">
+    // Search lives in the fixed head so it never floats over the scrolling option list.
+    if (head) head.innerHTML = `
+        <div class="cf-search-wrap" style="margin-top:4px">
             <input type="text" placeholder="Search artist, title…" value="${esc(searchVal)}"
                    oninput="cfSyncSearch(this.value);updateCollFilterCount()">
-        </div>
-        ${rows}
-        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeCollFilters()">Show results</button>`;
+        </div>`;
+    body.innerHTML = rows;
 }
 
 function _openDrillCategory(selectId, label) {
@@ -4514,6 +4555,7 @@ function _openDrillCategory(selectId, label) {
     if (!sel) return;
     const opts = Array.from(sel.options).filter(o => o.value !== '');
     const body = document.getElementById('collFilterSheetBody');
+    const head = document.getElementById('collFilterSheetHead');
     const optHtml = opts.length === 0
         ? `<div style="color:var(--text-muted);text-align:center;padding:20px">No options</div>`
         : opts.map(o => {
@@ -4524,12 +4566,14 @@ function _openDrillCategory(selectId, label) {
                 <span>${esc(o.text)}</span>
             </div>`;
         }).join('');
-    body.innerHTML = `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+    // Back-nav goes in the fixed head; the option list scrolls in the single sheet-scroll
+    // container (no nested scroll, which was causing the touch-scroll to sometimes stick).
+    if (head) head.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
             <button class="btn-ghost" onclick="_renderDrillHome()" style="padding:6px 12px;font-size:1.1rem">‹</button>
             <span style="font-size:1rem;font-weight:600;color:var(--text-primary)">${label}</span>
-        </div>
-        <div style="max-height:340px;overflow-y:auto">${optHtml}</div>`;
+        </div>`;
+    body.innerHTML = optHtml;
 }
 
 function _setDrillValue(selectId, value) {
@@ -4682,12 +4726,16 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="dashFilterSheet" class="bottom-sheet">
     <div class="bottom-sheet-handle"></div>
     <div class="bottom-sheet-content">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-            <h3 class="bottom-sheet-title" style="margin:0">Filters</h3>
-            <button class="btn-ghost" onclick="clearDashFilters()">Clear</button>
+        <div class="sheet-head">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <h3 class="bottom-sheet-title" style="margin:0">Filters</h3>
+                <button class="btn-ghost" onclick="clearDashFilters()">Clear</button>
+            </div>
         </div>
-        <div id="dashFilterSheetBody"></div>
-        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeDashFilters()">Show results</button>
+        <div class="sheet-scroll" id="dashFilterSheetBody"></div>
+        <div class="sheet-foot">
+            <button class="btn-primary" style="width:100%" onclick="closeDashFilters()">Show results</button>
+        </div>
     </div>
 </div>
 <div id="dashFilterBackdrop" class="bottom-sheet-backdrop" onclick="closeDashFilters()"></div>
@@ -4708,12 +4756,17 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="collFilterSheet" class="bottom-sheet">
     <div class="bottom-sheet-handle"></div>
     <div class="bottom-sheet-content">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-            <h3 class="bottom-sheet-title" style="margin:0">Filters</h3>
-            <button class="btn-ghost" onclick="cfClearAllFilters();_renderDrillHome()">Clear</button>
+        <div class="sheet-head">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <h3 class="bottom-sheet-title" style="margin:0">Filters</h3>
+                <button class="btn-ghost" onclick="cfClearAllFilters();_renderDrillHome()">Clear</button>
+            </div>
+            <div id="collFilterSheetHead"></div>
         </div>
-        <div id="collFilterSheetBody"></div>
-        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeCollFilters()">Show results</button>
+        <div class="sheet-scroll" id="collFilterSheetBody"></div>
+        <div class="sheet-foot">
+            <button class="btn-primary" style="width:100%" onclick="closeCollFilters()">Show results</button>
+        </div>
     </div>
 </div>
 <div id="collFilterBackdrop" class="bottom-sheet-backdrop" onclick="closeCollFilters()"></div>
@@ -4722,12 +4775,16 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="benchFilterSheet" class="bottom-sheet">
     <div class="bottom-sheet-handle"></div>
     <div class="bottom-sheet-content">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-            <h3 class="bottom-sheet-title" style="margin:0">Filters</h3>
-            <button class="btn-ghost" onclick="benchClearAllFilters();_renderBenchSheet()">Clear</button>
+        <div class="sheet-head">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <h3 class="bottom-sheet-title" style="margin:0">Filters</h3>
+                <button class="btn-ghost" onclick="benchClearAllFilters();_renderBenchSheet()">Clear</button>
+            </div>
         </div>
-        <div id="benchFilterSheetBody"></div>
-        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeBenchFilters()">Show results</button>
+        <div class="sheet-scroll" id="benchFilterSheetBody"></div>
+        <div class="sheet-foot">
+            <button class="btn-primary" style="width:100%" onclick="closeBenchFilters()">Show results</button>
+        </div>
     </div>
 </div>
 <div id="benchFilterBackdrop" class="bottom-sheet-backdrop" onclick="closeBenchFilters()"></div>
@@ -4736,12 +4793,16 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="linkFilterSheet" class="bottom-sheet">
     <div class="bottom-sheet-handle"></div>
     <div class="bottom-sheet-content">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-            <h3 class="bottom-sheet-title" style="margin:0">Filters</h3>
-            <button class="btn-ghost" onclick="document.getElementById('linkSourceFilter').value='';document.getElementById('linkMethodFilter').value='';document.getElementById('linkSearch').value='';loadLinkingData();_updateLinkCount();_renderLinkSheet()">Clear</button>
+        <div class="sheet-head">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <h3 class="bottom-sheet-title" style="margin:0">Filters</h3>
+                <button class="btn-ghost" onclick="document.getElementById('linkSourceFilter').value='';document.getElementById('linkMethodFilter').value='';document.getElementById('linkSearch').value='';loadLinkingData();_updateLinkCount();_renderLinkSheet()">Clear</button>
+            </div>
         </div>
-        <div id="linkFilterSheetBody"></div>
-        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeLinkFilters()">Show results</button>
+        <div class="sheet-scroll" id="linkFilterSheetBody"></div>
+        <div class="sheet-foot">
+            <button class="btn-primary" style="width:100%" onclick="closeLinkFilters()">Show results</button>
+        </div>
     </div>
 </div>
 <div id="linkFilterBackdrop" class="bottom-sheet-backdrop" onclick="closeLinkFilters()"></div>
@@ -4750,12 +4811,16 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="artFilterSheet" class="bottom-sheet">
     <div class="bottom-sheet-handle"></div>
     <div class="bottom-sheet-content">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-            <h3 class="bottom-sheet-title" style="margin:0">Filters</h3>
-            <button class="btn-ghost" onclick="document.getElementById('artFilterStatus').value='';document.getElementById('artFilterGenre').value='';document.getElementById('artSearch').value='';renderArtistsTable();_updateArtCount();_renderArtSheet()">Clear</button>
+        <div class="sheet-head">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <h3 class="bottom-sheet-title" style="margin:0">Filters</h3>
+                <button class="btn-ghost" onclick="document.getElementById('artFilterStatus').value='';document.getElementById('artFilterGenre').value='';document.getElementById('artSearch').value='';renderArtistsTable();_updateArtCount();_renderArtSheet()">Clear</button>
+            </div>
         </div>
-        <div id="artFilterSheetBody"></div>
-        <button class="btn-primary" style="width:100%;margin-top:16px" onclick="closeArtFilters()">Show results</button>
+        <div class="sheet-scroll" id="artFilterSheetBody"></div>
+        <div class="sheet-foot">
+            <button class="btn-primary" style="width:100%" onclick="closeArtFilters()">Show results</button>
+        </div>
     </div>
 </div>
 <div id="artFilterBackdrop" class="bottom-sheet-backdrop" onclick="closeArtFilters()"></div>
