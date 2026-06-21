@@ -964,6 +964,8 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                         Music <span class="section-toggle-arrow">▾</span>
                     </button>
                     <div class="section-body">
+                        <div class="section-dim-label">Genre</div>
+                        <select id="cfFilterGenre" class="sb-dropdown" onchange="cfGenreChanged()"><option value="">All Genres</option></select>
                         <div class="section-dim-label">Subgenre</div>
                         <select id="cfFilterSubgenre" class="sb-dropdown"><option value="">All Subgenres</option></select>
                     </div>
@@ -2473,6 +2475,7 @@ function populateCFFilters(stats, items) {
         if (prev && [...el.options].some(o=>o.value===prev)) el.value=prev;
     }
     fill('cfFilterCuration',stats.curation_type); fill('cfFilterPressing',stats.pressing); fill('cfFilterCondition',stats.media_condition);
+    if (stats.artist_genre) fill('cfFilterGenre', Object.fromEntries(Object.entries(stats.artist_genre).sort((a,b)=>a[0].localeCompare(b[0]))));
     if (stats.artist_subgenre) fill('cfFilterSubgenre',stats.artist_subgenre);
     if (stats.subcollection) fill('cfFilterSubcollection', Object.fromEntries(Object.entries(stats.subcollection).sort((a,b)=>a[0].localeCompare(b[0]))));
     const folders={}; items.forEach(i=>{const f=i.folder_name||'Unknown';folders[f]=(folders[f]||0)+1;});
@@ -2491,6 +2494,7 @@ function getFilteredCFItems(items) {
     const curation=document.getElementById('cfFilterCuration').value, pressing=document.getElementById('cfFilterPressing').value;
     const condition=document.getElementById('cfFilterCondition').value, folder=document.getElementById('cfFilterFolder').value;
     const format=document.getElementById('cfFilterFormat').value, search=document.getElementById('cfSearch').value.toLowerCase();
+    const genreFilter=document.getElementById('cfFilterGenre').value;
     const subgenreFilter=document.getElementById('cfFilterSubgenre').value;
     const subCollection=document.getElementById('cfFilterSubcollection').value;
     const folderType=document.getElementById('cfFilterFolderType').value;
@@ -2500,6 +2504,7 @@ function getFilteredCFItems(items) {
     if (condition) f=f.filter(i=>i.media_condition===condition); if (folder) f=f.filter(i=>i.folder_name===folder);
     if (folderType) f=f.filter(i=>i.folder_type===folderType);
     if (format) f=f.filter(i=>i.folder_format===format);
+    if (genreFilter) f=f.filter(i=>i.artist_genre===genreFilter);
     if (subgenreFilter) f=f.filter(i=>i.artist_subgenre===subgenreFilter);
     if (subCollection) f=f.filter(i=>i.subcollection===subCollection);
     if (score) f=f.filter(i=>i.pressing_score===score);
@@ -2616,7 +2621,7 @@ function cfUpdateSidebarActive() {
     });
     const activeChips = document.getElementById('cfActiveChips');
     if (!activeChips) return;
-    const labels = { cfFilterFolder:'Folder', cfFilterSubcollection:'Subcollection', cfFilterSubgenre:'Subgenre',
+    const labels = { cfFilterFolder:'Folder', cfFilterSubcollection:'Subcollection', cfFilterGenre:'Genre', cfFilterSubgenre:'Subgenre',
                      cfFilterFormat:'Format', cfFilterFolderType:'Curatorial',
                      cfFilterCuration:'Type', cfFilterPressing:'Pressing', cfFilterCondition:'Condition',
                      cfFilterScore:'Score' };
@@ -2627,7 +2632,7 @@ function cfUpdateSidebarActive() {
             onclick="cfClearDropdownOrChip(this.dataset.select)">${esc(label)}: ${esc(sel.value)} ✕</button>`;
     }).join('');
     // Highlight active dropdowns
-    ['cfFilterFolder','cfFilterSubcollection','cfFilterSubgenre'].forEach(id => {
+    ['cfFilterFolder','cfFilterSubcollection','cfFilterGenre','cfFilterSubgenre'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle('active', !!el.value);
     });
@@ -2653,12 +2658,35 @@ function cfClearDropdownOrChip(selectId) {
 
 // Clear all Collection filters
 function cfClearAllFilters() {
-    ['cfFilterFolder','cfFilterSubcollection','cfFilterSubgenre','cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFormat','cfFilterFolderType','cfFilterScore'].forEach(id => {
+    ['cfFilterFolder','cfFilterSubcollection','cfFilterGenre','cfFilterSubgenre','cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFormat','cfFilterFolderType','cfFilterScore'].forEach(id => {
         const el = document.getElementById(id); if (el) el.value = '';
     });
     const vis = document.getElementById('cfSearchVisible');
     if (vis) vis.value = '';
     const h = document.getElementById('cfSearch'); if (h) h.value = '';
+    renderCFTable();
+    cfUpdateSidebarActive();
+    updateCollFilterCount();
+}
+
+// When Genre changes, re-filter Subgenre options to those belonging to the selected genre
+function cfGenreChanged() {
+    const genre = document.getElementById('cfFilterGenre').value;
+    const subSel = document.getElementById('cfFilterSubgenre');
+    const items = state.customFields?.items || [];
+    const prev = subSel.value;
+    if (!genre) {
+        const counts = {};
+        items.forEach(i => { if (i.artist_subgenre) counts[i.artist_subgenre] = (counts[i.artist_subgenre]||0)+1; });
+        subSel.innerHTML = '<option value="">All Subgenres</option>' +
+            Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
+    } else {
+        const counts = {};
+        items.filter(i=>i.artist_genre===genre).forEach(i => { if (i.artist_subgenre) counts[i.artist_subgenre] = (counts[i.artist_subgenre]||0)+1; });
+        subSel.innerHTML = '<option value="">All Subgenres</option>' +
+            Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
+    }
+    if (prev && [...subSel.options].some(o=>o.value===prev)) subSel.value = prev; else subSel.value = '';
     renderCFTable();
     cfUpdateSidebarActive();
     updateCollFilterCount();
@@ -2673,7 +2701,7 @@ function cfSyncSearch(value) {
 }
 
 // CF listeners
-['cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFolder','cfFilterFormat','cfFilterSubgenre','cfFilterSubcollection','cfFilterFolderType','cfFilterScore'].forEach(id=>document.getElementById(id).addEventListener('change',()=>renderCFTable()));
+['cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFolder','cfFilterFormat','cfFilterGenre','cfFilterSubgenre','cfFilterSubcollection','cfFilterFolderType','cfFilterScore'].forEach(id=>document.getElementById(id).addEventListener('change',()=>renderCFTable()));
 document.getElementById('cfSearch').addEventListener('input',()=>{clearTimeout(state.searchDebounce);state.searchDebounce=setTimeout(()=>renderCFTable(),300);});
 document.getElementById('cfHeaders').addEventListener('click',e=>{const th=e.target.closest('th[data-sort]');if(!th)return;const c=th.dataset.sort;if(state.cfSort.col===c)state.cfSort.dir=state.cfSort.dir==='asc'?'desc':'asc';else{state.cfSort.col=c;state.cfSort.dir='asc';}document.querySelectorAll('#cfHeaders th[data-sort]').forEach(h=>{const a=h.dataset.sort===state.cfSort.col?(state.cfSort.dir==='asc'?' ▲':' ▼'):' ⇅';h.textContent=h.textContent.replace(/ [⇅▲▼]$/,'')+a;});renderCFTable();});
 
@@ -4361,6 +4389,7 @@ const _CF_DRILL_CONFIG = [
     { label: 'Subcollection',selectId: 'cfFilterSubcollection' },
     { label: 'Format',       selectId: 'cfFilterFormat' },
     { label: 'Folder Type',  selectId: 'cfFilterFolderType' },
+    { label: 'Genre',        selectId: 'cfFilterGenre' },
     { label: 'Subgenre',     selectId: 'cfFilterSubgenre' },
     { label: 'Type',         selectId: 'cfFilterCuration' },
     { label: 'Pressing',     selectId: 'cfFilterPressing' },
@@ -4586,7 +4615,7 @@ function _setDrillValue(selectId, value) {
 }
 
 function updateCollFilterCount() {
-    const ids = ['cfFilterFolder','cfFilterSubcollection','cfFilterSubgenre',
+    const ids = ['cfFilterFolder','cfFilterSubcollection','cfFilterGenre','cfFilterSubgenre',
                  'cfFilterCuration','cfFilterPressing','cfFilterCondition',
                  'cfFilterFormat','cfFilterFolderType','cfFilterScore'];
     let count = ids.filter(id => { const el = document.getElementById(id); return el && el.value !== ''; }).length;
