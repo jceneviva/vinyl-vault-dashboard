@@ -2507,7 +2507,7 @@ function getFilteredCFItems(items) {
     if (format) f=f.filter(i=>i.folder_format===format);
     if (genreFilter) f=f.filter(i=>i.artist_genre===genreFilter);
     if (subgenreFilter) f=f.filter(i=>i.artist_subgenre===subgenreFilter);
-    if (subCollection) f=f.filter(i=>i.subcollection===subCollection);
+    if (subCollection) f=f.filter(i=>(i.subcollection||'').trim().toLowerCase()===subCollection.trim().toLowerCase());
     if (score) f=f.filter(i=>i.pressing_score===score);
     if (search) f=f.filter(i=>(i.artist_name||'').toLowerCase().includes(search)||(i.basic_title||'').toLowerCase().includes(search)||(i.notes||'').toLowerCase().includes(search));
     const rbm=state.ratingByMaster||{}; const {col,dir}=state.cfSort; const m=dir==='asc'?1:-1;
