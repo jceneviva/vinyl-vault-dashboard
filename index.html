@@ -842,7 +842,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                 <!-- KPI Cards -->
                 <div class="kpi-grid">
                     <div class="metric"><div class="metric-label">Showing</div><div class="metric-value" id="statTotal">—</div><div class="metric-sub" id="statTotalSub"></div></div>
-                    <div class="metric"><div class="metric-label">Definitive</div><div class="metric-value green" id="statDef">—</div><div class="metric-sub" id="statDefSub"></div></div>
+                    <div class="metric"><div class="metric-label" id="statDefLabel">Definitive</div><div class="metric-value green" id="statDef">—</div><div class="metric-sub" id="statDefSub"></div></div>
                     <div class="metric"><div class="metric-label">Avg Rating</div><div class="metric-value gold" id="collRatingAvg">—</div><div class="metric-sub" id="collRatingSub"></div></div>
                     <div class="metric"><div class="metric-label">Benchmark</div><div class="metric-value" id="statBenchmark">—</div></div>
                     <div class="metric"><div class="metric-label">Owned</div><div class="metric-value green" id="statOwned">—</div></div>
@@ -1817,7 +1817,10 @@ function dashUpdateMetrics(filtered) {
     document.getElementById('statTotalSub').textContent = Object.keys(dashFilters).length > 0
         ? `of ${total.toLocaleString('pt-BR')} total`
         : '';
-    const defCount = filtered.filter(i => i.curation_type === 'Def').length;
+    // Top-tier count = first Type option defined on Discogs (e.g. "Essential")
+    const topType = _cfTypeOptions[0];
+    document.getElementById('statDefLabel').textContent = topType || 'Top Type';
+    const defCount = topType ? filtered.filter(i => i.curation_type === topType).length : 0;
     document.getElementById('statDef').textContent = defCount;
     document.getElementById('statDefSub').textContent = filtered.length > 0 ? `${(defCount / filtered.length * 100).toFixed(0)}%` : '';
     // Ratings
@@ -1952,7 +1955,10 @@ function dashRenderChart(dim, counts) {
 
     // Color mapping
     const condColors = { 'Mint (M)': '#4ade80', 'Near Mint (NM or M-)': '#22d3ee', 'Very Good Plus (VG+)': '#c9a84c', 'Very Good (VG)': '#fb923c', 'Good Plus (G+)': '#f87171', 'Good (G)': '#e879f9', 'Fair (F)': '#9896a8', 'Poor (P)': '#56546a' };
-    const curationColors = { 'Def': '#c9a84c', 'Editorial': '#5b8cf7', 'Temp': '#fb923c', 'Unofficial': '#f87171', 'PicDisc': '#a78bfa', 'Historical': '#22d3ee', 'Sentimental': '#e879f9' };
+    // Type colors follow the Discogs option order, same scale as the badges (_cfTypePalette)
+    const _typeHex = ['#4ade80', '#22d3ee', '#5b8cf7', '#fbbf24', '#f87171'], _typeCatHex = ['#a78bfa', '#e879f9', '#fb923c', '#c9a84c'];
+    const curationColors = Object.fromEntries(_cfTypeOptions.map((o, i) =>
+        [o, i < _typeHex.length ? _typeHex[i] : _typeCatHex[(i - _typeHex.length) % _typeCatHex.length]]));
     const pressingColors = { 'FirstEdition': '#4ade80', 'Reissue': '#5b8cf7', 'Unknown': '#9896a8', 'FirstPress': '#c9a84c' };
     const editionColors = { 'Original': '#c9a84c', 'Expanded': '#5b8cf7', 'Bundle': '#4ade80', 'Standard': '#fb923c', 'Bonus': '#a78bfa' };
     const colorMaps = { condition: condColors, curation: curationColors, pressing: pressingColors, edition: editionColors,
@@ -2450,6 +2456,13 @@ async function loadNotes() {
                 state.ratingByMaster = ratingByMaster;
             } catch (e) { console.error('Ratings:', e); state.ratingByMaster = {}; }
 
+            // Load Type options from Discogs field definitions (drives badge colors + top-tier KPI)
+            try {
+                if (!editorState.fieldDefs.length) editorState.fieldDefs = await api('/api/collection/field-defs');
+                const typeDef = editorState.fieldDefs.find(fd => fd.id === 4);
+                _cfTypeOptions = (typeDef && typeDef.options) || [];
+            } catch (e) { console.error('Field defs:', e); _cfTypeOptions = []; }
+
             // Now trigger the full cross-filter render (charts + metrics + ranking)
             dashApplyFilters();
 
@@ -2488,6 +2501,11 @@ function populateCFFilters(stats, items) {
 }
 
 const _cfScoreMap={AA:{bg:'#f4a300',fg:'#0f1117'},A:{bg:'#7c6af7',fg:'#fff'},B:{bg:'#2196f3',fg:'#fff'},C:{bg:'#607d8b',fg:'#fff'},D:{bg:'#795548',fg:'#fff'},E:{bg:'#333333',fg:'#fff'}};
+// Type (Discogs custom field 4) options, in the order defined on Discogs — loaded from /api/collection/field-defs.
+// Colors follow that order: the first five read as a grade scale (green→red), anything after is a category (purple).
+let _cfTypeOptions = [];
+const _cfTypePalette = ['b-owned','b-format','b-manual','b-pending','b-gap'];
+function _cfTypeCls(t){const i=_cfTypeOptions.indexOf(t);return i<0?'b-format':(_cfTypePalette[i]||'b-genre');}
 function _cfPsb(s,manual){if(!s)return'<span style="color:var(--text-muted)">—</span>';const m=_cfScoreMap[s]||{bg:'#333',fg:'#fff'};const out=manual?';outline:2px solid #f4a300':'';return`<span style="display:inline-flex;align-items:center;background:${m.bg};color:${m.fg};border-radius:4px;padding:1px 7px;font-size:0.62rem;font-family:var(--font-mono);font-weight:700${out}">${s}</span>`;}
 
 function getFilteredCFItems(items) {
@@ -2549,6 +2567,7 @@ function renderCollectionCards(items) {
                 <div class="coll-card-meta">
                     ${_cfPsb(i.pressing_score, i.score_is_manual)}
                     ${i.folder_format?`<span class="badge b-format" style="font-size:0.62rem">${esc(i.folder_format)}</span>`:''}
+                    ${i.curation_type?`<span class="badge ${_cfTypeCls(i.curation_type)}" style="font-size:0.62rem">${esc(i.curation_type)}</span>`:''}
                     ${i.artist_subgenre?`<span class="badge b-genre" style="font-size:0.62rem">${esc(i.artist_subgenre)}</span>`:''}
                     ${yr?`<span class="coll-card-country">${yr}</span>`:''}
                     ${i.country?`<span class="coll-card-country">${esc(i.country)}</span>`:''}
@@ -2563,7 +2582,7 @@ function renderCFTable(items) {
     const {f, items: allItems, rbm} = getFilteredCFItems(items);
     const _condAbbr={'Mint':'M','Near Mint':'NM','Very Good Plus':'VG+','Very Good':'VG','Good Plus':'G+','Good':'G','Fair':'F','Poor':'P'};
     function cb(c){if(!c)return'—';const k=c.replace(/ \(.*\)/,'').trim();const s=_condAbbr[k]||k;const cl=c.includes('Mint')?'b-owned':c.includes('Good')?'b-format':'b-gap';return`<span class="badge ${cl}">${esc(s)}</span>`;}
-    function tb(t){if(!t)return'—';const c={'Def':'b-owned','Editorial':'b-format','Temp':'b-gap','Unofficial':'b-gap','PicDisc':'b-genre','Historical':'b-format','Sentimental':'b-genre'};return`<span class="badge ${c[t]||'b-format'}">${esc(t)}</span>`;}
+    function tb(t){if(!t)return'—';return`<span class="badge ${_cfTypeCls(t)}">${esc(t)}</span>`;}
     function psb(s,m){return _cfPsb(s,m);}
     document.getElementById('cfBody').innerHTML = f.map(i => {
         const oy=i.original_year&&i.original_year>0?i.original_year:'—', ry=i.basic_year&&i.basic_year>0?i.basic_year:'—';
