@@ -912,6 +912,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
         <div class="cf-hidden-selects">
             <select id="cfFilterCuration"><option value="">All Types</option></select>
             <select id="cfFilterPressing"><option value="">All Pressings</option></select>
+            <select id="cfFilterEdition"><option value="">All Editions</option></select>
             <select id="cfFilterCondition"><option value="">All Conditions</option></select>
             <select id="cfFilterFormat"><option value="">All Formats</option></select>
             <select id="cfFilterFolderType"><option value="">All Types</option></select>
@@ -981,6 +982,8 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                         <div class="sb-chips" id="cf-sb-curation"></div>
                         <div class="section-dim-label">Pressing</div>
                         <div class="sb-chips" id="cf-sb-pressing"></div>
+                        <div class="section-dim-label">Edition</div>
+                        <div class="sb-chips" id="cf-sb-edition"></div>
                         <div class="section-dim-label">Condition</div>
                         <div class="sb-chips" id="cf-sb-condition"></div>
                     </div>
@@ -2488,7 +2491,7 @@ function populateCFFilters(stats, items) {
         el.innerHTML=html;
         if (prev && [...el.options].some(o=>o.value===prev)) el.value=prev;
     }
-    fill('cfFilterCuration',stats.curation_type); fill('cfFilterPressing',stats.pressing); fill('cfFilterCondition',stats.media_condition);
+    fill('cfFilterCuration',stats.curation_type); fill('cfFilterPressing',stats.pressing); if (stats.edition) fill('cfFilterEdition',stats.edition); fill('cfFilterCondition',stats.media_condition);
     if (stats.artist_genre) fill('cfFilterGenre', Object.fromEntries(Object.entries(stats.artist_genre).sort((a,b)=>a[0].localeCompare(b[0]))));
     if (stats.artist_subgenre) fill('cfFilterSubgenre',stats.artist_subgenre);
     if (stats.subcollection) fill('cfFilterSubcollection', Object.fromEntries(Object.entries(stats.subcollection).sort((a,b)=>a[0].localeCompare(b[0]))));
@@ -2510,7 +2513,7 @@ function _cfPsb(s,manual){if(!s)return'<span style="color:var(--text-muted)">—
 
 function getFilteredCFItems(items) {
     if (!items) items = state.customFields.items;
-    const curation=document.getElementById('cfFilterCuration').value, pressing=document.getElementById('cfFilterPressing').value;
+    const curation=document.getElementById('cfFilterCuration').value, pressing=document.getElementById('cfFilterPressing').value, edition=document.getElementById('cfFilterEdition').value;
     const condition=document.getElementById('cfFilterCondition').value, folder=document.getElementById('cfFilterFolder').value;
     const format=document.getElementById('cfFilterFormat').value, search=document.getElementById('cfSearch').value.toLowerCase();
     const genreFilter=document.getElementById('cfFilterGenre').value;
@@ -2519,7 +2522,7 @@ function getFilteredCFItems(items) {
     const folderType=document.getElementById('cfFilterFolderType').value;
     const score=document.getElementById('cfFilterScore').value;
     let f = items;
-    if (curation) f=f.filter(i=>i.curation_type===curation); if (pressing) f=f.filter(i=>i.pressing===pressing);
+    if (curation) f=f.filter(i=>i.curation_type===curation); if (pressing) f=f.filter(i=>i.pressing===pressing); if (edition) f=f.filter(i=>i.edition===edition);
     if (condition) f=f.filter(i=>i.media_condition===condition); if (folder) f=f.filter(i=>i.folder_name===folder);
     if (folderType) f=f.filter(i=>i.folder_type===folderType);
     if (format) f=f.filter(i=>i.folder_format===format);
@@ -2616,6 +2619,7 @@ function cfPopulateSidebar() {
         { selectId: 'cfFilterFolderType', chipId: 'cf-sb-foldertype' },
         { selectId: 'cfFilterCuration',   chipId: 'cf-sb-curation' },
         { selectId: 'cfFilterPressing',   chipId: 'cf-sb-pressing' },
+        { selectId: 'cfFilterEdition',    chipId: 'cf-sb-edition' },
         { selectId: 'cfFilterCondition',  chipId: 'cf-sb-condition' },
     ];
     map.forEach(({ selectId, chipId }) => {
@@ -2645,7 +2649,7 @@ function cfUpdateSidebarActive() {
     if (!activeChips) return;
     const labels = { cfFilterFolder:'Folder', cfFilterSubcollection:'Subcollection', cfFilterGenre:'Genre', cfFilterSubgenre:'Subgenre',
                      cfFilterFormat:'Format', cfFilterFolderType:'Curatorial',
-                     cfFilterCuration:'Type', cfFilterPressing:'Pressing', cfFilterCondition:'Condition',
+                     cfFilterCuration:'Type', cfFilterPressing:'Pressing', cfFilterEdition:'Edition', cfFilterCondition:'Condition',
                      cfFilterScore:'Score' };
     activeChips.innerHTML = Object.entries(labels).map(([id, label]) => {
         const sel = document.getElementById(id);
@@ -2680,7 +2684,7 @@ function cfClearDropdownOrChip(selectId) {
 
 // Clear all Collection filters
 function cfClearAllFilters() {
-    ['cfFilterFolder','cfFilterSubcollection','cfFilterGenre','cfFilterSubgenre','cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFormat','cfFilterFolderType','cfFilterScore'].forEach(id => {
+    ['cfFilterFolder','cfFilterSubcollection','cfFilterGenre','cfFilterSubgenre','cfFilterCuration','cfFilterPressing','cfFilterEdition','cfFilterCondition','cfFilterFormat','cfFilterFolderType','cfFilterScore'].forEach(id => {
         const el = document.getElementById(id); if (el) el.value = '';
     });
     const vis = document.getElementById('cfSearchVisible');
@@ -2723,7 +2727,7 @@ function cfSyncSearch(value) {
 }
 
 // CF listeners
-['cfFilterCuration','cfFilterPressing','cfFilterCondition','cfFilterFolder','cfFilterFormat','cfFilterGenre','cfFilterSubgenre','cfFilterSubcollection','cfFilterFolderType','cfFilterScore'].forEach(id=>document.getElementById(id).addEventListener('change',()=>renderCFTable()));
+['cfFilterCuration','cfFilterPressing','cfFilterEdition','cfFilterCondition','cfFilterFolder','cfFilterFormat','cfFilterGenre','cfFilterSubgenre','cfFilterSubcollection','cfFilterFolderType','cfFilterScore'].forEach(id=>document.getElementById(id).addEventListener('change',()=>renderCFTable()));
 document.getElementById('cfSearch').addEventListener('input',()=>{clearTimeout(state.searchDebounce);state.searchDebounce=setTimeout(()=>renderCFTable(),300);});
 document.getElementById('cfHeaders').addEventListener('click',e=>{const th=e.target.closest('th[data-sort]');if(!th)return;const c=th.dataset.sort;if(state.cfSort.col===c)state.cfSort.dir=state.cfSort.dir==='asc'?'desc':'asc';else{state.cfSort.col=c;state.cfSort.dir='asc';}document.querySelectorAll('#cfHeaders th[data-sort]').forEach(h=>{const a=h.dataset.sort===state.cfSort.col?(state.cfSort.dir==='asc'?' ▲':' ▼'):' ⇅';h.textContent=h.textContent.replace(/ [⇅▲▼]$/,'')+a;});renderCFTable();});
 
@@ -4415,6 +4419,7 @@ const _CF_DRILL_CONFIG = [
     { label: 'Subgenre',     selectId: 'cfFilterSubgenre' },
     { label: 'Type',         selectId: 'cfFilterCuration' },
     { label: 'Pressing',     selectId: 'cfFilterPressing' },
+    { label: 'Edition',      selectId: 'cfFilterEdition' },
     { label: 'Condition',    selectId: 'cfFilterCondition' },
     { label: 'Score',        selectId: 'cfFilterScore' },
 ];
@@ -4638,7 +4643,7 @@ function _setDrillValue(selectId, value) {
 
 function updateCollFilterCount() {
     const ids = ['cfFilterFolder','cfFilterSubcollection','cfFilterGenre','cfFilterSubgenre',
-                 'cfFilterCuration','cfFilterPressing','cfFilterCondition',
+                 'cfFilterCuration','cfFilterPressing','cfFilterEdition','cfFilterCondition',
                  'cfFilterFormat','cfFilterFolderType','cfFilterScore'];
     let count = ids.filter(id => { const el = document.getElementById(id); return el && el.value !== ''; }).length;
     const searchEl = document.getElementById('cfSearch');
