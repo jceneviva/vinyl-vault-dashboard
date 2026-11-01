@@ -914,7 +914,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
             <select id="cfFilterPressing"><option value="">All Releases</option></select>
             <select id="cfFilterEdition"><option value="">All Archives</option></select>
             <select id="cfFilterCondition"><option value="">All Conditions</option></select>
-            <select id="cfFilterCover"><option value="">All Covers</option></select>
+            <select id="cfFilterSleeve"><option value="">All Sleeves</option></select>
             <select id="cfFilterObi"><option value="">All OBI</option></select>
             <select id="cfFilterFormat"><option value="">All Formats</option></select>
             <select id="cfFilterFolderType"><option value="">All Types</option></select>
@@ -989,8 +989,8 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                         <div class="sb-chips" id="cf-sb-edition"></div>
                         <div class="section-dim-label">Media</div>
                         <div class="sb-chips" id="cf-sb-condition"></div>
-                        <div class="section-dim-label">Cover</div>
-                        <div class="sb-chips" id="cf-sb-cover"></div>
+                        <div class="section-dim-label">Sleeve</div>
+                        <div class="sb-chips" id="cf-sb-sleeve"></div>
                         <div class="section-dim-label">OBI</div>
                         <div class="sb-chips" id="cf-sb-obi"></div>
                     </div>
@@ -1053,7 +1053,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                                     <th data-sort="artist_subgenre" style="cursor:pointer">Subgenre ⇅</th>
                                     <th data-sort="format_primary" style="cursor:pointer">Fmt ⇅</th>
                                     <th data-sort="media_condition" style="cursor:pointer">Media ⇅</th>
-                                    <th data-sort="sleeve_condition" style="cursor:pointer">Cover ⇅</th>
+                                    <th data-sort="sleeve_condition" style="cursor:pointer">Sleeve ⇅</th>
                                     <th data-sort="obi" style="cursor:pointer">OBI ⇅</th>
                                     <th data-sort="curation_type" style="cursor:pointer">WorkType ⇅</th>
                                     <th data-sort="edition" style="cursor:pointer">Archive ⇅</th>
@@ -1558,7 +1558,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                             <div id="editorOwnedStatus" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px"></div>
                             <div class="tbl-scroll">
                                 <table class="data-table">
-                                    <thead><tr><th style="width:72px"></th><th>Artist</th><th>Title</th><th>Format</th><th>Folder</th><th>Media</th><th>Cover</th><th></th></tr></thead>
+                                    <thead><tr><th style="width:72px"></th><th>Artist</th><th>Title</th><th>Format</th><th>Folder</th><th>Media</th><th>Sleeve</th><th></th></tr></thead>
                                     <tbody id="editorOwnedBody"></tbody>
                                 </table>
                             </div>
@@ -2518,7 +2518,7 @@ function populateCFFilters(stats, items) {
         el.innerHTML=html;
         if (prev && [...el.options].some(o=>o.value===prev)) el.value=prev;
     }
-    fill('cfFilterCuration',stats.curation_type); fill('cfFilterPressing',stats.pressing); if (stats.edition) fill('cfFilterEdition',stats.edition); fill('cfFilterCondition',stats.media_condition); fill('cfFilterCover',stats.sleeve_condition||{}); fill('cfFilterObi',stats.obi||{});
+    fill('cfFilterCuration',stats.curation_type); fill('cfFilterPressing',stats.pressing); if (stats.edition) fill('cfFilterEdition',stats.edition); fill('cfFilterCondition',stats.media_condition); fill('cfFilterSleeve',stats.sleeve_condition||{}); fill('cfFilterObi',stats.obi||{});
     if (stats.artist_genre) fill('cfFilterGenre', Object.fromEntries(Object.entries(stats.artist_genre).sort((a,b)=>a[0].localeCompare(b[0]))));
     if (stats.artist_subgenre) fill('cfFilterSubgenre',stats.artist_subgenre);
     if (stats.subcollection) fill('cfFilterSubcollection', Object.fromEntries(Object.entries(stats.subcollection).sort((a,b)=>a[0].localeCompare(b[0]))));
@@ -2546,7 +2546,7 @@ function getFilteredCFItems(items) {
     const condition=document.getElementById('cfFilterCondition').value, folder=document.getElementById('cfFilterFolder').value;
     const format=document.getElementById('cfFilterFormat').value, search=document.getElementById('cfSearch').value.toLowerCase();
     const genreFilter=document.getElementById('cfFilterGenre').value;
-    const cover=document.getElementById('cfFilterCover').value, obi=document.getElementById('cfFilterObi').value;
+    const sleeve=document.getElementById('cfFilterSleeve').value, obi=document.getElementById('cfFilterObi').value;
     const subgenreFilter=document.getElementById('cfFilterSubgenre').value;
     const subCollection=document.getElementById('cfFilterSubcollection').value;
     const folderType=document.getElementById('cfFilterFolderType').value;
@@ -2554,7 +2554,7 @@ function getFilteredCFItems(items) {
     const myRating=document.getElementById('cfFilterMyRating').value;
     let f = items;
     if (curation) f=f.filter(i=>i.curation_type===curation); if (pressing) f=f.filter(i=>i.pressing===pressing); if (edition) f=f.filter(i=>i.edition===edition);
-    if (cover) f=f.filter(i=>i.sleeve_condition===cover); if (obi) f=f.filter(i=>i.obi===obi);
+    if (sleeve) f=f.filter(i=>i.sleeve_condition===sleeve); if (obi) f=f.filter(i=>i.obi===obi);
     if (condition) f=f.filter(i=>i.media_condition===condition); if (folder) f=f.filter(i=>i.folder_name===folder);
     if (folderType) f=f.filter(i=>i.folder_type===folderType);
     if (format) f=f.filter(i=>i.folder_format===format);
@@ -2657,7 +2657,7 @@ function cfPopulateSidebar() {
         { selectId: 'cfFilterPressing',   chipId: 'cf-sb-pressing' },
         { selectId: 'cfFilterEdition',    chipId: 'cf-sb-edition' },
         { selectId: 'cfFilterCondition',  chipId: 'cf-sb-condition' },
-        { selectId: 'cfFilterCover',      chipId: 'cf-sb-cover' },
+        { selectId: 'cfFilterSleeve',      chipId: 'cf-sb-sleeve' },
         { selectId: 'cfFilterObi',        chipId: 'cf-sb-obi' },
     ];
     map.forEach(({ selectId, chipId }) => {
@@ -2687,7 +2687,7 @@ function cfUpdateSidebarActive() {
     if (!activeChips) return;
     const labels = { cfFilterFolder:'Folder', cfFilterSubcollection:'Subcollection', cfFilterGenre:'Genre', cfFilterSubgenre:'Subgenre',
                      cfFilterFormat:'Format', cfFilterFolderType:'Curatorial',
-                     cfFilterCuration:'WorkType', cfFilterPressing:'Release', cfFilterEdition:'Archive', cfFilterCondition:'Media', cfFilterCover:'Cover', cfFilterObi:'OBI',
+                     cfFilterCuration:'WorkType', cfFilterPressing:'Release', cfFilterEdition:'Archive', cfFilterCondition:'Media', cfFilterSleeve:'Sleeve', cfFilterObi:'OBI',
                      cfFilterScore:'Score', cfFilterMyRating:'My ★' };
     activeChips.innerHTML = Object.entries(labels).map(([id, label]) => {
         const sel = document.getElementById(id);
@@ -2722,7 +2722,7 @@ function cfClearDropdownOrChip(selectId) {
 
 // Clear all Collection filters
 function cfClearAllFilters() {
-    ['cfFilterFolder','cfFilterSubcollection','cfFilterGenre','cfFilterSubgenre','cfFilterCuration','cfFilterPressing','cfFilterEdition','cfFilterCondition','cfFilterCover','cfFilterObi','cfFilterFormat','cfFilterFolderType','cfFilterScore','cfFilterMyRating'].forEach(id => {
+    ['cfFilterFolder','cfFilterSubcollection','cfFilterGenre','cfFilterSubgenre','cfFilterCuration','cfFilterPressing','cfFilterEdition','cfFilterCondition','cfFilterSleeve','cfFilterObi','cfFilterFormat','cfFilterFolderType','cfFilterScore','cfFilterMyRating'].forEach(id => {
         const el = document.getElementById(id); if (el) el.value = '';
     });
     const vis = document.getElementById('cfSearchVisible');
@@ -2765,7 +2765,7 @@ function cfSyncSearch(value) {
 }
 
 // CF listeners
-['cfFilterCuration','cfFilterPressing','cfFilterEdition','cfFilterCondition','cfFilterCover','cfFilterObi','cfFilterFolder','cfFilterFormat','cfFilterGenre','cfFilterSubgenre','cfFilterSubcollection','cfFilterFolderType','cfFilterScore','cfFilterMyRating'].forEach(id=>document.getElementById(id).addEventListener('change',()=>renderCFTable()));
+['cfFilterCuration','cfFilterPressing','cfFilterEdition','cfFilterCondition','cfFilterSleeve','cfFilterObi','cfFilterFolder','cfFilterFormat','cfFilterGenre','cfFilterSubgenre','cfFilterSubcollection','cfFilterFolderType','cfFilterScore','cfFilterMyRating'].forEach(id=>document.getElementById(id).addEventListener('change',()=>renderCFTable()));
 document.getElementById('cfSearch').addEventListener('input',()=>{clearTimeout(state.searchDebounce);state.searchDebounce=setTimeout(()=>renderCFTable(),300);});
 document.getElementById('cfHeaders').addEventListener('click',e=>{const th=e.target.closest('th[data-sort]');if(!th)return;const c=th.dataset.sort;if(state.cfSort.col===c)state.cfSort.dir=state.cfSort.dir==='asc'?'desc':'asc';else{state.cfSort.col=c;state.cfSort.dir='asc';}document.querySelectorAll('#cfHeaders th[data-sort]').forEach(h=>{const a=h.dataset.sort===state.cfSort.col?(state.cfSort.dir==='asc'?' ▲':' ▼'):' ⇅';h.textContent=h.textContent.replace(/ [⇅▲▼]$/,'')+a;});renderCFTable();});
 
@@ -2994,7 +2994,7 @@ function openAlbumDetail(releaseId) {
                 return vals.map(o=>`<option${current===o?' selected':''}>${esc(o)}</option>`).join('');
             }
             const condOpts   = optsFrom('cfFilterCondition', d.media_condition||'');
-            // Cover (13) and OBI (14) options come from the Discogs field definitions
+            // Sleeve (13) and OBI (14) options come from the Discogs field definitions
             function optsFromDef(fieldId, fallbackSelectId, current) {
                 const def = (editorState.fieldDefs||[]).find(fd => fd.id === fieldId);
                 if (!def || !(def.options||[]).length) return optsFrom(fallbackSelectId, current);
@@ -3027,7 +3027,7 @@ function openAlbumDetail(releaseId) {
                                 ${psb(d.pressing_score, d.score_is_manual)}
                                 ${_myStars(d.my_rating)}
                                 ${d.media_condition ? `<span style="font-size:0.72rem;color:var(--text-muted)">Media: <strong style="color:var(--text-secondary)">${esc(d.media_condition)}</strong></span>` : ''}
-                                ${d.sleeve_condition ? `<span style="font-size:0.72rem;color:var(--text-muted)">Cover: <strong style="color:var(--text-secondary)">${esc(d.sleeve_condition)}</strong></span>` : ''}
+                                ${d.sleeve_condition ? `<span style="font-size:0.72rem;color:var(--text-muted)">Sleeve: <strong style="color:var(--text-secondary)">${esc(d.sleeve_condition)}</strong></span>` : ''}
                                 ${d.obi ? `<span style="font-size:0.72rem;color:var(--text-muted)">OBI: <strong style="color:var(--text-secondary)">${esc(d.obi)}</strong></span>` : ''}
                             </div>
                         </div>
@@ -3052,7 +3052,7 @@ function openAlbumDetail(releaseId) {
                         <select id="editMedia"><option value=""></option>${condOpts}</select>
                     </div>
                     <div class="edit-field">
-                        <label>Cover</label>
+                        <label>Sleeve</label>
                         <select id="editSleeve"><option value=""></option>${sleeveOpts}</select>
                     </div>
                     <div class="edit-field">
@@ -4123,7 +4123,7 @@ function _noteVal(notesRaw, fieldId) {
 }
 
 function renderOwnedEditResults() {
-    // Media = field 1, Cover = field 13 (by id: positions shift when fields are reordered on Discogs)
+    // Media = field 1, Sleeve = field 13 (by id: positions shift when fields are reordered on Discogs)
     const mediaDef  = editorState.fieldDefs.find(f => f.id === 1) || {};
     const sleeveDef = editorState.fieldDefs.find(f => f.id === 13) || {};
     const tbody = document.getElementById('editorOwnedBody');
@@ -4474,7 +4474,7 @@ const _CF_DRILL_CONFIG = [
     { label: 'Release',      selectId: 'cfFilterPressing' },
     { label: 'Archive',      selectId: 'cfFilterEdition' },
     { label: 'Media',        selectId: 'cfFilterCondition' },
-    { label: 'Cover',        selectId: 'cfFilterCover' },
+    { label: 'Sleeve',       selectId: 'cfFilterSleeve' },
     { label: 'OBI',          selectId: 'cfFilterObi' },
     { label: 'Score',        selectId: 'cfFilterScore' },
     { label: 'My ★',         selectId: 'cfFilterMyRating' },
@@ -4699,7 +4699,7 @@ function _setDrillValue(selectId, value) {
 
 function updateCollFilterCount() {
     const ids = ['cfFilterFolder','cfFilterSubcollection','cfFilterGenre','cfFilterSubgenre',
-                 'cfFilterCuration','cfFilterPressing','cfFilterEdition','cfFilterCondition','cfFilterCover','cfFilterObi',
+                 'cfFilterCuration','cfFilterPressing','cfFilterEdition','cfFilterCondition','cfFilterSleeve','cfFilterObi',
                  'cfFilterFormat','cfFilterFolderType','cfFilterScore','cfFilterMyRating'];
     let count = ids.filter(id => { const el = document.getElementById(id); return el && el.value !== ''; }).length;
     const searchEl = document.getElementById('cfSearch');
