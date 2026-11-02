@@ -919,7 +919,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
             <select id="cfFilterFormat"><option value="">All Formats</option></select>
             <select id="cfFilterFolderType"><option value="">All Types</option></select>
             <select id="cfFilterScore"><option value="">All Scores</option><option value="AA">AA</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option></select>
-            <select id="cfFilterMyRating"><option value="">All Ratings</option><option value="5">5 ★</option><option value="4+">4+ ★</option><option value="3+">3+ ★</option><option value="2+">2+ ★</option><option value="1+">1+ ★</option><option value="Sem avaliação">Sem avaliação</option></select>
+            <select id="cfFilterMyRating"><option value="">All Ratings</option><option value="5">5 ★</option><option value="4">4 ★</option><option value="3">3 ★</option><option value="2">2 ★</option><option value="1">1 ★</option><option value="Sem avaliação">Sem avaliação</option></select>
             <input type="text" id="cfSearch">
         </div>
 
@@ -1023,10 +1023,10 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                         <div class="sb-chips" id="cf-sb-myrating">
                             <button class="sb-chip active" data-select="cfFilterMyRating" data-val="" onclick="cfSetFilter('cfFilterMyRating','')">All</button>
                             <button class="sb-chip" data-select="cfFilterMyRating" data-val="5" onclick="cfSetFilter('cfFilterMyRating','5')">5 ★</button>
-                            <button class="sb-chip" data-select="cfFilterMyRating" data-val="4+" onclick="cfSetFilter('cfFilterMyRating','4+')">4+ ★</button>
-                            <button class="sb-chip" data-select="cfFilterMyRating" data-val="3+" onclick="cfSetFilter('cfFilterMyRating','3+')">3+ ★</button>
-                            <button class="sb-chip" data-select="cfFilterMyRating" data-val="2+" onclick="cfSetFilter('cfFilterMyRating','2+')">2+ ★</button>
-                            <button class="sb-chip" data-select="cfFilterMyRating" data-val="1+" onclick="cfSetFilter('cfFilterMyRating','1+')">1+ ★</button>
+                            <button class="sb-chip" data-select="cfFilterMyRating" data-val="4" onclick="cfSetFilter('cfFilterMyRating','4')">4 ★</button>
+                            <button class="sb-chip" data-select="cfFilterMyRating" data-val="3" onclick="cfSetFilter('cfFilterMyRating','3')">3 ★</button>
+                            <button class="sb-chip" data-select="cfFilterMyRating" data-val="2" onclick="cfSetFilter('cfFilterMyRating','2')">2 ★</button>
+                            <button class="sb-chip" data-select="cfFilterMyRating" data-val="1" onclick="cfSetFilter('cfFilterMyRating','1')">1 ★</button>
                             <button class="sb-chip" data-select="cfFilterMyRating" data-val="Sem avaliação" onclick="cfSetFilter('cfFilterMyRating','Sem avaliação')">Sem avaliação</button>
                         </div>
                     </div>
@@ -2562,8 +2562,8 @@ function getFilteredCFItems(items) {
     if (subgenreFilter) f=f.filter(i=>i.artist_subgenre===subgenreFilter);
     if (subCollection) f=f.filter(i=>(i.subcollection||'').trim().toLowerCase()===subCollection.trim().toLowerCase());
     if (score) f=f.filter(i=>i.pressing_score===score);
-    // My ★: "N+" is cumulative (4+ = 4 and 5); unrated (null) only matches "Sem avaliação"
-    if (myRating) f=f.filter(i=>myRating==='Sem avaliação'?!i.my_rating:(i.my_rating||0)>=parseInt(myRating));
+    // My ★: exact match (2 = only 2 stars); unrated (null) only matches "Sem avaliação"
+    if (myRating) f=f.filter(i=>myRating==='Sem avaliação'?!i.my_rating:i.my_rating===parseInt(myRating));
     if (search) f=f.filter(i=>(i.artist_name||'').toLowerCase().includes(search)||(i.basic_title||'').toLowerCase().includes(search)||(i.notes||'').toLowerCase().includes(search));
     const rbm=state.ratingByMaster||{}; const {col,dir}=state.cfSort; const m=dir==='asc'?1:-1;
     const _ak=n=>(n||'').replace(/^the\s+/i,'').toLowerCase();
