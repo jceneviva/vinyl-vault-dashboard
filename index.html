@@ -920,7 +920,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
             <select id="cfFilterFormat"><option value="">All Formats</option></select>
             <select id="cfFilterFolderType"><option value="">All Types</option></select>
             <select id="cfFilterScore"><option value="">All Scores</option><option value="AA">AA</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option></select>
-            <select id="cfFilterMyRating"><option value="">All Ratings</option><option value="5">5 ★</option><option value="4">4 ★</option><option value="3">3 ★</option><option value="2">2 ★</option><option value="1">1 ★</option><option value="Sem avaliação">Sem avaliação</option></select>
+            <select id="cfFilterMyRating"><option value="">All Ratings</option><option value="5">5 ★</option><option value="4">4 ★</option><option value="3">3 ★</option><option value="2">2 ★</option><option value="1">1 ★</option><option value="Sem avaliação">Sem avaliação</option><option value="Divergentes">Divergentes</option></select>
             <input type="text" id="cfSearch">
         </div>
 
@@ -1029,6 +1029,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                             <button class="sb-chip" data-select="cfFilterMyRating" data-val="2" onclick="cfSetFilter('cfFilterMyRating','2')">2 ★</button>
                             <button class="sb-chip" data-select="cfFilterMyRating" data-val="1" onclick="cfSetFilter('cfFilterMyRating','1')">1 ★</button>
                             <button class="sb-chip" data-select="cfFilterMyRating" data-val="Sem avaliação" onclick="cfSetFilter('cfFilterMyRating','Sem avaliação')">Sem avaliação</button>
+                            <button class="sb-chip" data-select="cfFilterMyRating" data-val="Divergentes" title="Pressings do mesmo master com notas diferentes, ou só parte deles com nota" onclick="cfSetFilter('cfFilterMyRating','Divergentes')">Divergentes</button>
                         </div>
                     </div>
                 </div>
@@ -2567,8 +2568,11 @@ function getFilteredCFItems(items) {
     if (subgenreFilter) f=f.filter(i=>i.subgenre===subgenreFilter);
     if (subCollection) f=f.filter(i=>(i.subcollection||'').trim().toLowerCase()===subCollection.trim().toLowerCase());
     if (score) f=f.filter(i=>i.pressing_score===score);
-    // My ★: exact match (2 = only 2 stars); unrated (null) only matches "Sem avaliação"
-    if (myRating) f=f.filter(i=>myRating==='Sem avaliação'?!i.my_rating:i.my_rating===parseInt(myRating));
+    // My ★: exact match (2 = only 2 stars); unrated (null) only matches "Sem avaliação";
+    // "Divergentes" = pressings of a master whose ratings don't match (computed over all items)
+    const div = myRating==='Divergentes' ? _ratingDivergence(items) : null;
+    if (div) f=f.filter(i=>div.has(i.master_id));
+    else if (myRating) f=f.filter(i=>myRating==='Sem avaliação'?!i.my_rating:i.my_rating===parseInt(myRating));
     if (search) f=f.filter(i=>(i.artist_name||'').toLowerCase().includes(search)||(i.basic_title||'').toLowerCase().includes(search)||(i.notes||'').toLowerCase().includes(search));
     const rbm=state.ratingByMaster||{}; const {col,dir}=state.cfSort; const m=dir==='asc'?1:-1;
     const _ak=n=>(n||'').replace(/^the\s+/i,'').toLowerCase();
@@ -2588,13 +2592,40 @@ function getFilteredCFItems(items) {
         else{va=(a[col]||'').toLowerCase();vb=(b[col]||'').toLowerCase();}
         if(va<vb)return -1*m;if(va>vb)return 1*m;return 0;
     });
-    return { f, items, rbm };
+    // Divergence view: keep each master's pressings together (stable sort keeps the order above between masters)
+    if (div) {
+        const first = new Map(); f.forEach((i,idx)=>{ if(!first.has(i.master_id)) first.set(i.master_id, idx); });
+        f.sort((a,b)=>first.get(a.master_id)-first.get(b.master_id) || (b.my_rating||0)-(a.my_rating||0));
+    }
+    return { f, items, rbm, div };
+}
+
+// Inline marker shown next to My ★ only while the "Divergentes" filter is active
+function _divTag(div, i) {
+    const k = div && div.get(i.master_id); if (!k) return '';
+    return k === 'diff'
+        ? '<span class="badge b-gap" style="font-size:0.6rem;margin-left:4px" title="Pressings deste master têm notas diferentes">≠ notas</span>'
+        : '<span class="badge b-pending" style="font-size:0.6rem;margin-left:4px" title="Só parte dos pressings deste master tem nota">parcial</span>';
+}
+// Masters with 2+ pressings in the collection whose My ★ don't match:
+// 'diff' = different ratings, 'partial' = some pressings rated, others not. Returns Map master_id → kind.
+function _ratingDivergence(items) {
+    const by = new Map();
+    items.forEach(i => { if (i.master_id > 0) { if (!by.has(i.master_id)) by.set(i.master_id, []); by.get(i.master_id).push(i.my_rating || 0); } });
+    const out = new Map();
+    by.forEach((rs, mid) => {
+        if (rs.length < 2) return;
+        const rated = rs.filter(r => r > 0);
+        if (new Set(rated).size > 1) out.set(mid, 'diff');
+        else if (rated.length && rated.length < rs.length) out.set(mid, 'partial');
+    });
+    return out;
 }
 
 function renderCollectionCards(items) {
     const container = document.getElementById('collCards');
     if (!container) return;
-    const {f} = getFilteredCFItems(items);
+    const {f, div} = getFilteredCFItems(items);
     const _condAbbr={'Mint':'M','Near Mint':'NM','Very Good Plus':'VG+','Very Good':'VG','Good Plus':'G+','Good':'G','Fair':'F','Poor':'P'};
     function condAbbr(c){if(!c)return'';const k=c.replace(/ \(.*\)/,'').trim();return _condAbbr[k]||k;}
     container.innerHTML = f.map(i => {
@@ -2609,7 +2640,7 @@ function renderCollectionCards(items) {
                 <div class="coll-card-title">${esc(i.basic_title||'—')}</div>
                 <div class="coll-card-meta">
                     ${_cfPsb(i.pressing_score, i.score_is_manual)}
-                    ${_myStars(i.my_rating)}
+                    ${_myStars(i.my_rating)}${_divTag(div, i)}
                     ${i.folder_format?`<span class="badge b-format" style="font-size:0.62rem">${esc(i.folder_format)}</span>`:''}
                     ${i.curation_type?`<span class="badge ${_cfTypeCls(i.curation_type)}" style="font-size:0.62rem">${esc(i.curation_type)}</span>`:''}
                     ${_sgBadge(i, true)}
@@ -2623,7 +2654,7 @@ function renderCollectionCards(items) {
 }
 
 function renderCFTable(items) {
-    const {f, items: allItems, rbm} = getFilteredCFItems(items);
+    const {f, items: allItems, rbm, div} = getFilteredCFItems(items);
     const _condAbbr={'Mint':'M','Near Mint':'NM','Very Good Plus':'VG+','Very Good':'VG','Good Plus':'G+','Good':'G','Fair':'F','Poor':'P'};
     function cb(c){if(!c)return'—';const k=c.replace(/ \(.*\)/,'').trim();const s=_condAbbr[k]||k;const cl=c.includes('Mint')?'b-owned':c.includes('Good')?'b-format':'b-gap';return`<span class="badge ${cl}">${esc(s)}</span>`;}
     function tb(t){if(!t)return'—';return`<span class="badge ${_cfTypeCls(t)}">${esc(t)}</span>`;}
@@ -2642,11 +2673,11 @@ function renderCFTable(items) {
             <td>${i.subgenre?_sgBadge(i):'<span style="color:var(--text-muted)">—</span>'}</td>
             <td><span class="badge b-format">${esc(i.folder_format||'—')}</span></td>
             <td>${cb(i.media_condition)}</td><td>${cb(i.sleeve_condition)}</td><td>${esc(i.obi||'—')}</td><td>${tb(i.curation_type)}</td>
-            <td>${esc(i.edition||'—')}</td><td>${esc(i.pressing||'—')}</td><td>${psb(i.pressing_score,i.score_is_manual)}</td><td style="white-space:nowrap">${_myStars(i.my_rating)}</td><td>${rh}</td>
+            <td>${esc(i.edition||'—')}</td><td>${esc(i.pressing||'—')}</td><td>${psb(i.pressing_score,i.score_is_manual)}</td><td style="white-space:nowrap">${_myStars(i.my_rating)}${_divTag(div, i)}</td><td>${rh}</td>
             <td style="color:var(--text-muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(i.notes||'')}">${esc(i.notes||'')}</td>
         </tr>`;
     }).join('');
-    document.getElementById('cfCount').textContent = `${f.length} of ${allItems.length} items`;
+    document.getElementById('cfCount').textContent = `${f.length} of ${allItems.length} items` + (div ? ` · ${new Set(f.map(i=>i.master_id)).size} álbuns com notas divergentes` : '');
     renderCollectionCards();
     updateCollFilterCount();
 }
