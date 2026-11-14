@@ -1040,6 +1040,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                 <div class="cf-topbar">
                     <span class="cf-count-label" id="cfCount"></span>
                     <div class="cf-active-chips" id="cfActiveChips"></div>
+                    <button class="btn btn-ghost" id="cfPdfBtn" onclick="exportCollectionPdf()" title="Salvar os discos filtrados em PDF" style="margin-left:auto;padding:3px 10px;font-size:0.72rem;border:1px solid var(--border)">⬇ PDF</button>
                 </div>
                 <div class="card" style="padding:0;overflow:hidden">
                     <div class="tbl-scroll">
@@ -2636,6 +2637,89 @@ function _ratingDivergence(items) {
     return out;
 }
 
+// ── Collection → PDF (jsPDF + AutoTable, loaded on first use) ──────────────────
+const _PDF_LIBS = ['https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+                   'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'];
+let _pdfLibsPromise = null;
+function _loadPdfLibs() {
+    if (!_pdfLibsPromise) {
+        _pdfLibsPromise = _PDF_LIBS.reduce((p, src) => p.then(() => new Promise((res, rej) => {
+            const s = document.createElement('script');
+            s.src = src; s.onload = res; s.onerror = () => rej(new Error('falha ao carregar a biblioteca de PDF'));
+            document.head.appendChild(s);
+        })), Promise.resolve()).catch(e => { _pdfLibsPromise = null; throw e; });
+    }
+    return _pdfLibsPromise;
+}
+// Standard PDF fonts only cover Latin-1: map common typographic chars, drop the rest (e.g. Japanese)
+function _pdfText(v) {
+    if (v === null || v === undefined) return '';
+    return String(v).normalize('NFC')
+        .replace(/[–—]/g, '-').replace(/[‘’]/g, "'").replace(/[“”]/g, '"')
+        .replace(/…/g, '...').replace(/★/g, '*')
+        .replace(/[^\u0000-ÿ]/g, '')
+        .replace(/[(\[]\s*[)\]]/g, '')          // brackets left empty after dropping their content
+        .replace(/\s+/g, ' ').trim();
+}
+
+async function exportCollectionPdf() {
+    const all = state.customFields?.items || [];
+    if (!all.length) { showToast('A coleção ainda está carregando'); return; }
+    const { f } = getFilteredCFItems();
+    if (!f.length) { showToast('Nenhum disco no filtro atual'); return; }
+    const btn = document.getElementById('cfPdfBtn');
+    const btnLabel = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Gerando…';
+    try {
+        await _loadPdfLibs();
+        const doc = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const today = new Date();
+
+        // Header: title, date + count, active filters (same as the chips above the table)
+        const filters = Object.entries(_CF_FILTER_LABELS)
+            .map(([id, lbl]) => { const v = document.getElementById(id)?.value; return v ? `${lbl}: ${v}` : null; })
+            .filter(Boolean);
+        const search = (document.getElementById('cfSearch')?.value || '').trim();
+        if (search) filters.push(`Busca: "${search}"`);
+        doc.setFontSize(14); doc.text('Vinyl Vault - Collection', 14, 14);
+        doc.setFontSize(8.5); doc.setTextColor(90);
+        doc.text(_pdfText(`${today.toLocaleDateString('pt-BR')} · ${f.length} de ${all.length} discos`), 14, 20);
+        const filterLines = doc.splitTextToSize(_pdfText('Filtros: ' + (filters.length ? filters.join(' · ') : 'nenhum')), 269);
+        doc.text(filterLines, 14, 25);
+
+        const abbr = {'Mint':'M','Near Mint':'NM','Very Good Plus':'VG+','Very Good':'VG','Good Plus':'G+','Good':'G','Fair':'F','Poor':'P'};
+        const cond = c => { if (!c) return ''; const k = c.replace(/ \(.*\)/, '').trim(); return abbr[k] || k; };
+        const yr = y => (y && y > 0) ? String(y) : '';
+        const body = f.map(i => [
+            i.artist_name, i.basic_title, yr(i.original_year), yr(i.basic_year), i.country, i.subgenre,
+            i.folder_format, cond(i.media_condition), cond(i.sleeve_condition), i.obi, i.curation_type,
+            i.pressing_score, i.my_rating ? `${i.my_rating}/5` : '',
+        ].map(_pdfText));
+
+        doc.autoTable({
+            head: [['Artist', 'Title', 'Orig', 'Rel', 'Country', 'Subgenre', 'Format', 'Media', 'Sleeve', 'OBI', 'Type', 'Score', 'My *']],
+            body,
+            startY: 25 + filterLines.length * 3.6 + 2,
+            margin: { left: 14, right: 14, bottom: 12 },
+            styles: { fontSize: 7, cellPadding: 1.2, overflow: 'linebreak' },
+            headStyles: { fillColor: [40, 40, 48] },
+            alternateRowStyles: { fillColor: [245, 245, 248] },
+            columnStyles: { 0: { cellWidth: 38 }, 1: { cellWidth: 58 }, 2: { halign: 'right' }, 3: { halign: 'right' },
+                            11: { halign: 'center' }, 12: { halign: 'center' } },
+        });
+        const pages = doc.internal.getNumberOfPages();
+        for (let p = 1; p <= pages; p++) {
+            doc.setPage(p); doc.setFontSize(7); doc.setTextColor(140);
+            doc.text(`${p} / ${pages}`, 283, 205, { align: 'right' });
+        }
+        doc.save(`vinyl-vault-collection-${today.toLocaleDateString('sv-SE')}.pdf`);   // sv-SE = local YYYY-MM-DD
+    } catch (e) {
+        showToast('Erro ao gerar PDF: ' + e.message, 6000);
+    } finally {
+        btn.disabled = false; btn.textContent = btnLabel;
+    }
+}
+
 function renderCollectionCards(items) {
     const container = document.getElementById('collCards');
     if (!container) return;
@@ -2727,6 +2811,12 @@ function cfPopulateSidebar() {
     });
 }
 
+// Collection filter selects → label (active-filter chips and the PDF header)
+const _CF_FILTER_LABELS = { cfFilterFolder:'Folder', cfFilterSubcollection:'Subcollection', cfFilterGenre:'Genre', cfFilterSubgenre:'Subgenre',
+                            cfFilterFormat:'Format', cfFilterFolderType:'Curatorial',
+                            cfFilterCuration:'WorkType', cfFilterPressing:'Release', cfFilterEdition:'Archive', cfFilterCondition:'Media', cfFilterSleeve:'Sleeve', cfFilterObi:'OBI',
+                            cfFilterScore:'Score', cfFilterMyRating:'My ★' };
+
 // Sync chip active states and active-filters bar with current select values
 function cfUpdateSidebarActive() {
     document.querySelectorAll('#panel-collection .sb-chip').forEach(btn => {
@@ -2735,11 +2825,7 @@ function cfUpdateSidebarActive() {
     });
     const activeChips = document.getElementById('cfActiveChips');
     if (!activeChips) return;
-    const labels = { cfFilterFolder:'Folder', cfFilterSubcollection:'Subcollection', cfFilterGenre:'Genre', cfFilterSubgenre:'Subgenre',
-                     cfFilterFormat:'Format', cfFilterFolderType:'Curatorial',
-                     cfFilterCuration:'WorkType', cfFilterPressing:'Release', cfFilterEdition:'Archive', cfFilterCondition:'Media', cfFilterSleeve:'Sleeve', cfFilterObi:'OBI',
-                     cfFilterScore:'Score', cfFilterMyRating:'My ★' };
-    activeChips.innerHTML = Object.entries(labels).map(([id, label]) => {
+    activeChips.innerHTML = Object.entries(_CF_FILTER_LABELS).map(([id, label]) => {
         const sel = document.getElementById(id);
         if (!sel || !sel.value) return '';
         return `<button class="cf-active-chip" data-select="${id}" data-val="${esc(sel.value)}"
