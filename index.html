@@ -166,6 +166,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
 .b-owned { background: rgba(74,222,128,0.12); color: #4ade80; }
 .b-gap { background: rgba(248,113,113,0.12); color: #f87171; }
 .b-genre { background: rgba(167,139,250,0.12); color: #a78bfa; }
+.b-genre.sg-override { box-shadow: inset 0 0 0 1px #a78bfa; }
 .b-format { background: rgba(34,211,238,0.12); color: #22d3ee; }
 .b-auto { background: rgba(74,222,128,0.12); color: #4ade80; }
 .b-manual { background: rgba(91,140,247,0.12); color: #5b8cf7; }
@@ -1050,7 +1051,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                                     <th data-sort="original_year" style="cursor:pointer">Orig ⇅</th>
                                     <th data-sort="basic_year" style="cursor:pointer">Rel ⇅</th>
                                     <th data-sort="country" style="cursor:pointer">Country ⇅</th>
-                                    <th data-sort="artist_subgenre" style="cursor:pointer">Subgenre ⇅</th>
+                                    <th data-sort="subgenre" style="cursor:pointer">Subgenre ⇅</th>
                                     <th data-sort="format_primary" style="cursor:pointer">Fmt ⇅</th>
                                     <th data-sort="media_condition" style="cursor:pointer">Media ⇅</th>
                                     <th data-sort="sleeve_condition" style="cursor:pointer">Sleeve ⇅</th>
@@ -1777,7 +1778,7 @@ function dashGetDimValue(item, dim) {
             const y = item.original_year && item.original_year > 0 ? item.original_year : null;
             return y ? Math.floor(y / 10) * 10 + 's' : 'Unknown';
         }
-        case 'subgenre': return item.artist_subgenre || 'Unclassified';
+        case 'subgenre': return item.subgenre || 'Unclassified';
         case 'country': return item.country || 'Unknown';
         case 'format': return item.format_primary || 'Unknown';
         case 'folder_type': {
@@ -2519,8 +2520,8 @@ function populateCFFilters(stats, items) {
         if (prev && [...el.options].some(o=>o.value===prev)) el.value=prev;
     }
     fill('cfFilterCuration',stats.curation_type); fill('cfFilterPressing',stats.pressing); if (stats.edition) fill('cfFilterEdition',stats.edition); fill('cfFilterCondition',stats.media_condition); fill('cfFilterSleeve',stats.sleeve_condition||{}); fill('cfFilterObi',stats.obi||{});
-    if (stats.artist_genre) fill('cfFilterGenre', Object.fromEntries(Object.entries(stats.artist_genre).sort((a,b)=>a[0].localeCompare(b[0]))));
-    if (stats.artist_subgenre) fill('cfFilterSubgenre',stats.artist_subgenre);
+    if (stats.genre) fill('cfFilterGenre', Object.fromEntries(Object.entries(stats.genre).sort((a,b)=>a[0].localeCompare(b[0]))));
+    if (stats.subgenre) fill('cfFilterSubgenre',stats.subgenre);
     if (stats.subcollection) fill('cfFilterSubcollection', Object.fromEntries(Object.entries(stats.subcollection).sort((a,b)=>a[0].localeCompare(b[0]))));
     const folders={}; items.forEach(i=>{const f=i.folder_name||'Unknown';folders[f]=(folders[f]||0)+1;});
     fillRaw('cfFilterFolder','<option value="">All Folders</option>'+Object.entries(folders).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join(''));
@@ -2539,6 +2540,10 @@ function _cfTypeCls(t){const i=_cfTypeOptions.indexOf(t);return i<0?'b-format':(
 // Native Discogs collection rating (1-5); null/0 = not rated, shown as such rather than as a low score
 function _myStars(r){if(!r)return'<span style="color:var(--text-muted);font-size:0.68rem;white-space:nowrap">sem avaliação</span>';return`<span title="${r}/5" style="color:var(--gold);font-size:0.72rem;letter-spacing:1px;white-space:nowrap">${'★'.repeat(r)}<span style="color:var(--text-muted)">${'★'.repeat(5-r)}</span></span>`;}
 function _cfPsb(s,manual){if(!s)return'<span style="color:var(--text-muted)">—</span>';const m=_cfScoreMap[s]||{bg:'#333',fg:'#fff'};const out=manual?';outline:2px solid #f4a300':'';return`<span style="display:inline-flex;align-items:center;background:${m.bg};color:${m.fg};border-radius:4px;padding:1px 7px;font-size:0.62rem;font-family:var(--font-mono);font-weight:700${out}">${s}</span>`;}
+// Effective subgenre badge: album override gets an outline + ◆ marker, inherited (artist) is the plain badge
+function _sgBadge(i,small){if(!i.subgenre)return'';const ov=i.subgenre_source==='album';const fs=small?' style="font-size:0.62rem"':'';
+    const tip=ov?`Override do álbum — artista: ${i.artist_subgenre||'não classificado'}`:'Herdado do artista';
+    return`<span class="badge b-genre${ov?' sg-override':''}"${fs} title="${esc(tip)}">${ov?'◆ ':''}${esc(i.subgenre)}</span>`;}
 
 function getFilteredCFItems(items) {
     if (!items) items = state.customFields.items;
@@ -2558,8 +2563,8 @@ function getFilteredCFItems(items) {
     if (condition) f=f.filter(i=>i.media_condition===condition); if (folder) f=f.filter(i=>i.folder_name===folder);
     if (folderType) f=f.filter(i=>i.folder_type===folderType);
     if (format) f=f.filter(i=>i.folder_format===format);
-    if (genreFilter) f=f.filter(i=>i.artist_genre===genreFilter);
-    if (subgenreFilter) f=f.filter(i=>i.artist_subgenre===subgenreFilter);
+    if (genreFilter) f=f.filter(i=>i.genre===genreFilter);
+    if (subgenreFilter) f=f.filter(i=>i.subgenre===subgenreFilter);
     if (subCollection) f=f.filter(i=>(i.subcollection||'').trim().toLowerCase()===subCollection.trim().toLowerCase());
     if (score) f=f.filter(i=>i.pressing_score===score);
     // My ★: exact match (2 = only 2 stars); unrated (null) only matches "Sem avaliação"
@@ -2607,7 +2612,7 @@ function renderCollectionCards(items) {
                     ${_myStars(i.my_rating)}
                     ${i.folder_format?`<span class="badge b-format" style="font-size:0.62rem">${esc(i.folder_format)}</span>`:''}
                     ${i.curation_type?`<span class="badge ${_cfTypeCls(i.curation_type)}" style="font-size:0.62rem">${esc(i.curation_type)}</span>`:''}
-                    ${i.artist_subgenre?`<span class="badge b-genre" style="font-size:0.62rem">${esc(i.artist_subgenre)}</span>`:''}
+                    ${_sgBadge(i, true)}
                     ${yr?`<span class="coll-card-country">${yr}</span>`:''}
                     ${i.country?`<span class="coll-card-country">${esc(i.country)}</span>`:''}
                     ${i.media_condition?`<span class="coll-card-media">${condAbbr(i.media_condition)}</span>`:''}
@@ -2634,7 +2639,7 @@ function renderCFTable(items) {
             <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.basic_title||'—')}</td>
             <td style="font-family:var(--font-mono)">${oy}</td><td style="font-family:var(--font-mono);${ys}">${ry}</td>
             <td>${esc(i.country||'—')}</td>
-            <td>${i.artist_subgenre?`<span class="badge b-genre">${esc(i.artist_subgenre)}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+            <td>${i.subgenre?_sgBadge(i):'<span style="color:var(--text-muted)">—</span>'}</td>
             <td><span class="badge b-format">${esc(i.folder_format||'—')}</span></td>
             <td>${cb(i.media_condition)}</td><td>${cb(i.sleeve_condition)}</td><td>${esc(i.obi||'—')}</td><td>${tb(i.curation_type)}</td>
             <td>${esc(i.edition||'—')}</td><td>${esc(i.pressing||'—')}</td><td>${psb(i.pressing_score,i.score_is_manual)}</td><td style="white-space:nowrap">${_myStars(i.my_rating)}</td><td>${rh}</td>
@@ -2741,12 +2746,12 @@ function cfGenreChanged() {
     const prev = subSel.value;
     if (!genre) {
         const counts = {};
-        items.forEach(i => { if (i.artist_subgenre) counts[i.artist_subgenre] = (counts[i.artist_subgenre]||0)+1; });
+        items.forEach(i => { if (i.subgenre) counts[i.subgenre] = (counts[i.subgenre]||0)+1; });
         subSel.innerHTML = '<option value="">All Subgenres</option>' +
             Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
     } else {
         const counts = {};
-        items.filter(i=>i.artist_genre===genre).forEach(i => { if (i.artist_subgenre) counts[i.artist_subgenre] = (counts[i.artist_subgenre]||0)+1; });
+        items.filter(i=>i.genre===genre).forEach(i => { if (i.subgenre) counts[i.subgenre] = (counts[i.subgenre]||0)+1; });
         subSel.innerHTML = '<option value="">All Subgenres</option>' +
             Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
     }
@@ -2971,8 +2976,9 @@ function openAlbumDetail(releaseId) {
     content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Loading…</div>';
     overlay.style.display = 'flex';
     function psb(s,manual){return _cfPsb(s,manual);}
-    api(`/api/collection/detail/${releaseId}`)
-        .then(d => {
+    Promise.all([api(`/api/collection/detail/${releaseId}`),
+                 Object.keys(GENRE_SUBGENRE).length ? null : loadGenreHierarchy()])
+        .then(([d]) => {
             _detailData = d;
             _detailRating = 0;
             const oy = d.master_year && d.master_year > 0 ? d.master_year : '—';
@@ -3006,6 +3012,11 @@ function openAlbumDetail(releaseId) {
             const typeOpts   = optsFrom('cfFilterCuration',  d.curation_type||'');
             const pressingOpts = optsFrom('cfFilterPressing', d.pressing||'');
             const starsHtml = [1,2,3,4,5].map(n=>`<span class="star" data-n="${n}">★</span>`).join('');
+            // Album subgenre override: empty = inherit from artist
+            const ovSg = d.album_subgenre_override || '';
+            const sgOpts = Object.entries(GENRE_SUBGENRE).map(([g, subs]) =>
+                `<optgroup label="${esc(g)}">${subs.map(s=>`<option value="${esc(s)}"${s===ovSg?' selected':''}>${esc(s)}</option>`).join('')}</optgroup>`).join('');
+            const sgSrcLabel = d.subgenre_source==='album' ? 'override do álbum' : d.subgenre_source==='artist' ? 'herdado do artista' : 'não classificado';
             content.innerHTML = `
                 <div class="detail-tabs">
                     <button class="detail-tab active" data-panel="info">Info</button>
@@ -3025,6 +3036,7 @@ function openAlbumDetail(releaseId) {
                             </div>
                             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                                 ${psb(d.pressing_score, d.score_is_manual)}
+                                ${_sgBadge(d, true)}
                                 ${_myStars(d.my_rating)}
                                 ${d.media_condition ? `<span style="font-size:0.72rem;color:var(--text-muted)">Media: <strong style="color:var(--text-secondary)">${esc(d.media_condition)}</strong></span>` : ''}
                                 ${d.sleeve_condition ? `<span style="font-size:0.72rem;color:var(--text-muted)">Sleeve: <strong style="color:var(--text-secondary)">${esc(d.sleeve_condition)}</strong></span>` : ''}
@@ -3090,6 +3102,16 @@ function openAlbumDetail(releaseId) {
                             <option value="E" ${d.pressing_score_override==='E'?'selected':''}>E — Bootleg / Unofficial</option>
                         </select>
                     </div>
+                    <div class="edit-field">
+                        <label>Subgenre (álbum)</label>
+                        <select id="editAlbumSubgenre">
+                            <option value="">— Herda do artista (${esc(d.artist_subgenre || 'não classificado')}) —</option>
+                            ${sgOpts}
+                        </select>
+                        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px">
+                            Efetivo: <strong style="color:var(--text-secondary)">${esc(d.subgenre || '—')}</strong> · ${sgSrcLabel}${d.master_id ? ' · vale para todos os pressings deste master' : ''}
+                        </div>
+                    </div>
                     <button class="btn-primary" style="width:100%" onclick="saveAlbumEdit()">Save</button>
                 </div>`;
             // Tab switching
@@ -3132,6 +3154,12 @@ async function saveAlbumEdit() {
     };
     if (_detailRating > 0) body.rating = _detailRating;
     try {
+        // Album subgenre override is local (not a Discogs field) — only call when changed
+        const newSg = document.getElementById('editAlbumSubgenre')?.value || '';
+        if (newSg !== (_detailData.album_subgenre_override || '')) {
+            const sgRes = await api(`/api/album-subgenre/set?release_id=${_detailData.release_id}&subgenre=${encodeURIComponent(newSg)}`);
+            if (sgRes.status !== 'ok') { showToast('Subgenre error: ' + (sgRes.message || 'unknown'), 8000); return; }
+        }
         const resp = await fetch(`${API}/api/collection/update`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
