@@ -2538,7 +2538,7 @@ let _cfTypeOptions = [];
 const _cfTypePalette = ['b-owned','b-format','b-manual','b-pending','b-gap'];
 function _cfTypeCls(t){const i=_cfTypeOptions.indexOf(t);return i<0?'b-format':(_cfTypePalette[i]||'b-genre');}
 // Native Discogs collection rating (1-5); null/0 = not rated, shown as such rather than as a low score
-function _myStars(r){if(!r)return'<span style="color:var(--text-muted);font-size:0.68rem;white-space:nowrap">sem avaliação</span>';return`<span title="${r}/5" style="color:var(--gold);font-size:0.72rem;letter-spacing:1px;white-space:nowrap">${'★'.repeat(r)}<span style="color:var(--text-muted)">${'★'.repeat(5-r)}</span></span>`;}
+function _myStars(r){if(!r)return'<span style="color:var(--text-muted);font-size:0.68rem;white-space:nowrap">sem avaliação</span>';return`<span title="${r}/5" style="color:var(--gold);font-size:0.72rem;letter-spacing:1px;white-space:nowrap">${'★'.repeat(r)}<span style="color:var(--text-muted)">${'☆'.repeat(5-r)}</span></span>`;}
 function _cfPsb(s,manual){if(!s)return'<span style="color:var(--text-muted)">—</span>';const m=_cfScoreMap[s]||{bg:'#333',fg:'#fff'};const out=manual?';outline:2px solid #f4a300':'';return`<span style="display:inline-flex;align-items:center;background:${m.bg};color:${m.fg};border-radius:4px;padding:1px 7px;font-size:0.62rem;font-family:var(--font-mono);font-weight:700${out}">${s}</span>`;}
 // Effective subgenre badge: album override gets an outline + ◆ marker, inherited (artist) is the plain badge
 function _sgBadge(i,small){if(!i.subgenre)return'';const ov=i.subgenre_source==='album';const fs=small?' style="font-size:0.62rem"':'';
