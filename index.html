@@ -3088,7 +3088,10 @@ function openAlbumDetail(releaseId) {
                 <div class="detail-panel" data-panel="edit" style="display:none">
                     <div class="edit-field">
                         <label>Rating</label>
-                        <div class="star-rating" id="editRating">${starsHtml}</div>
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <div class="star-rating" id="editRating">${starsHtml}</div>
+                            <button type="button" class="btn btn-ghost" id="editRatingClear" style="padding:2px 8px;font-size:0.7rem;border:1px solid var(--border)" title="Remove a nota (volta para sem avaliação) ao salvar">Limpar nota</button>
+                        </div>
                     </div>
                     <div class="edit-field">
                         <label>Media</label>
@@ -3163,6 +3166,11 @@ function openAlbumDetail(releaseId) {
                         ratingEl.querySelectorAll('.star').forEach(s => s.classList.toggle('active', parseInt(s.dataset.n) <= _detailRating));
                     });
                 });
+                // Clear = 0, which the API sends to Discogs as "no rating"
+                content.querySelector('#editRatingClear')?.addEventListener('click', () => {
+                    _detailRating = 0;
+                    ratingEl.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+                });
             }
         })
         .catch(err => {
@@ -3183,7 +3191,7 @@ async function saveAlbumEdit() {
         subcollection: document.getElementById('editSubCollection')?.value || '',
         pressing_score_override: document.getElementById('editScoreOverride')?.value || '',
     };
-    if (_detailRating > 0 && _detailRating !== (_detailData.my_rating || 0)) body.rating = _detailRating;
+    if (_detailRating !== (_detailData.my_rating || 0)) body.rating = _detailRating;   // 0 = cleared
     try {
         // Album subgenre override is local (not a Discogs field) — only call when changed
         const newSg = document.getElementById('editAlbumSubgenre')?.value || '';
