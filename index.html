@@ -260,6 +260,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
 #collAddFab { display: none; position: fixed; bottom: 76px; right: 16px; width: 52px; height: 52px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 1.5rem; border: none; cursor: pointer; z-index: 999; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
 #dashFilterBtn { display: none; }
 #collFilterBtn { display: none; }
+#collPdfBtn { display: none; }
 #benchFilterBtn { display: none; }
 #linkFilterBtn  { display: none; }
 #artFilterBtn   { display: none; }
@@ -388,6 +389,13 @@ tbody tr:hover { background: var(--bg-card-hover); }
         padding: 1px 6px; font-size: 0.7rem; display: none;
     }
     #collFilterBtn .filter-count.has-filters { display: inline-block; }
+    #collPdfBtn {
+        position: fixed; bottom: 76px; right: 16px;
+        background: var(--bg-card); border: 1px solid var(--accent);
+        border-radius: 20px; color: var(--accent);
+        font-size: 0.78rem; padding: 8px 16px;
+        cursor: pointer; z-index: 999; align-items: center;
+    }
     #benchFilterBtn {
         position: fixed; bottom: 76px; left: 16px;
         background: var(--bg-card); border: 1px solid var(--accent);
@@ -1040,7 +1048,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                 <div class="cf-topbar">
                     <span class="cf-count-label" id="cfCount"></span>
                     <div class="cf-active-chips" id="cfActiveChips"></div>
-                    <button class="btn btn-ghost" id="cfPdfBtn" onclick="exportCollectionPdf()" title="Salvar os discos filtrados em PDF" style="margin-left:auto;padding:3px 10px;font-size:0.72rem;border:1px solid var(--border)">⬇ PDF</button>
+                    <button class="btn btn-ghost" id="cfPdfBtn" onclick="exportCollectionPdf(this)" title="Salvar os discos filtrados em PDF" style="margin-left:auto;padding:3px 10px;font-size:0.72rem;border:1px solid var(--border)">⬇ PDF</button>
                 </div>
                 <div class="card" style="padding:0;overflow:hidden">
                     <div class="tbl-scroll">
@@ -2662,12 +2670,12 @@ function _pdfText(v) {
         .replace(/\s+/g, ' ').trim();
 }
 
-async function exportCollectionPdf() {
+async function exportCollectionPdf(btn) {
     const all = state.customFields?.items || [];
     if (!all.length) { showToast('A coleção ainda está carregando'); return; }
     const { f } = getFilteredCFItems();
     if (!f.length) { showToast('Nenhum disco no filtro atual'); return; }
-    const btn = document.getElementById('cfPdfBtn');
+    btn = btn || document.getElementById('cfPdfBtn');   // top-bar button, or the floating one on mobile
     const btnLabel = btn.textContent;
     btn.disabled = true; btn.textContent = 'Gerando…';
     try {
@@ -2935,6 +2943,8 @@ function switchTab(tab) {
         const artBtn   = document.getElementById('artFilterBtn');
         if (dashBtn)  dashBtn.style.display  = tab === 'dashboard'   ? 'flex' : 'none';
         if (collBtn)  collBtn.style.display  = tab === 'collection'  ? 'flex' : 'none';
+        const collPdf = document.getElementById('collPdfBtn');
+        if (collPdf)  collPdf.style.display  = tab === 'collection'  ? 'flex' : 'none';
         if (benchBtn) benchBtn.style.display = tab === 'benchmark'   ? 'flex' : 'none';
         if (linkBtn)  linkBtn.style.display  = 'none';
         if (artBtn)   artBtn.style.display   = 'none';
@@ -5082,6 +5092,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.innerWidth <= 768) {
         const collBtn = document.getElementById('collFilterBtn');
         if (collBtn) collBtn.style.display = 'flex';
+        const collPdf = document.getElementById('collPdfBtn');
+        if (collPdf) collPdf.style.display = 'flex';
         const dashBtn = document.getElementById('dashFilterBtn');
         if (dashBtn) dashBtn.style.display = 'none';
     }
@@ -5134,6 +5146,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- Collection filter button (mobile only) -->
 <button id="collFilterBtn" onclick="openCollFilters()">⚙ Filters <span class="filter-count" id="collFilterCount"></span></button>
+<button id="collPdfBtn" onclick="exportCollectionPdf(this)">⬇ PDF</button>
 
 <!-- Collection filters bottom sheet -->
 <div id="collFilterSheet" class="bottom-sheet">
