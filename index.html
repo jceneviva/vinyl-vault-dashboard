@@ -1511,6 +1511,20 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                         </div>
                         <div id="purgeResult" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);min-height:20px"></div>
                     </div>
+                    <div class="card" style="margin-top:16px">
+                        <h3>Subcollections</h3>
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px">Lista usada no editor de discos. Fica só no app (não vai para o Discogs). Renomear atualiza todos os discos; uma subcollection em uso pode ser desativada, mas não excluída.</div>
+                        <div style="display:flex;gap:8px;margin-bottom:12px">
+                            <input type="text" class="inp" id="scNewName" placeholder="Nova subcollection (ex: Black &amp; Purple Family)" style="flex:1" onkeydown="if(event.key==='Enter')scAdd()">
+                            <button class="btn-primary" onclick="scAdd()">Adicionar</button>
+                        </div>
+                        <div class="tbl-scroll">
+                            <table style="width:100%;font-size:0.8rem">
+                                <thead><tr><th>Nome</th><th style="text-align:right">Discos</th><th>Status</th><th></th></tr></thead>
+                                <tbody id="scAdminBody"><tr><td colspan="4" style="color:var(--text-muted)">Carregando…</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
                     <div class="manage-mobile-logout">
                         <button class="btn-ghost" onclick="logout()">Sign out</button>
                     </div>
@@ -2861,6 +2875,7 @@ function switchManageSub(sub) {
     if (sub === 'artists' && artistsState.items.length === 0) loadArtists();
     if (sub === 'wishlist' && wlState.items.length === 0) loadWishlist();
     if (sub === 'editor' && editorState.folders.length === 0) loadEditorFolders();
+    if (sub === 'admin') loadSubcollections().then(renderSubcollectionAdmin);
     const fab = document.getElementById('wlFab');
     if (fab) fab.style.display = (sub === 'wishlist' && window.innerWidth <= 768) ? 'flex' : 'none';
     if (window.innerWidth <= 768) {
@@ -3008,7 +3023,8 @@ function openAlbumDetail(releaseId) {
     overlay.style.display = 'flex';
     function psb(s,manual){return _cfPsb(s,manual);}
     Promise.all([api(`/api/collection/detail/${releaseId}`),
-                 Object.keys(GENRE_SUBGENRE).length ? null : loadGenreHierarchy()])
+                 Object.keys(GENRE_SUBGENRE).length ? null : loadGenreHierarchy(),
+                 _subcollections.length ? null : loadSubcollections()])
         .then(([d]) => {
             _detailData = d;
             _detailRating = d.my_rating || 0;
@@ -3121,7 +3137,8 @@ function openAlbumDetail(releaseId) {
                         <label>SubCollection</label>
                         <select id="editSubCollection">
                             <option value="">— none —</option>
-                            ${optsFrom('cfFilterSubcollection', d.subcollection||'')}
+                            ${_subcollectionOpts(d.subcollection||'')}
+                            <option value="__new__">+ Nova subcollection…</option>
                         </select>
                     </div>
                     <div class="edit-field">
@@ -3166,6 +3183,18 @@ function openAlbumDetail(releaseId) {
                         ratingEl.querySelectorAll('.star').forEach(s => s.classList.toggle('active', parseInt(s.dataset.n) <= _detailRating));
                     });
                 });
+                // "+ Nova subcollection…" registers a new list entry and selects it
+                const subSel = content.querySelector('#editSubCollection');
+                if (subSel) {
+                    let prevSub = subSel.value;
+                    subSel.addEventListener('change', async () => {
+                        if (subSel.value !== '__new__') { prevSub = subSel.value; return; }
+                        const created = await promptNewSubcollection();
+                        const keep = created || prevSub;
+                        subSel.innerHTML = `<option value="">— none —</option>${_subcollectionOpts(keep)}<option value="__new__">+ Nova subcollection…</option>`;
+                        subSel.value = keep; prevSub = keep;
+                    });
+                }
                 // Clear = 0, which the API sends to Discogs as "no rating"
                 content.querySelector('#editRatingClear')?.addEventListener('click', () => {
                     _detailRating = 0;
@@ -3188,7 +3217,7 @@ async function saveAlbumEdit() {
         type: document.getElementById('editType')?.value || '',
         pressing: document.getElementById('editPressing')?.value || '',
         notes: document.getElementById('editNotes')?.value || '',
-        subcollection: document.getElementById('editSubCollection')?.value || '',
+        subcollection: document.getElementById('editSubCollection')?.value || '',   // '' = clear (app-managed, not Discogs)
         pressing_score_override: document.getElementById('editScoreOverride')?.value || '',
     };
     if (_detailRating !== (_detailData.my_rating || 0)) body.rating = _detailRating;   // 0 = cleared
@@ -3437,6 +3466,95 @@ async function _pollSync() {
         // transient network error — keep polling
     }
 }
+// ── Subcollections (app-managed list; replaced Discogs custom field 12) ──────
+let _subcollections = [];   // [{name, active, item_count}]
+const _attr = v => esc(v).replace(/"/g, '&quot;');   // esc() leaves quotes alone; needed inside attributes
+
+// Like api() but surfaces the API's error detail (e.g. "já existe: X")
+async function _scApi(path) {
+    const resp = await fetch(`${API}${path}`, { headers: API_KEY ? {'X-API-Key': API_KEY} : {} });
+    if (resp.status === 401) { logout(); throw new Error('Session expired'); }
+    const j = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(j.detail || `API ${resp.status}`);
+    return j;
+}
+async function loadSubcollections() {
+    try { _subcollections = await _scApi('/api/subcollections'); } catch (e) { console.error('Subcollections:', e); _subcollections = []; }
+    return _subcollections;
+}
+// Active entries, plus the current value even if it was deactivated
+function _subcollectionOpts(current) {
+    return _subcollections.filter(s => s.active || s.name === current)
+        .map(s => `<option value="${_attr(s.name)}"${s.name === current ? ' selected' : ''}>${esc(s.name)}${s.active ? '' : ' (inativa)'}</option>`).join('');
+}
+async function promptNewSubcollection() {
+    const name = (prompt('Nome da nova subcollection:') || '').trim();
+    if (!name) return null;
+    try {
+        await _scApi(`/api/subcollections/add?name=${encodeURIComponent(name)}`);
+        await loadSubcollections();
+        renderSubcollectionAdmin();
+        showToast(`Subcollection "${name}" criada`);
+        return name;
+    } catch (e) { showToast('Erro: ' + e.message, 6000); return null; }
+}
+
+function renderSubcollectionAdmin() {
+    const body = document.getElementById('scAdminBody');
+    if (!body) return;
+    if (!_subcollections.length) { body.innerHTML = '<tr><td colspan="4" style="color:var(--text-muted)">Nenhuma subcollection cadastrada.</td></tr>'; return; }
+    body.innerHTML = _subcollections.map(s => {
+        const n = esc(s.name), js = _attr(JSON.stringify(s.name));
+        return `<tr style="${s.active ? '' : 'opacity:0.55'}">
+            <td style="font-weight:500">${n}</td>
+            <td style="text-align:right;font-family:var(--font-mono)">${s.item_count}</td>
+            <td>${s.active ? '<span class="badge b-owned">ativa</span>' : '<span class="badge b-gap">inativa</span>'}</td>
+            <td style="white-space:nowrap;text-align:right">
+                <button class="btn btn-ghost" style="padding:2px 8px;font-size:0.7rem;border:1px solid var(--border)" onclick="scRename(${js})">Renomear</button>
+                <button class="btn btn-ghost" style="padding:2px 8px;font-size:0.7rem;border:1px solid var(--border)" onclick="scToggle(${js}, ${!s.active})">${s.active ? 'Desativar' : 'Ativar'}</button>
+                ${s.item_count ? '' : `<button class="btn btn-ghost" style="padding:2px 8px;font-size:0.7rem;border:1px solid var(--border);color:var(--red,#f87171)" onclick="scDelete(${js})">Excluir</button>`}
+            </td></tr>`;
+    }).join('');
+}
+async function scAdd() {
+    const inp = document.getElementById('scNewName');
+    const name = (inp?.value || '').trim();
+    if (!name) return;
+    try {
+        await _scApi(`/api/subcollections/add?name=${encodeURIComponent(name)}`);
+        inp.value = '';
+        await _scRefresh(`Subcollection "${name}" criada`);
+    } catch (e) { showToast('Erro: ' + e.message, 6000); }
+}
+async function scRename(old) {
+    const name = (prompt(`Renomear "${old}" para:`, old) || '').trim();
+    if (!name || name === old) return;
+    try {
+        await _scApi(`/api/subcollections/rename?old=${encodeURIComponent(old)}&new=${encodeURIComponent(name)}`);
+        await _scRefresh(`"${old}" → "${name}"`, true);
+    } catch (e) { showToast('Erro: ' + e.message, 6000); }
+}
+async function scToggle(name, active) {
+    try {
+        await _scApi(`/api/subcollections/set-active?name=${encodeURIComponent(name)}&active=${active}`);
+        await _scRefresh(`"${name}" ${active ? 'ativada' : 'desativada'}`);
+    } catch (e) { showToast('Erro: ' + e.message, 6000); }
+}
+async function scDelete(name) {
+    if (!confirm(`Excluir a subcollection "${name}"?`)) return;
+    try {
+        await _scApi(`/api/subcollections/delete?name=${encodeURIComponent(name)}`);
+        await _scRefresh(`"${name}" excluída`);
+    } catch (e) { showToast('Erro: ' + e.message, 6000); }
+}
+// Reload the list; a rename also changes item values, so reload the Collection data too
+async function _scRefresh(msg, reloadItems) {
+    await loadSubcollections();
+    renderSubcollectionAdmin();
+    if (msg) showToast(msg);
+    if (reloadItems && typeof loadNotes === 'function') loadNotes().catch(() => {});
+}
+
 async function runPurge() {
     const btn=document.getElementById('purgeBtn'),res=document.getElementById('purgeResult');
     if(!confirm('Comparar a coleção local com o Discogs e remover itens que não existem mais lá?'))return;
