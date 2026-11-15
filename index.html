@@ -3110,6 +3110,7 @@ async function skipLink(){try{await api(`/api/linking/link?pa_album_id=${linking
 function closeLinkDialog(){document.getElementById('linkDialog').style.display='none';linkingState.currentPaId=null;}
 
 let _detailData = null;
+let _detailFolders = [];   // [{folder_id, name, item_count}] for the editor's Folder select
 let _detailRating = 0;
 
 function openAlbumDetail(releaseId) {
@@ -3120,7 +3121,8 @@ function openAlbumDetail(releaseId) {
     function psb(s,manual){return _cfPsb(s,manual);}
     Promise.all([api(`/api/collection/detail/${releaseId}`),
                  Object.keys(GENRE_SUBGENRE).length ? null : loadGenreHierarchy(),
-                 _subcollections.length ? null : loadSubcollections()])
+                 _subcollections.length ? null : loadSubcollections(),
+                 _detailFolders.length ? null : api('/api/collection/folders').then(f => { _detailFolders = f || []; })])
         .then(([d]) => {
             _detailData = d;
             _detailRating = d.my_rating || 0;
@@ -3154,6 +3156,11 @@ function openAlbumDetail(releaseId) {
             const obiOpts    = optsFromDef(14, 'cfFilterObi', d.obi||'');
             const typeOpts   = optsFrom('cfFilterCuration',  d.curation_type||'');
             const pressingOpts = optsFrom('cfFilterPressing', d.pressing||'');
+            const archiveOpts  = optsFromDef(8, 'cfFilterEdition', d.edition||'');
+            // Folder names can repeat on Discogs — append the item count to tell them apart
+            const nameCount = {}; _detailFolders.forEach(f => { nameCount[f.name] = (nameCount[f.name]||0) + 1; });
+            const folderOpts = _detailFolders.map(f =>
+                `<option value="${f.folder_id}"${f.folder_id===d.folder_id?' selected':''}>${esc(f.name)}${nameCount[f.name]>1?` (${f.item_count} discos)`:''}</option>`).join('');
             const starsHtml = [1,2,3,4,5].map(n=>`<span class="star${n<=_detailRating?' active':''}" data-n="${n}">★</span>`).join('');
             // Album subgenre override: empty = inherit from artist
             const ovSg = d.album_subgenre_override || '';
@@ -3220,6 +3227,14 @@ function openAlbumDetail(releaseId) {
                     <div class="edit-field">
                         <label>WorkType</label>
                         <select id="editType"><option value=""></option>${typeOpts}</select>
+                    </div>
+                    <div class="edit-field">
+                        <label>Archive</label>
+                        <select id="editArchive"><option value=""></option>${archiveOpts}</select>
+                    </div>
+                    <div class="edit-field">
+                        <label>Folder</label>
+                        <select id="editFolder">${folderOpts}</select>
                     </div>
                     <div class="edit-field">
                         <label>Release</label>
@@ -3312,11 +3327,15 @@ async function saveAlbumEdit() {
         obi: document.getElementById('editObi')?.value || '',
         type: document.getElementById('editType')?.value || '',
         pressing: document.getElementById('editPressing')?.value || '',
-        notes: document.getElementById('editNotes')?.value || '',
+        edition: document.getElementById('editArchive')?.value || '',
+        notes: document.getElementById('editNotes')?.value || '',   // '' = clear (app-managed, not Discogs)
         subcollection: document.getElementById('editSubCollection')?.value || '',   // '' = clear (app-managed, not Discogs)
         pressing_score_override: document.getElementById('editScoreOverride')?.value || '',
     };
     if (_detailRating !== (_detailData.my_rating || 0)) body.rating = _detailRating;   // 0 = cleared
+    const newFolder = parseInt(document.getElementById('editFolder')?.value || '0');
+    // Only when the current folder is known: otherwise the select defaults to the first option
+    if (newFolder && _detailData.folder_id && newFolder !== _detailData.folder_id) body.folder_id = newFolder;   // moved last by the API
     try {
         // Album subgenre override is local (not a Discogs field) — only call when changed
         const newSg = document.getElementById('editAlbumSubgenre')?.value || '';
