@@ -307,6 +307,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
 .coll-card-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
 .coll-card-country { font-size: 0.7rem; color: var(--text-secondary); }
 .coll-card-media { font-size: 0.7rem; color: var(--text-secondary); }
+.coll-card-notes { font-size: 0.7rem; color: var(--text-muted); font-style: italic; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 #bottomNav {
     display: none; position: fixed !important; bottom: 0 !important; left: 0; right: 0; height: 60px;
@@ -2750,22 +2751,49 @@ async function exportCollectionPdf(btn) {
         const abbr = {'Mint':'M','Near Mint':'NM','Very Good Plus':'VG+','Very Good':'VG','Good Plus':'G+','Good':'G','Fair':'F','Poor':'P'};
         const cond = c => { if (!c) return ''; const k = c.replace(/ \(.*\)/, '').trim(); return abbr[k] || k; };
         const yr = y => (y && y > 0) ? String(y) : '';
-        const body = f.map(i => [
-            i.artist_name, i.basic_title, yr(i.original_year), yr(i.basic_year), i.country, i.subgenre,
-            i.folder_format, cond(i.media_condition), cond(i.sleeve_condition), i.obi, i.curation_type,
-            i.pressing_score, i.my_rating ? `${i.my_rating}/5` : '',
-        ].map(_pdfText));
+        const head = ['Artist', 'Title', 'Orig', 'Ed.', 'Country', 'Subgenre', 'Folder', 'Subcollection', 'Archive',
+                      'Media', 'Sleeve', 'OBI', 'Type', 'Score', 'My *'];
+        // One row per item. Notes are drawn full-width inside the item's own row (space reserved
+        // via bottom padding), so an item and its notes never split across pages.
+        const PAD = 1.1, FONT = 6.5, LINE_H = FONT * 1.15 * 25.4 / 72;   // mm
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(FONT);
+        const body = [], noteLines = [];
+        f.forEach(i => {
+            body.push([
+                i.artist_name, i.basic_title, yr(i.original_year), yr(i.basic_year), i.country, i.subgenre,
+                i.folder_name, i.subcollection, i.edition, cond(i.media_condition), cond(i.sleeve_condition), i.obi,
+                i.curation_type, i.pressing_score, i.my_rating ? `${i.my_rating}/5` : '',
+            ].map(_pdfText));
+            const note = _pdfText(i.notes);
+            noteLines.push(note ? doc.splitTextToSize(note, 269 - 8) : null);
+        });
+        doc.setFont('helvetica', 'normal');
+        const noteH = k => noteLines[k] ? noteLines[k].length * LINE_H + 0.4 : 0;
 
         doc.autoTable({
-            head: [['Artist', 'Title', 'Orig', 'Rel', 'Country', 'Subgenre', 'Format', 'Media', 'Sleeve', 'OBI', 'Type', 'Score', 'My *']],
+            head: [head],
             body,
             startY: 25 + filterLines.length * 3.6 + 2,
             margin: { left: 14, right: 14, bottom: 12 },
-            styles: { fontSize: 7, cellPadding: 1.2, overflow: 'linebreak' },
+            styles: { fontSize: FONT, cellPadding: PAD, overflow: 'linebreak' },
             headStyles: { fillColor: [40, 40, 48] },
             alternateRowStyles: { fillColor: [245, 245, 248] },
-            columnStyles: { 0: { cellWidth: 38 }, 1: { cellWidth: 58 }, 2: { halign: 'right' }, 3: { halign: 'right' },
-                            11: { halign: 'center' }, 12: { halign: 'center' } },
+            rowPageBreak: 'avoid',
+            columnStyles: { 0: { cellWidth: 32 }, 1: { cellWidth: 46 }, 2: { halign: 'right' }, 3: { halign: 'right' },
+                            6: { cellWidth: 30 }, 7: { cellWidth: 22 }, 13: { halign: 'center' }, 14: { halign: 'center' } },
+            didParseCell: data => {
+                const h = data.section === 'body' ? noteH(data.row.index) : 0;
+                if (h) data.cell.styles.cellPadding = { top: PAD, right: PAD, left: PAD, bottom: PAD + h };
+            },
+            // After the row's last cell is painted (so no later fill covers it), write the notes
+            didDrawCell: data => {
+                if (data.section !== 'body' || data.column.index !== head.length - 1) return;
+                const lines = noteLines[data.row.index];
+                if (!lines) return;
+                doc.setFont('helvetica', 'italic'); doc.setFontSize(FONT); doc.setTextColor(110);
+                doc.text(lines, 14 + 4, data.cell.y + data.cell.height - PAD - noteH(data.row.index) + LINE_H * 0.8);
+                doc.setFont('helvetica', 'normal');
+            },
         });
         const pages = doc.internal.getNumberOfPages();
         for (let p = 1; p <= pages; p++) {
@@ -2790,7 +2818,10 @@ function renderCollectionCards(items) {
         const thumbHtml = i.thumb
             ? `<img class="coll-card-thumb" src="${esc(i.thumb)}" alt="" loading="lazy">`
             : `<div class="coll-card-thumb"></div>`;
-        const yr = i.original_year&&i.original_year>0 ? i.original_year : (i.basic_year||'');
+        // Original year + edition year (edition highlighted when it differs, as in the table)
+        const oy = i.original_year > 0 ? i.original_year : null, ey = i.basic_year > 0 ? i.basic_year : null;
+        const yrHtml = oy && ey && oy !== ey
+            ? `${oy} · <span style="color:var(--cyan)">ed. ${ey}</span>` : String(oy || ey || '');
         return `<div class="coll-card" onclick="openAlbumDetail(${i.release_id})">
             ${thumbHtml}
             <div class="coll-card-body">
@@ -2799,13 +2830,16 @@ function renderCollectionCards(items) {
                 <div class="coll-card-meta">
                     ${_cfPsb(i.pressing_score, i.score_is_manual)}
                     ${_myStars(i.my_rating)}${_divTag(div, i)}
-                    ${i.folder_format?`<span class="badge b-format" style="font-size:0.62rem">${esc(i.folder_format)}</span>`:''}
+                    ${i.folder_name?`<span class="badge b-format" style="font-size:0.62rem">${esc(i.folder_name)}</span>`:''}
+                    ${i.subcollection?`<span class="badge b-pending" style="font-size:0.62rem" title="Subcollection">${esc(i.subcollection)}</span>`:''}
+                    ${i.edition && i.edition !== 'Original'?`<span class="badge b-manual" style="font-size:0.62rem" title="Archive">${esc(i.edition)}</span>`:''}
                     ${i.curation_type?`<span class="badge ${_cfTypeCls(i.curation_type)}" style="font-size:0.62rem">${esc(i.curation_type)}</span>`:''}
                     ${_sgBadge(i, true)}
-                    ${yr?`<span class="coll-card-country">${yr}</span>`:''}
+                    ${yrHtml?`<span class="coll-card-country">${yrHtml}</span>`:''}
                     ${i.country?`<span class="coll-card-country">${esc(i.country)}</span>`:''}
                     ${i.media_condition?`<span class="coll-card-media">${condAbbr(i.media_condition)}</span>`:''}
                 </div>
+                ${i.notes?`<div class="coll-card-notes" title="${_attr(i.notes)}">${esc(i.notes)}</div>`:''}
             </div>
         </div>`;
     }).join('');
