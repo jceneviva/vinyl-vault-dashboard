@@ -2585,9 +2585,13 @@ const _CF_FILTERS = [
       order: ['5','4','3','2','1','Sem avaliação'], label: v => /^\d$/.test(v) ? `${v} ★` : v },
 ];
 function _cfSelVal(id) { return document.getElementById(id)?.value || ''; }
+// Option for items with no value in that field (val(i) === ''), listed last when present
+const CF_NONE = '__none__';
+function _cfValLabel(v) { return v === CF_NONE ? 'Não preenchido' : v; }
 function _cfMatch(f, i, sel, div) {
     if (f.id === 'cfFilterMyRating' && sel === 'Divergentes') return !!div && div.has(i.master_id);
     const v = f.val(i);
+    if (sel === CF_NONE) return v === '';
     return f.ci ? v.toLowerCase() === sel.trim().toLowerCase() : v === sel;
 }
 // Items passing every active filter and the search, optionally ignoring one filter (exceptId)
@@ -2613,21 +2617,23 @@ function cfRefreshFilterOptions() {
             if (!el) return;
             const base = _cfApplyFilters(items, f.id, divAll);
             const counts = new Map();
-            base.forEach(i => { const v = f.val(i); if (v) counts.set(v, (counts.get(v) || 0) + 1); });
+            let nNone = 0;
+            base.forEach(i => { const v = f.val(i); if (v) counts.set(v, (counts.get(v) || 0) + 1); else nNone++; });
             const entries = [...counts];
             if (Array.isArray(f.order)) entries.sort((a, b) => f.order.indexOf(a[0]) - f.order.indexOf(b[0]));
             else if (f.order === 'alpha') entries.sort((a, b) => a[0].localeCompare(b[0]));
             else entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+            if (nNone) entries.push([CF_NONE, nNone]);
             if (f.id === 'cfFilterMyRating') {
                 const nDiv = base.filter(i => divAll.has(i.master_id)).length;
                 if (nDiv) entries.push(['Divergentes', nDiv]);
             }
             const prev = el.value;
             el.innerHTML = el.options[0].outerHTML + entries.map(([v, n]) =>
-                `<option value="${_attr(v)}">${esc(f.label ? f.label(v) : v)} (${n})</option>`).join('');
+                `<option value="${_attr(v)}">${esc(v === CF_NONE ? _cfValLabel(v) : f.label ? f.label(v) : v)} (${n})</option>`).join('');
             if (prev) {
                 if ([...el.options].some(o => o.value === prev)) el.value = prev;
-                else { el.value = ''; cleared = true; removed.push(`${_CF_FILTER_LABELS[f.id] || f.id} = ${prev}`); }
+                else { el.value = ''; cleared = true; removed.push(`${_CF_FILTER_LABELS[f.id] || f.id} = ${_cfValLabel(prev)}`); }
             }
         });
         if (!cleared) break;
@@ -2731,7 +2737,7 @@ async function exportCollectionPdf(btn) {
 
         // Header: title, date + count, active filters (same as the chips above the table)
         const filters = Object.entries(_CF_FILTER_LABELS)
-            .map(([id, lbl]) => { const v = document.getElementById(id)?.value; return v ? `${lbl}: ${v}` : null; })
+            .map(([id, lbl]) => { const v = document.getElementById(id)?.value; return v ? `${lbl}: ${_cfValLabel(v)}` : null; })
             .filter(Boolean);
         const search = (document.getElementById('cfSearch')?.value || '').trim();
         if (search) filters.push(`Busca: "${search}"`);
@@ -2889,7 +2895,7 @@ function cfUpdateSidebarActive() {
         const sel = document.getElementById(id);
         if (!sel || !sel.value) return '';
         return `<button class="cf-active-chip" data-select="${id}" data-val="${esc(sel.value)}"
-            onclick="cfClearDropdownOrChip(this.dataset.select)">${esc(label)}: ${esc(sel.value)} ✕</button>`;
+            onclick="cfClearDropdownOrChip(this.dataset.select)">${esc(label)}: ${esc(_cfValLabel(sel.value))} ✕</button>`;
     }).join('');
     // Highlight active dropdowns
     ['cfFilterFolder','cfFilterSubcollection','cfFilterGenre','cfFilterSubgenre'].forEach(id => {
