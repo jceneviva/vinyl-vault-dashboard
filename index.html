@@ -1779,6 +1779,35 @@ function dashGetFilteredItems() {
     return items;
 }
 
+// Items filtered by every active dimension except `dim` — what that dimension's chart and
+// sidebar options are built from (mutual restriction, independent of selection order)
+function dashItemsExcept(dim) {
+    let items = dashAllItems;
+    for (const [d, v] of Object.entries(dashFilters)) {
+        if (d !== dim) items = items.filter(i => dashGetDimValue(i, d) === v);
+    }
+    return items;
+}
+
+// Drop filters whose value no longer has any item given the other filters (e.g. after an
+// edit reloads the data); repeat until stable, since dropping one can widen another.
+function dashPruneOrphanFilters() {
+    if (!dashAllItems.length) return;   // data not loaded yet: nothing to judge against
+    const removed = [];
+    let changed = true;
+    while (changed) {
+        changed = false;
+        for (const [dim, val] of Object.entries(dashFilters)) {
+            if (!dashItemsExcept(dim).some(i => dashGetDimValue(i, dim) === val)) {
+                delete dashFilters[dim];
+                removed.push(`${DASH_DIM_LABELS[dim] || dim} = ${val}`);
+                changed = true;
+            }
+        }
+    }
+    if (removed.length) showToast(`Filtro removido (sem discos com os filtros atuais): ${removed.join(' · ')}`, 7000);
+}
+
 function dashGetDimValue(item, dim) {
     switch (dim) {
         case 'decade': {
@@ -1807,6 +1836,7 @@ function dashGetDimValue(item, dim) {
 }
 
 function dashApplyFilters() {
+    dashPruneOrphanFilters();
     const filtered = dashGetFilteredItems();
     // Update filter bar UI
     dashRenderFilterBar();
@@ -1821,10 +1851,17 @@ function dashApplyFilters() {
     dashRebuildCharts(filtered);
     // Update ranking
     dashUpdateRanking(filtered);
-    // Sync sidebar active states
+    // Sidebar options/counts follow the other active filters, then sync active states
+    dashPopulateSidebar();
     dashUpdateSidebarActive();
     updateDashFilterCount();
 }
+
+const DASH_DIM_LABELS = {
+    decade: 'Decade', subgenre: 'Subgenre', country: 'Country',
+    folder_type: 'Curatorial', folder_format: 'Format',
+    curation: 'WorkType', condition: 'Condition', pressing: 'Release', edition: 'Archive'
+};
 
 function dashRenderFilterBar() {
     const bar = document.getElementById('dashFilterBar');
@@ -1835,14 +1872,9 @@ function dashRenderFilterBar() {
         return;
     }
     bar.style.display = '';
-    const dimLabels = {
-        decade: 'Decade', subgenre: 'Subgenre', country: 'Country',
-        folder_type: 'Curatorial', folder_format: 'Format',
-        curation: 'WorkType', condition: 'Condition', pressing: 'Release', edition: 'Archive'
-    };
     chips.innerHTML = keys.map(dim => `
         <div class="filter-chip">
-            <span class="filter-chip-dim">${dimLabels[dim] || dim}:</span>
+            <span class="filter-chip-dim">${DASH_DIM_LABELS[dim] || dim}:</span>
             ${esc(dashFilters[dim])}
             <span class="filter-chip-x" onclick="dashRemoveFilter('${dim}')" title="Remove filter">✕</span>
         </div>
@@ -1950,10 +1982,7 @@ function dashRebuildCharts(filtered) {
     const dims = ['decade','subgenre','country','folder_type','folder_format','curation','condition','pressing','edition'];
     dims.forEach(dim => {
         // Get items filtered by ALL OTHER dimensions (not this one)
-        let items = dashAllItems;
-        for (const [d, v] of Object.entries(dashFilters)) {
-            if (d !== dim) items = items.filter(i => dashGetDimValue(i, d) === v);
-        }
+        const items = dashItemsExcept(dim);
         // Aggregate
         const counts = {};
         items.forEach(i => {
@@ -2095,7 +2124,7 @@ function dashPopulateSidebar() {
         const el = document.getElementById('sb-' + dim);
         if (!el) return;
         const counts = {};
-        dashAllItems.forEach(i => {
+        dashItemsExcept(dim).forEach(i => {
             const val = dashGetDimValue(i, dim);
             counts[val] = (counts[val] || 0) + 1;
         });
@@ -2118,6 +2147,8 @@ function dashPopulateSidebar() {
             } else {
                 entries = entries.slice(0, lim);
             }
+            const active = dashFilters[dim];
+            if (active && counts[active] && !entries.some(e => e[0] === active)) entries.push([active, counts[active]]);
         }
         if (el.tagName === 'SELECT') {
             el.innerHTML = `<option value="">${el.options[0]?.text || 'All'}</option>` +
