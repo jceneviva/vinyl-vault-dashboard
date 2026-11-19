@@ -978,7 +978,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                     </button>
                     <div class="section-body">
                         <div class="section-dim-label">Genre</div>
-                        <select id="cfFilterGenre" class="sb-dropdown" onchange="cfGenreChanged()"><option value="">All Genres</option></select>
+                        <select id="cfFilterGenre" class="sb-dropdown"><option value="">All Genres</option></select>
                         <div class="section-dim-label">Subgenre</div>
                         <select id="cfFilterSubgenre" class="sb-dropdown"><option value="">All Subgenres</option></select>
                     </div>
@@ -1011,15 +1011,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                         Score <span class="section-toggle-arrow">▾</span>
                     </button>
                     <div class="section-body">
-                        <div class="sb-chips" id="cf-sb-score">
-                            <button class="sb-chip active" data-select="cfFilterScore" data-val="" onclick="cfSetFilter('cfFilterScore','')">All</button>
-                            <button class="sb-chip score-aa" data-select="cfFilterScore" data-val="AA" onclick="cfSetFilter('cfFilterScore','AA')">AA</button>
-                            <button class="sb-chip score-a" data-select="cfFilterScore" data-val="A" onclick="cfSetFilter('cfFilterScore','A')">A</button>
-                            <button class="sb-chip score-b" data-select="cfFilterScore" data-val="B" onclick="cfSetFilter('cfFilterScore','B')">B</button>
-                            <button class="sb-chip score-c" data-select="cfFilterScore" data-val="C" onclick="cfSetFilter('cfFilterScore','C')">C</button>
-                            <button class="sb-chip score-d" data-select="cfFilterScore" data-val="D" onclick="cfSetFilter('cfFilterScore','D')">D</button>
-                            <button class="sb-chip score-e" data-select="cfFilterScore" data-val="E" onclick="cfSetFilter('cfFilterScore','E')">E</button>
-                        </div>
+                        <div class="sb-chips" id="cf-sb-score"></div>
                     </div>
                 </div>
 
@@ -1029,16 +1021,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                         My ★ <span class="section-toggle-arrow">▾</span>
                     </button>
                     <div class="section-body">
-                        <div class="sb-chips" id="cf-sb-myrating">
-                            <button class="sb-chip active" data-select="cfFilterMyRating" data-val="" onclick="cfSetFilter('cfFilterMyRating','')">All</button>
-                            <button class="sb-chip" data-select="cfFilterMyRating" data-val="5" onclick="cfSetFilter('cfFilterMyRating','5')">5 ★</button>
-                            <button class="sb-chip" data-select="cfFilterMyRating" data-val="4" onclick="cfSetFilter('cfFilterMyRating','4')">4 ★</button>
-                            <button class="sb-chip" data-select="cfFilterMyRating" data-val="3" onclick="cfSetFilter('cfFilterMyRating','3')">3 ★</button>
-                            <button class="sb-chip" data-select="cfFilterMyRating" data-val="2" onclick="cfSetFilter('cfFilterMyRating','2')">2 ★</button>
-                            <button class="sb-chip" data-select="cfFilterMyRating" data-val="1" onclick="cfSetFilter('cfFilterMyRating','1')">1 ★</button>
-                            <button class="sb-chip" data-select="cfFilterMyRating" data-val="Sem avaliação" onclick="cfSetFilter('cfFilterMyRating','Sem avaliação')">Sem avaliação</button>
-                            <button class="sb-chip" data-select="cfFilterMyRating" data-val="Divergentes" title="Pressings do mesmo master com notas diferentes, ou só parte deles com nota" onclick="cfSetFilter('cfFilterMyRating','Divergentes')">Divergentes</button>
-                        </div>
+                        <div class="sb-chips" id="cf-sb-myrating"></div>
                     </div>
                 </div>
             </aside>
@@ -2529,30 +2512,9 @@ async function loadNotes() {
 
 // Old standalone chart functions removed — all chart rendering now goes through dashRenderChart
 
-function populateCFFilters(stats, items) {
-    // Preserve the user's current selections across a repopulate (e.g. after an edit
-    // triggers loadNotes); otherwise resetting innerHTML drops the active filter.
-    function fill(id,data) {
-        const el=document.getElementById(id); const prev=el.value;
-        const f=el.options[0].outerHTML;
-        el.innerHTML=f+Object.keys(data).map(k=>`<option value="${esc(k)}">${esc(k)} (${data[k]})</option>`).join('');
-        if (prev && [...el.options].some(o=>o.value===prev)) el.value=prev;
-    }
-    function fillRaw(id, html) {
-        const el=document.getElementById(id); const prev=el.value;
-        el.innerHTML=html;
-        if (prev && [...el.options].some(o=>o.value===prev)) el.value=prev;
-    }
-    fill('cfFilterCuration',stats.curation_type); fill('cfFilterPressing',stats.pressing); if (stats.edition) fill('cfFilterEdition',stats.edition); fill('cfFilterCondition',stats.media_condition); fill('cfFilterSleeve',stats.sleeve_condition||{}); fill('cfFilterObi',stats.obi||{});
-    if (stats.genre) fill('cfFilterGenre', Object.fromEntries(Object.entries(stats.genre).sort((a,b)=>a[0].localeCompare(b[0]))));
-    if (stats.subgenre) fill('cfFilterSubgenre',stats.subgenre);
-    if (stats.subcollection) fill('cfFilterSubcollection', Object.fromEntries(Object.entries(stats.subcollection).sort((a,b)=>a[0].localeCompare(b[0]))));
-    const folders={}; items.forEach(i=>{const f=i.folder_name||'Unknown';folders[f]=(folders[f]||0)+1;});
-    fillRaw('cfFilterFolder','<option value="">All Folders</option>'+Object.entries(folders).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join(''));
-    const fmts={}; items.forEach(i=>{const f=i.folder_format||'Unknown';fmts[f]=(fmts[f]||0)+1;});
-    fillRaw('cfFilterFormat','<option value="">All Formats</option>'+Object.entries(fmts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join(''));
-    const ftypes={}; items.forEach(i=>{const f=i.folder_type||'Unknown';ftypes[f]=(ftypes[f]||0)+1;});
-    fillRaw('cfFilterFolderType','<option value="">All Types</option>'+Object.entries(ftypes).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join(''));
+// Options are derived from the loaded items (see cfRefreshFilterOptions); kept for loadNotes
+function populateCFFilters() {
+    cfRefreshFilterOptions();
 }
 
 const _cfScoreMap={AA:{bg:'#f4a300',fg:'#0f1117'},A:{bg:'#7c6af7',fg:'#fff'},B:{bg:'#2196f3',fg:'#fff'},C:{bg:'#607d8b',fg:'#fff'},D:{bg:'#795548',fg:'#fff'},E:{bg:'#333333',fg:'#fff'}};
@@ -2569,34 +2531,87 @@ function _sgBadge(i,small){if(!i.subgenre)return'';const ov=i.subgenre_source===
     const tip=ov?`Override do álbum — artista: ${i.artist_subgenre||'não classificado'}`:'Herdado do artista';
     return`<span class="badge b-genre${ov?' sg-override':''}"${fs} title="${esc(tip)}">${ov?'◆ ':''}${esc(i.subgenre)}</span>`;}
 
+// ── Collection filters: one definition shared by filtering, option lists and chips ──
+// val(i) = the item's value for that filter ('' = none, never listed as an option).
+// Options of each filter are computed from the items that pass ALL OTHER active filters
+// (mutual restriction, independent of selection order); counts reflect that set.
+const _CF_FILTERS = [
+    { id: 'cfFilterFolder',        val: i => i.folder_name || 'Unknown' },
+    { id: 'cfFilterSubcollection', val: i => (i.subcollection || '').trim(), order: 'alpha', ci: true },
+    { id: 'cfFilterGenre',         val: i => i.genre || '',    order: 'alpha' },
+    { id: 'cfFilterSubgenre',      val: i => i.subgenre || '', order: 'alpha' },
+    { id: 'cfFilterFormat',        val: i => i.folder_format || 'Unknown' },
+    { id: 'cfFilterFolderType',    val: i => i.folder_type || 'Unknown' },
+    { id: 'cfFilterCuration',      val: i => i.curation_type || '' },
+    { id: 'cfFilterPressing',      val: i => i.pressing || '' },
+    { id: 'cfFilterEdition',       val: i => i.edition || '' },
+    { id: 'cfFilterCondition',     val: i => i.media_condition || '' },
+    { id: 'cfFilterSleeve',        val: i => i.sleeve_condition || '' },
+    { id: 'cfFilterObi',           val: i => i.obi || '' },
+    { id: 'cfFilterScore',         val: i => i.pressing_score || '', order: ['AA','A','B','C','D','E'] },
+    // My ★: exact rating (2 = only 2 stars), unrated = "Sem avaliação"; "Divergentes" handled in _cfMatch
+    { id: 'cfFilterMyRating',      val: i => i.my_rating ? String(i.my_rating) : 'Sem avaliação',
+      order: ['5','4','3','2','1','Sem avaliação'], label: v => /^\d$/.test(v) ? `${v} ★` : v },
+];
+function _cfSelVal(id) { return document.getElementById(id)?.value || ''; }
+function _cfMatch(f, i, sel, div) {
+    if (f.id === 'cfFilterMyRating' && sel === 'Divergentes') return !!div && div.has(i.master_id);
+    const v = f.val(i);
+    return f.ci ? v.toLowerCase() === sel.trim().toLowerCase() : v === sel;
+}
+// Items passing every active filter and the search, optionally ignoring one filter (exceptId)
+function _cfApplyFilters(items, exceptId, div) {
+    const active = _CF_FILTERS.map(f => [f, _cfSelVal(f.id)]).filter(([f, sel]) => sel && f.id !== exceptId);
+    const search = (document.getElementById('cfSearch')?.value || '').toLowerCase();
+    return items.filter(i => active.every(([f, sel]) => _cfMatch(f, i, sel, div)) &&
+        (!search || (i.artist_name||'').toLowerCase().includes(search) || (i.basic_title||'').toLowerCase().includes(search)
+                 || (i.notes||'').toLowerCase().includes(search)));
+}
+// Rebuild every filter's options from the items compatible with the other filters, keeping
+// valid selections. A selection left with no items (e.g. after a search or an edit) is
+// cleared and reported; repeat until stable, since clearing one can widen another.
+function cfRefreshFilterOptions() {
+    const items = state.customFields?.items || [];
+    if (!items.length) return;
+    const divAll = _ratingDivergence(items);
+    const removed = [];
+    for (let pass = 0; pass <= _CF_FILTERS.length; pass++) {
+        let cleared = false;
+        _CF_FILTERS.forEach(f => {
+            const el = document.getElementById(f.id);
+            if (!el) return;
+            const base = _cfApplyFilters(items, f.id, divAll);
+            const counts = new Map();
+            base.forEach(i => { const v = f.val(i); if (v) counts.set(v, (counts.get(v) || 0) + 1); });
+            const entries = [...counts];
+            if (Array.isArray(f.order)) entries.sort((a, b) => f.order.indexOf(a[0]) - f.order.indexOf(b[0]));
+            else if (f.order === 'alpha') entries.sort((a, b) => a[0].localeCompare(b[0]));
+            else entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+            if (f.id === 'cfFilterMyRating') {
+                const nDiv = base.filter(i => divAll.has(i.master_id)).length;
+                if (nDiv) entries.push(['Divergentes', nDiv]);
+            }
+            const prev = el.value;
+            el.innerHTML = el.options[0].outerHTML + entries.map(([v, n]) =>
+                `<option value="${_attr(v)}">${esc(f.label ? f.label(v) : v)} (${n})</option>`).join('');
+            if (prev) {
+                if ([...el.options].some(o => o.value === prev)) el.value = prev;
+                else { el.value = ''; cleared = true; removed.push(`${_CF_FILTER_LABELS[f.id] || f.id} = ${prev}`); }
+            }
+        });
+        if (!cleared) break;
+    }
+    cfPopulateSidebar();
+    cfUpdateSidebarActive();
+    updateCollFilterCount();
+    if (removed.length) showToast(`Filtro removido (sem discos com os filtros atuais): ${removed.join(' · ')}`, 7000);
+}
+
 function getFilteredCFItems(items) {
     if (!items) items = state.customFields.items;
-    const curation=document.getElementById('cfFilterCuration').value, pressing=document.getElementById('cfFilterPressing').value, edition=document.getElementById('cfFilterEdition').value;
-    const condition=document.getElementById('cfFilterCondition').value, folder=document.getElementById('cfFilterFolder').value;
-    const format=document.getElementById('cfFilterFormat').value, search=document.getElementById('cfSearch').value.toLowerCase();
-    const genreFilter=document.getElementById('cfFilterGenre').value;
-    const sleeve=document.getElementById('cfFilterSleeve').value, obi=document.getElementById('cfFilterObi').value;
-    const subgenreFilter=document.getElementById('cfFilterSubgenre').value;
-    const subCollection=document.getElementById('cfFilterSubcollection').value;
-    const folderType=document.getElementById('cfFilterFolderType').value;
-    const score=document.getElementById('cfFilterScore').value;
-    const myRating=document.getElementById('cfFilterMyRating').value;
-    let f = items;
-    if (curation) f=f.filter(i=>i.curation_type===curation); if (pressing) f=f.filter(i=>i.pressing===pressing); if (edition) f=f.filter(i=>i.edition===edition);
-    if (sleeve) f=f.filter(i=>i.sleeve_condition===sleeve); if (obi) f=f.filter(i=>i.obi===obi);
-    if (condition) f=f.filter(i=>i.media_condition===condition); if (folder) f=f.filter(i=>i.folder_name===folder);
-    if (folderType) f=f.filter(i=>i.folder_type===folderType);
-    if (format) f=f.filter(i=>i.folder_format===format);
-    if (genreFilter) f=f.filter(i=>i.genre===genreFilter);
-    if (subgenreFilter) f=f.filter(i=>i.subgenre===subgenreFilter);
-    if (subCollection) f=f.filter(i=>(i.subcollection||'').trim().toLowerCase()===subCollection.trim().toLowerCase());
-    if (score) f=f.filter(i=>i.pressing_score===score);
-    // My ★: exact match (2 = only 2 stars); unrated (null) only matches "Sem avaliação";
     // "Divergentes" = pressings of a master whose ratings don't match (computed over all items)
-    const div = myRating==='Divergentes' ? _ratingDivergence(items) : null;
-    if (div) f=f.filter(i=>div.has(i.master_id));
-    else if (myRating) f=f.filter(i=>myRating==='Sem avaliação'?!i.my_rating:i.my_rating===parseInt(myRating));
-    if (search) f=f.filter(i=>(i.artist_name||'').toLowerCase().includes(search)||(i.basic_title||'').toLowerCase().includes(search)||(i.notes||'').toLowerCase().includes(search));
+    const div = _cfSelVal('cfFilterMyRating')==='Divergentes' ? _ratingDivergence(items) : null;
+    const f = _cfApplyFilters(items, null, div);
     const rbm=state.ratingByMaster||{}; const {col,dir}=state.cfSort; const m=dir==='asc'?1:-1;
     const _ak=n=>(n||'').replace(/^the\s+/i,'').toLowerCase();
     f.sort((a,b)=>{
@@ -2760,6 +2775,7 @@ function renderCollectionCards(items) {
 }
 
 function renderCFTable(items) {
+    cfRefreshFilterOptions();
     const {f, items: allItems, rbm, div} = getFilteredCFItems(items);
     const _condAbbr={'Mint':'M','Near Mint':'NM','Very Good Plus':'VG+','Very Good':'VG','Good Plus':'G+','Good':'G','Fair':'F','Poor':'P'};
     function cb(c){if(!c)return'—';const k=c.replace(/ \(.*\)/,'').trim();const s=_condAbbr[k]||k;const cl=c.includes('Mint')?'b-owned':c.includes('Good')?'b-format':'b-gap';return`<span class="badge ${cl}">${esc(s)}</span>`;}
@@ -2801,17 +2817,22 @@ function cfPopulateSidebar() {
         { selectId: 'cfFilterCondition',  chipId: 'cf-sb-condition' },
         { selectId: 'cfFilterSleeve',      chipId: 'cf-sb-sleeve' },
         { selectId: 'cfFilterObi',        chipId: 'cf-sb-obi' },
+        { selectId: 'cfFilterScore',      chipId: 'cf-sb-score',    allChip: true, cls: v => 'score-' + v.toLowerCase() },
+        { selectId: 'cfFilterMyRating',   chipId: 'cf-sb-myrating', allChip: true,
+          tip: v => v === 'Divergentes' ? 'Pressings do mesmo master com notas diferentes, ou só parte deles com nota' : '' },
     ];
-    map.forEach(({ selectId, chipId }) => {
+    map.forEach(({ selectId, chipId, allChip, cls, tip }) => {
         const sel = document.getElementById(selectId);
         const container = document.getElementById(chipId);
         if (!sel || !container) return;
         const options = Array.from(sel.options).slice(1); // skip "All" placeholder
-        container.innerHTML = options.map(opt => {
+        const all = allChip ? `<button class="sb-chip" data-select="${selectId}" data-val="" onclick="cfSetFilter('${selectId}','')">All</button>` : '';
+        container.innerHTML = all + options.map(opt => {
             const m = opt.text.match(/^(.+?)\s+\((\d+)\)$/);
             const label = m ? m[1] : opt.text;
             const count = m ? m[2] : '';
-            return `<button class="sb-chip" data-select="${selectId}" data-val="${esc(opt.value)}"
+            const t = tip ? tip(opt.value) : '';
+            return `<button class="sb-chip${cls ? ' ' + cls(opt.value) : ''}" data-select="${selectId}" data-val="${_attr(opt.value)}"${t ? ` title="${_attr(t)}"` : ''}
                 onclick="cfSetFilter(this.dataset.select, this.dataset.val)">
                 ${esc(label)}<span class="sb-chip-count">${count}</span>
             </button>`;
@@ -2872,29 +2893,6 @@ function cfClearAllFilters() {
     const vis = document.getElementById('cfSearchVisible');
     if (vis) vis.value = '';
     const h = document.getElementById('cfSearch'); if (h) h.value = '';
-    renderCFTable();
-    cfUpdateSidebarActive();
-    updateCollFilterCount();
-}
-
-// When Genre changes, re-filter Subgenre options to those belonging to the selected genre
-function cfGenreChanged() {
-    const genre = document.getElementById('cfFilterGenre').value;
-    const subSel = document.getElementById('cfFilterSubgenre');
-    const items = state.customFields?.items || [];
-    const prev = subSel.value;
-    if (!genre) {
-        const counts = {};
-        items.forEach(i => { if (i.subgenre) counts[i.subgenre] = (counts[i.subgenre]||0)+1; });
-        subSel.innerHTML = '<option value="">All Subgenres</option>' +
-            Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
-    } else {
-        const counts = {};
-        items.filter(i=>i.genre===genre).forEach(i => { if (i.subgenre) counts[i.subgenre] = (counts[i.subgenre]||0)+1; });
-        subSel.innerHTML = '<option value="">All Subgenres</option>' +
-            Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} (${v})</option>`).join('');
-    }
-    if (prev && [...subSel.options].some(o=>o.value===prev)) subSel.value = prev; else subSel.value = '';
     renderCFTable();
     cfUpdateSidebarActive();
     updateCollFilterCount();
