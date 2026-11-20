@@ -1512,6 +1512,15 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                         <div id="purgeResult" style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);min-height:20px"></div>
                     </div>
                     <div class="card" style="margin-top:16px">
+                        <h3>Pastas vazias no Discogs</h3>
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px">Pastas sem nenhum disco. Apagar remove a pasta da sua conta no Discogs (o Discogs só permite apagar pastas vazias). Rode um Sync antes, para a lista refletir o Discogs.</div>
+                        <div class="tbl-scroll">
+                            <table style="width:100%;font-size:0.8rem">
+                                <tbody id="emptyFoldersBody"><tr><td style="color:var(--text-muted)">Carregando…</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-top:16px">
                         <h3>Subcollections</h3>
                         <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px">Lista usada no editor de discos. Fica só no app (não vai para o Discogs). Renomear atualiza todos os discos; uma subcollection em uso pode ser desativada, mas não excluída.</div>
                         <div style="display:flex;gap:8px;margin-bottom:12px">
@@ -2002,6 +2011,21 @@ function dashRebuildCharts(filtered) {
     });
 }
 
+// Values missing from a chart's fixed colour map (e.g. new folder prefixes) get a palette colour
+// not used by that map, assigned on first sight and kept, so it doesn't shift when filters
+// reorder the slices. Only Unknown/Unclassified stay grey (missing data).
+const _dashAutoColors = {};
+function _dashAutoColor(dim, label, cmap) {
+    if (label === 'Unknown' || label === 'Unclassified') return '#56546a';
+    const m = _dashAutoColors[dim] || (_dashAutoColors[dim] = {});
+    if (!m[label]) {
+        const taken = new Set([...Object.values(cmap), ...Object.values(m)]);
+        const free = chartColors.filter(c => !taken.has(c));
+        m[label] = free.length ? free[0] : chartColors[Object.keys(m).length % chartColors.length];
+    }
+    return m[label];
+}
+
 function dashRenderChart(dim, counts) {
     const activeVal = dashFilters[dim] || null;
     let entries = Object.entries(counts);
@@ -2044,7 +2068,7 @@ function dashRenderChart(dim, counts) {
 
     let bgColors;
     if (cmap) {
-        bgColors = labels.map(l => cmap[l] || '#56546a');
+        bgColors = labels.map(l => cmap[l] || _dashAutoColor(dim, l, cmap));
     } else {
         bgColors = chartColors.slice(0, labels.length);
     }
@@ -3050,7 +3074,7 @@ function switchManageSub(sub) {
     if (sub === 'artists' && artistsState.items.length === 0) loadArtists();
     if (sub === 'wishlist' && wlState.items.length === 0) loadWishlist();
     if (sub === 'editor' && editorState.folders.length === 0) loadEditorFolders();
-    if (sub === 'admin') loadSubcollections().then(renderSubcollectionAdmin);
+    if (sub === 'admin') { loadSubcollections().then(renderSubcollectionAdmin); loadEmptyFolders(); }
     const fab = document.getElementById('wlFab');
     if (fab) fab.style.display = (sub === 'wishlist' && window.innerWidth <= 768) ? 'flex' : 'none';
     if (window.innerWidth <= 768) {
@@ -3238,8 +3262,11 @@ function openAlbumDetail(releaseId) {
             const archiveOpts  = optsFromDef(8, 'cfFilterEdition', d.edition||'');
             // Folder names can repeat on Discogs — append the item count to tell them apart
             const nameCount = {}; _detailFolders.forEach(f => { nameCount[f.name] = (nameCount[f.name]||0) + 1; });
-            const folderOpts = _detailFolders.map(f =>
-                `<option value="${f.folder_id}"${f.folder_id===d.folder_id?' selected':''}>${esc(f.name)}${nameCount[f.name]>1?` (${f.item_count} discos)`:''}</option>`).join('');
+            // Folders in use first; empty ones (e.g. just created on Discogs) grouped at the end
+            const fOpt = f => `<option value="${f.folder_id}"${f.folder_id===d.folder_id?' selected':''}>${esc(f.name)}${nameCount[f.name]>1?` (${f.item_count} discos)`:''}</option>`;
+            const emptyFolders = _detailFolders.filter(f => !f.item_count && f.folder_id !== d.folder_id);
+            const folderOpts = _detailFolders.filter(f => f.item_count || f.folder_id === d.folder_id).map(fOpt).join('')
+                + (emptyFolders.length ? `<optgroup label="Pastas vazias">${emptyFolders.map(fOpt).join('')}</optgroup>` : '');
             const starsHtml = [1,2,3,4,5].map(n=>`<span class="star${n<=_detailRating?' active':''}" data-n="${n}">★</span>`).join('');
             // Album subgenre override: empty = inherit from artist
             const ovSg = d.album_subgenre_override || '';
@@ -3747,6 +3774,30 @@ async function _scRefresh(msg, reloadItems) {
     renderSubcollectionAdmin();
     if (msg) showToast(msg);
     if (reloadItems && typeof loadNotes === 'function') loadNotes().catch(() => {});
+}
+
+// ── Empty Discogs folders (Admin) ──────────────────────────────────────────
+async function loadEmptyFolders() {
+    const body = document.getElementById('emptyFoldersBody');
+    if (!body) return;
+    try {
+        const folders = await _scApi('/api/collection/folders');
+        _detailFolders = folders;   // keep the editor's folder list fresh too
+        const empty = folders.filter(f => !f.item_count && f.folder_id > 1);
+        body.innerHTML = empty.length ? empty.map(f => `<tr>
+            <td style="font-weight:500">${esc(f.name)}</td>
+            <td style="text-align:right"><button class="btn btn-ghost" style="padding:2px 8px;font-size:0.7rem;border:1px solid var(--border);color:var(--red,#f87171)"
+                onclick="deleteEmptyFolder(${f.folder_id}, ${_attr(JSON.stringify(f.name))})">Apagar no Discogs</button></td></tr>`).join('')
+            : '<tr><td style="color:var(--text-muted)">Nenhuma pasta vazia.</td></tr>';
+    } catch (e) { body.innerHTML = `<tr><td style="color:var(--text-muted)">Erro: ${esc(e.message)}</td></tr>`; }
+}
+async function deleteEmptyFolder(folderId, name) {
+    if (!confirm(`Apagar a pasta "${name}" no Discogs? Não dá para desfazer.`)) return;
+    try {
+        await _scApi(`/api/collection/folders/delete?folder_id=${folderId}`);
+        showToast(`Pasta "${name}" apagada no Discogs`);
+        loadEmptyFolders();
+    } catch (e) { showToast('Erro: ' + e.message, 7000); }
 }
 
 async function runPurge() {
@@ -5340,7 +5391,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </button>
             <button class="config-item" onclick="openManageSub('admin')">
                 <span class="config-icon">🗂</span>
-                <span>Subcollections</span>
+                <span>Subcollections &amp; Pastas</span>
             </button>
 
             <button class="config-item" onclick="closeConfigSheet(); openSyncSheet();">
