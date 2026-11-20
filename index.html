@@ -248,7 +248,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
     background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;
 }
 #collCards { display: none; }
-.coll-card { display: flex; gap: 12px; padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; align-items: flex-start; }
+.coll-card { display: flex; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--border); cursor: pointer; align-items: flex-start; }
 #wlCards { display: none; }
 .wl-card { display: flex; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--border); align-items: flex-start; }
 .wl-card:active { background: rgba(255,255,255,0.03); }
@@ -300,14 +300,18 @@ tbody tr:hover { background: var(--bg-card-hover); }
 .sync-sheet-step { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 16px; }
 .sync-sheet-actions { display: flex; flex-direction: column; gap: 8px; }
 .coll-card:active { background: rgba(255,255,255,0.03); }
-.coll-card-thumb { width: 56px; height: 56px; border-radius: var(--radius-sm); object-fit: cover; flex-shrink: 0; background: var(--bg-card); }
+.coll-card-thumb { width: 52px; height: 52px; border-radius: var(--radius-sm); object-fit: cover; flex-shrink: 0; background: var(--bg-card); }
 .coll-card-body { flex: 1; min-width: 0; }
-.coll-card-title { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.coll-card-artist { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 4px; }
-.coll-card-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
-.coll-card-country { font-size: 0.7rem; color: var(--text-secondary); }
-.coll-card-media { font-size: 0.7rem; color: var(--text-secondary); }
-.coll-card-notes { font-size: 0.7rem; color: var(--text-muted); font-style: italic; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.coll-card-title { font-size: 0.84rem; font-weight: 600; line-height: 1.25; color: var(--text-primary); overflow-wrap: anywhere;
+                    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.coll-card-sub { font-size: 0.74rem; color: var(--text-secondary); margin-top: 1px; overflow-wrap: anywhere; }
+.coll-card-sub .ed { color: var(--cyan); }
+.coll-card-chips { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; margin-top: 5px; }
+.coll-card-chips .badge { font-size: 0.6rem; }
+.coll-card-meta { font-size: 0.68rem; color: var(--text-muted); margin-top: 4px; line-height: 1.35; overflow-wrap: anywhere; }
+.coll-card-meta b { color: var(--text-secondary); font-weight: 500; }
+.coll-card-notes { font-size: 0.68rem; color: var(--text-muted); font-style: italic; margin-top: 3px; line-height: 1.35; overflow-wrap: anywhere;
+                   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 #bottomNav {
     display: none; position: fixed !important; bottom: 0 !important; left: 0; right: 0; height: 60px;
@@ -2824,25 +2828,27 @@ function renderCollectionCards(items) {
             : `<div class="coll-card-thumb"></div>`;
         // Original year + edition year (edition highlighted when it differs, as in the table)
         const oy = i.original_year > 0 ? i.original_year : null, ey = i.basic_year > 0 ? i.basic_year : null;
-        const yrHtml = oy && ey && oy !== ey
-            ? `${oy} · <span style="color:var(--cyan)">ed. ${ey}</span>` : String(oy || ey || '');
+        const yrHtml = oy && ey && oy !== ey ? `${oy} · <span class="ed">ed. ${ey}</span>` : String(oy || ey || '');
+        // Details as one wrapping text line: folder (emphasised), subcollection, archive if not Original, country, media
+        const details = [
+            i.folder_name ? `<b>${esc(i.folder_name)}</b>` : '',
+            esc(i.subcollection || ''),
+            i.edition && i.edition !== 'Original' ? esc(i.edition) : '',
+            esc(i.country || ''),
+            esc(condAbbr(i.media_condition)),
+        ].filter(Boolean).join(' · ');
         return `<div class="coll-card" onclick="openAlbumDetail(${i.release_id})">
             ${thumbHtml}
             <div class="coll-card-body">
-                <div class="coll-card-artist">${esc(i.artist_name||'—')}</div>
                 <div class="coll-card-title">${esc(i.basic_title||'—')}</div>
-                <div class="coll-card-meta">
+                <div class="coll-card-sub">${esc(i.artist_name||'—')}${yrHtml ? ` · ${yrHtml}` : ''}</div>
+                <div class="coll-card-chips">
                     ${_cfPsb(i.pressing_score, i.score_is_manual)}
                     ${_myStars(i.my_rating)}${_divTag(div, i)}
-                    ${i.folder_name?`<span class="badge b-format" style="font-size:0.62rem">${esc(i.folder_name)}</span>`:''}
-                    ${i.subcollection?`<span class="badge b-pending" style="font-size:0.62rem" title="Subcollection">${esc(i.subcollection)}</span>`:''}
-                    ${i.edition && i.edition !== 'Original'?`<span class="badge b-manual" style="font-size:0.62rem" title="Archive">${esc(i.edition)}</span>`:''}
-                    ${i.curation_type?`<span class="badge ${_cfTypeCls(i.curation_type)}" style="font-size:0.62rem">${esc(i.curation_type)}</span>`:''}
+                    ${i.curation_type?`<span class="badge ${_cfTypeCls(i.curation_type)}">${esc(i.curation_type)}</span>`:''}
                     ${_sgBadge(i, true)}
-                    ${yrHtml?`<span class="coll-card-country">${yrHtml}</span>`:''}
-                    ${i.country?`<span class="coll-card-country">${esc(i.country)}</span>`:''}
-                    ${i.media_condition?`<span class="coll-card-media">${condAbbr(i.media_condition)}</span>`:''}
                 </div>
+                ${details?`<div class="coll-card-meta">${details}</div>`:''}
                 ${i.notes?`<div class="coll-card-notes" title="${_attr(i.notes)}">${esc(i.notes)}</div>`:''}
             </div>
         </div>`;
