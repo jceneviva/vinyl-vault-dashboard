@@ -391,7 +391,8 @@ tbody tr:hover { background: var(--bg-card-hover); }
     }
     #collFilterBtn .filter-count.has-filters { display: inline-block; }
     #collPdfBtn {
-        position: fixed; bottom: 76px; right: 16px;
+        /* left of the "+" (#collAddFab, 52px at right:16px), vertically centred on it */
+        position: fixed; bottom: 85px; right: 80px;
         background: var(--bg-card); border: 1px solid var(--accent);
         border-radius: 20px; color: var(--accent);
         font-size: 0.78rem; padding: 8px 16px;
@@ -656,7 +657,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
 /* Responsive sidebar */
 @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 900px) {
-    .dash-layout { flex-direction: column; }
+    .dash-layout { flex-direction: column; align-items: stretch; }
     .dash-sidebar { width: 100%; position: static; max-height: none; }
 }
 @media (max-width: 600px) {
@@ -918,7 +919,7 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
     <div class="panel" id="panel-collection">
 
         <!-- Hidden selects — kept in DOM so renderCFTable() can read their values -->
-        <!-- Folder, Subgenre, Subcollection are visible dropdowns in the sidebar (not hidden) -->
+        <!-- Folder, Subcollection, Country, Genre, Subgenre are visible dropdowns in the sidebar (not hidden) -->
         <div class="cf-hidden-selects">
             <select id="cfFilterCuration"><option value="">All WorkTypes</option></select>
             <select id="cfFilterPressing"><option value="">All Releases</option></select>
@@ -957,6 +958,8 @@ tr.row-selected td { background: var(--accent-glow) !important; color: var(--acc
                         <select id="cfFilterFolder" class="sb-dropdown"><option value="">All Folders</option></select>
                         <div class="section-dim-label">Subcollection</div>
                         <select id="cfFilterSubcollection" class="sb-dropdown"><option value="">All Subcollections</option></select>
+                        <div class="section-dim-label">Country</div>
+                        <select id="cfFilterCountry" class="sb-dropdown"><option value="">All Countries</option></select>
                         <div class="section-dim-label">Format</div>
                         <div class="sb-chips" id="cf-sb-format"></div>
                     </div>
@@ -2570,6 +2573,7 @@ function _sgBadge(i,small){if(!i.subgenre)return'';const ov=i.subgenre_source===
 const _CF_FILTERS = [
     { id: 'cfFilterFolder',        val: i => i.folder_name || 'Unknown' },
     { id: 'cfFilterSubcollection', val: i => (i.subcollection || '').trim(), order: 'alpha', ci: true },
+    { id: 'cfFilterCountry',       val: i => i.country || '' },
     { id: 'cfFilterGenre',         val: i => i.genre || '',    order: 'alpha' },
     { id: 'cfFilterSubgenre',      val: i => i.subgenre || '', order: 'alpha' },
     { id: 'cfFilterFormat',        val: i => i.folder_format || 'Unknown' },
@@ -2912,7 +2916,7 @@ function cfPopulateSidebar() {
 }
 
 // Collection filter selects → label (active-filter chips and the PDF header)
-const _CF_FILTER_LABELS = { cfFilterFolder:'Folder', cfFilterSubcollection:'Subcollection', cfFilterGenre:'Genre', cfFilterSubgenre:'Subgenre',
+const _CF_FILTER_LABELS = { cfFilterFolder:'Folder', cfFilterSubcollection:'Subcollection', cfFilterCountry:'Country', cfFilterGenre:'Genre', cfFilterSubgenre:'Subgenre',
                             cfFilterFormat:'Format', cfFilterFolderType:'Curatorial',
                             cfFilterCuration:'WorkType', cfFilterPressing:'Release', cfFilterEdition:'Archive', cfFilterCondition:'Media', cfFilterSleeve:'Sleeve', cfFilterObi:'OBI',
                             cfFilterScore:'Score', cfFilterMyRating:'My ★' };
@@ -2932,7 +2936,7 @@ function cfUpdateSidebarActive() {
             onclick="cfClearDropdownOrChip(this.dataset.select)">${esc(label)}: ${esc(_cfValLabel(sel.value))} ✕</button>`;
     }).join('');
     // Highlight active dropdowns
-    ['cfFilterFolder','cfFilterSubcollection','cfFilterGenre','cfFilterSubgenre'].forEach(id => {
+    ['cfFilterFolder','cfFilterSubcollection','cfFilterCountry','cfFilterGenre','cfFilterSubgenre'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle('active', !!el.value);
     });
@@ -2958,7 +2962,7 @@ function cfClearDropdownOrChip(selectId) {
 
 // Clear all Collection filters
 function cfClearAllFilters() {
-    ['cfFilterFolder','cfFilterSubcollection','cfFilterGenre','cfFilterSubgenre','cfFilterCuration','cfFilterPressing','cfFilterEdition','cfFilterCondition','cfFilterSleeve','cfFilterObi','cfFilterFormat','cfFilterFolderType','cfFilterScore','cfFilterMyRating'].forEach(id => {
+    ['cfFilterFolder','cfFilterSubcollection','cfFilterCountry','cfFilterGenre','cfFilterSubgenre','cfFilterCuration','cfFilterPressing','cfFilterEdition','cfFilterCondition','cfFilterSleeve','cfFilterObi','cfFilterFormat','cfFilterFolderType','cfFilterScore','cfFilterMyRating'].forEach(id => {
         const el = document.getElementById(id); if (el) el.value = '';
     });
     const vis = document.getElementById('cfSearchVisible');
@@ -2978,7 +2982,7 @@ function cfSyncSearch(value) {
 }
 
 // CF listeners
-['cfFilterCuration','cfFilterPressing','cfFilterEdition','cfFilterCondition','cfFilterSleeve','cfFilterObi','cfFilterFolder','cfFilterFormat','cfFilterGenre','cfFilterSubgenre','cfFilterSubcollection','cfFilterFolderType','cfFilterScore','cfFilterMyRating'].forEach(id=>document.getElementById(id).addEventListener('change',()=>renderCFTable()));
+['cfFilterCuration','cfFilterPressing','cfFilterEdition','cfFilterCondition','cfFilterSleeve','cfFilterObi','cfFilterFolder','cfFilterFormat','cfFilterGenre','cfFilterSubgenre','cfFilterSubcollection','cfFilterCountry','cfFilterFolderType','cfFilterScore','cfFilterMyRating'].forEach(id=>document.getElementById(id).addEventListener('change',()=>renderCFTable()));
 document.getElementById('cfSearch').addEventListener('input',()=>{clearTimeout(state.searchDebounce);state.searchDebounce=setTimeout(()=>renderCFTable(),300);});
 document.getElementById('cfHeaders').addEventListener('click',e=>{const th=e.target.closest('th[data-sort]');if(!th)return;const c=th.dataset.sort;if(state.cfSort.col===c)state.cfSort.dir=state.cfSort.dir==='asc'?'desc':'asc';else{state.cfSort.col=c;state.cfSort.dir='asc';}document.querySelectorAll('#cfHeaders th[data-sort]').forEach(h=>{const a=h.dataset.sort===state.cfSort.col?(state.cfSort.dir==='asc'?' ▲':' ▼'):' ⇅';h.textContent=h.textContent.replace(/ [⇅▲▼]$/,'')+a;});renderCFTable();});
 
@@ -4835,6 +4839,7 @@ function updateDashFilterCount() {
 const _CF_DRILL_CONFIG = [
     { label: 'Folder',       selectId: 'cfFilterFolder' },
     { label: 'Subcollection',selectId: 'cfFilterSubcollection' },
+    { label: 'Country',      selectId: 'cfFilterCountry' },
     { label: 'Format',       selectId: 'cfFilterFormat' },
     { label: 'Folder Type',  selectId: 'cfFilterFolderType' },
     { label: 'Genre',        selectId: 'cfFilterGenre' },
@@ -5067,7 +5072,7 @@ function _setDrillValue(selectId, value) {
 }
 
 function updateCollFilterCount() {
-    const ids = ['cfFilterFolder','cfFilterSubcollection','cfFilterGenre','cfFilterSubgenre',
+    const ids = ['cfFilterFolder','cfFilterSubcollection','cfFilterCountry','cfFilterGenre','cfFilterSubgenre',
                  'cfFilterCuration','cfFilterPressing','cfFilterEdition','cfFilterCondition','cfFilterSleeve','cfFilterObi',
                  'cfFilterFormat','cfFilterFolderType','cfFilterScore','cfFilterMyRating'];
     let count = ids.filter(id => { const el = document.getElementById(id); return el && el.value !== ''; }).length;
